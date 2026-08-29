@@ -23,8 +23,49 @@
             </div>
         @endif
 
+        {{-- تبويبات بدل ست جداول متتابعة تُطيل الصفحة --}}
+        <ul class="nav nav-tabs mb-3" id="notifTabs" role="tablist">
+            <li class="nav-item">
+                <a class="nav-link active" data-toggle="tab" href="#tab-transfers" role="tab">
+                    {{ \App\CPU\translate('تحويلات المناديب') }}
+                    <span class="badge badge-soft-primary ml-1">{{ $TransactionSellersCount ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#tab-orders" role="tab">
+                    {{ \App\CPU\translate('الطلبات') }}
+                    <span class="badge badge-soft-primary ml-1">{{ $orderCount ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#tab-refunds" role="tab">
+                    {{ \App\CPU\translate('المرتجعات') }}
+                    <span class="badge badge-soft-primary ml-1">{{ $refundOrderCount ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#tab-installments" role="tab">
+                    {{ \App\CPU\translate('التحصيلات') }}
+                    <span class="badge badge-soft-primary ml-1">{{ $installmentCount ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#tab-reserves" role="tab">
+                    {{ \App\CPU\translate('حجوزات المنتجات') }}
+                    <span class="badge badge-soft-primary ml-1">{{ $reserveProductCount ?? 0 }}</span>
+                </a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link" data-toggle="tab" href="#tab-rereserves" role="tab">
+                    {{ \App\CPU\translate('إعادة الحجوزات') }}
+                    <span class="badge badge-soft-primary ml-1">{{ $reReserveProductCount ?? 0 }}</span>
+                </a>
+            </li>
+        </ul>
+
+        <div class="tab-content">
+        <div class="tab-pane fade show active" id="tab-transfers" role="tabpanel">
          <div class="table-responsive mb-3">
-            <h5>{{ \App\CPU\translate('تحويلات المناديب') }}</h5>
             <table class="table table-hover table-borderless">
                 <thead class="thead-light">
                     <tr>
@@ -60,8 +101,9 @@
 
 
         <!-- Orders Table -->
+        </div>
+        <div class="tab-pane fade" id="tab-orders" role="tabpanel">
         <div class="table-responsive mb-3">
-            <h5>{{ \App\CPU\translate('Orders') }}</h5>
             <table class="table table-hover table-borderless">
                 <thead class="thead-light">
                     <tr>
@@ -98,8 +140,9 @@
         </div>
 
         <!-- Refund Orders Table -->
+        </div>
+        <div class="tab-pane fade" id="tab-refunds" role="tabpanel">
         <div class="table-responsive mb-3">
-            <h5>{{ \App\CPU\translate('Refund Orders') }}</h5>
             <table class="table table-hover table-borderless">
                 <thead class="thead-light">
                     <tr>
@@ -136,8 +179,9 @@
         </div>
 
         <!-- Installments Table -->
+        </div>
+        <div class="tab-pane fade" id="tab-installments" role="tabpanel">
         <div class="table-responsive mb-3">
-            <h5>{{ \App\CPU\translate('Installments') }}</h5>
             <table class="table table-hover table-borderless">
                 <thead class="thead-light">
                     <tr>
@@ -174,8 +218,9 @@
         </div>
 
         <!-- Reserve Products Table -->
+        </div>
+        <div class="tab-pane fade" id="tab-reserves" role="tabpanel">
         <div class="table-responsive mb-3">
-            <h5>{{ \App\CPU\translate('Reserve Products') }}</h5>
             <table class="table table-hover table-borderless">
                 <thead class="thead-light">
                     <tr>
@@ -212,8 +257,9 @@
         </div>
 
         <!-- Re-Reserve Products Table -->
+        </div>
+        <div class="tab-pane fade" id="tab-rereserves" role="tabpanel">
         <div class="table-responsive mb-3">
-            <h5>{{ \App\CPU\translate('Re-Reserve Products') }}</h5>
             <table class="table table-hover table-borderless">
                 <thead class="thead-light">
                     <tr>
@@ -248,5 +294,37 @@
                 </div>
             @endif
         </div>
+        </div>
+        </div>
     </div>
 @endsection
+
+@push('script_2')
+    <script>
+        "use strict";
+
+        // تبديل التبويبات يدويًا بدل الاعتماد على إضافة Bootstrap:
+        // القالب لا يحمّل bootstrap.js مستقلًا، وهذه الشاشة أول من يستخدم
+        // التبويبات في المشروع، فلا نعتمد على وجود الإضافة.
+        document.addEventListener('DOMContentLoaded', function () {
+            var links = document.querySelectorAll('#notifTabs .nav-link');
+
+            links.forEach(function (link) {
+                link.addEventListener('click', function (e) {
+                    e.preventDefault();
+
+                    var target = document.querySelector(link.getAttribute('href'));
+                    if (!target) { return; }
+
+                    links.forEach(function (l) { l.classList.remove('active'); });
+                    document.querySelectorAll('.tab-content .tab-pane').forEach(function (p) {
+                        p.classList.remove('show', 'active');
+                    });
+
+                    link.classList.add('active');
+                    target.classList.add('show', 'active');
+                });
+            });
+        });
+    </script>
+@endpush

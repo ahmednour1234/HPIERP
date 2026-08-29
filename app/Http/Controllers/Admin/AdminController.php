@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use function App\CPU\translate;
 
-class adminController extends Controller
+class AdminController extends Controller
 {
     public function __construct(
         private Admin $admin,
