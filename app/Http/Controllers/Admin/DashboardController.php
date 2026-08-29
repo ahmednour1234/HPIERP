@@ -54,6 +54,29 @@ public function dashboard(Request $request): Factory|View|Application
     $from = $request->input('from_date');
     $to   = $request->input('to_date');
 
+    // قائمة «نوع الإحصاءات» كانت بلا أثر: الواجهة تضبط التاريخين للأرباع
+    // والنطاق المخصص فقط، وتمسحهما لباقي الخيارات، فكانت «اليوم» و«الشهر»
+    // و«السنة» تعرض نفس أرقام «الإحصاءات الكلية» تمامًا.
+    //
+    // نشتق المدى هنا من نوع الإحصاءات حين لا تصل تواريخ صريحة، فيصبح
+    // الاختيار فعّالًا دون تغيير الواجهة.
+    if (!$from || !$to) {
+        $range = match ($request->input('statistics_type')) {
+            'today'    => [now()->startOfDay(), now()->endOfDay()],
+            'month'    => [now()->startOfMonth(), now()->endOfMonth()],
+            'year'     => [now()->startOfYear(), now()->endOfYear()],
+            'quarter1' => [now()->startOfYear(), now()->startOfYear()->addMonths(3)->subDay()->endOfDay()],
+            'quarter2' => [now()->startOfYear()->addMonths(3), now()->startOfYear()->addMonths(6)->subDay()->endOfDay()],
+            'quarter3' => [now()->startOfYear()->addMonths(6), now()->startOfYear()->addMonths(9)->subDay()->endOfDay()],
+            'quarter4' => [now()->startOfYear()->addMonths(9), now()->endOfYear()],
+            default    => null, // overall / custom بلا تواريخ = بلا تقييد
+        };
+
+        if ($range) {
+            [$from, $to] = [$range[0]->toDateTimeString(), $range[1]->toDateTimeString()];
+        }
+    }
+
     // Retrieve all seller IDs associated with the admin
     $sellerIds = AdminSeller::where('admin_id', $adminId)
                     ->pluck('seller_id');
@@ -152,62 +175,90 @@ $total_installment_base = $installments->sum('total_price');
         'total_receivable'  => $total_receivable,
     ];
 
-    // Monthly cash and credit sales per month
-    $monthly_income  = [];
-    $monthly_expense = [];
-    for ($i = 1; $i <= 12; $i++) {
-        $start = now()->startOfYear()->addMonths($i - 1)->toDateString();
-        $end   = now()->startOfYear()->addMonths($i - 1)->endOfMonth()->toDateString();
+    // تعبيرا الشهر واليوم يختلفان بين MySQL وSQLite، فيُختاران حسب المحرّك
+    // بدل تثبيت صيغة واحدة تنكسر على الآخر.
+    $driver = \DB::connection()->getDriverName();
+    $monthExpr = $driver === 'sqlite' ? "CAST(strftime('%m', created_at) AS INTEGER)" : 'MONTH(created_at)';
+    $dayExpr   = $driver === 'sqlite' ? "date(created_at)" : 'DATE(created_at)';
 
-        // نقدي (cash=1, type=4)
-        $monthly_income[$i] = $this->order
-            ->whereIn('owner_id', $sellerIds)
-            ->where('cash', 1)
-            ->where('type', 4)
-            ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->whereBetween('created_at', [$start, $end])
-            ->sum('collected_cash');
+    // مبيعات كل شهر، نقدي وآجل.
+    //
+    // كانت حلقة تنفّذ استعلامين لكل شهر (24 استعلامًا)، وكل واحد يمسح جدول
+    // الطلبات من جديد. GROUP BY يعطي الاثني عشر شهرًا في استعلام واحد.
+    $yearStart = now()->startOfYear();
+    $yearEnd   = now()->endOfYear();
 
-        // آجلة (cash=2, type=4)
-        $monthly_expense[$i] = $this->order
-            ->whereIn('owner_id', $sellerIds)
-            ->where('cash', 2)
-            ->where('type', 4)
-            ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->whereBetween('created_at', [$start, $end])
-            ->sum('collected_cash');
+    $monthly_income  = array_fill(1, 12, 0);
+    $monthly_expense = array_fill(1, 12, 0);
+
+    $monthlyRows = (clone $this->order)
+        ->whereIn('owner_id', $sellerIds)
+        ->where('type', 4)
+        ->whereIn('cash', [1, 2])
+        ->whereBetween('created_at', [$yearStart, $yearEnd])
+        ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
+        ->selectRaw($monthExpr . ' as m, cash, SUM(collected_cash) as total')
+        ->groupBy('m', 'cash')
+        ->get();
+
+    foreach ($monthlyRows as $row) {
+        $m = (int) $row->m;
+        if ($m < 1 || $m > 12) {
+            continue;
+        }
+
+        if ((int) $row->cash === 1) {
+            $monthly_income[$m] = (float) $row->total;
+        } else {
+            $monthly_expense[$m] = (float) $row->total;
+        }
     }
-$monthly_visitors=[];
-$monthly_result_visitor=[];
-    for ($i = 1; $i <= 12; $i++) {
-        $start = now()->startOfYear()->addMonths($i - 1)->toDateString();
-        $end   = now()->startOfYear()->addMonths($i - 1)->endOfMonth()->toDateString();
+    // الزيارات المخططة والمنفذة لكل شهر: استعلام واحد لكل جدول بدل 12.
+    $monthly_visitors       = array_fill(1, 12, 0);
+    $monthly_result_visitor = array_fill(1, 12, 0);
 
-        // نقدي (cash=1, type=4)
-        $monthly_visitors[$i] = $this->visitor
-            ->whereIn('seller_id', $sellerIds)
-            ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->whereBetween('created_at', [$start, $end])
-            ->count();
+    $visitorRows = (clone $this->visitor)
+        ->whereIn('seller_id', $sellerIds)
+        ->whereBetween('created_at', [$yearStart, $yearEnd])
+        ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
+        ->selectRaw($monthExpr . ' as m, COUNT(*) as total')
+        ->groupBy('m')
+        ->pluck('total', 'm');
 
-        // آجلة (cash=2, type=4)
-        $monthly_result_visitor[$i] = $this->result_visitor
-                    ->whereIn('admin_id', $sellerIds)
-            ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->whereBetween('created_at', [$start, $end])
-            ->count();
+    foreach ($visitorRows as $m => $total) {
+        if ((int) $m >= 1 && (int) $m <= 12) {
+            $monthly_visitors[(int) $m] = (int) $total;
+        }
     }
-    $monthly_installments=[];
-        for ($i = 1; $i <= 12; $i++) {
-        $start = now()->startOfYear()->addMonths($i - 1)->toDateString();
-        $end   = now()->startOfYear()->addMonths($i - 1)->endOfMonth()->toDateString();
 
-        // نقدي (cash=1, type=4)
-        $monthly_installments[$i] = $this->installmentall
-            ->whereIn('seller_id', $sellerIds)
-            ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
-            ->whereBetween('created_at', [$start, $end])
-            ->sum('total_price');
+    $resultRows = (clone $this->result_visitor)
+        ->whereIn('admin_id', $sellerIds)
+        ->whereBetween('created_at', [$yearStart, $yearEnd])
+        ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
+        ->selectRaw($monthExpr . ' as m, COUNT(*) as total')
+        ->groupBy('m')
+        ->pluck('total', 'm');
+
+    foreach ($resultRows as $m => $total) {
+        if ((int) $m >= 1 && (int) $m <= 12) {
+            $monthly_result_visitor[(int) $m] = (int) $total;
+        }
+    }
+    // التحصيلات لكل شهر: استعلام واحد بدل 12.
+    $monthly_installments = array_fill(1, 12, 0);
+
+    $installmentRows = (clone $this->installmentall)
+        ->whereIn('seller_id', $sellerIds)
+        ->whereBetween('created_at', [$yearStart, $yearEnd])
+        ->when($from && $to, fn($q) => $q->whereBetween('created_at', [$from, $to]))
+        ->selectRaw($monthExpr . ' as m, SUM(total_price) as total')
+        ->groupBy('m')
+        ->pluck('total', 'm');
+
+    foreach ($installmentRows as $m => $total) {
+        if ((int) $m >= 1 && (int) $m <= 12) {
+            $monthly_installments[(int) $m] = (float) $total;
+        }
     }
 
     // Determine days for daily arrays
@@ -215,27 +266,39 @@ $monthly_result_visitor=[];
         ? now()->parse($from)->diffInDays(now()->parse($to)) + 1
         : now()->daysInMonth;
 
-    // Daily cash & credit sales
-    $last_month_income  = [];
-    $last_month_expense = [];
-    foreach (range(0, $days - 1) as $offset) {
-        $day = ($from && $to)
-            ? now()->parse($from)->addDays($offset)->toDateString()
-            : now()->startOfMonth()->addDays($offset)->toDateString();
+    // المبيعات اليومية.
+    //
+    // كانت حلقة باستعلامين لكل يوم (حتى 62 استعلامًا). والأهم أن قيد اليوم
+    // كان داخل when($from && $to)، فبدون فلتر تاريخ لم يُطبَّق أصلًا وكانت
+    // كل الأيام تعرض نفس الإجمالي. الآن التجميع بالتاريخ دائمًا.
+    $rangeStart = ($from && $to) ? now()->parse($from)->startOfDay() : now()->startOfMonth();
+    $rangeEnd   = $rangeStart->copy()->addDays($days - 1)->endOfDay();
 
-        $last_month_income[$offset + 1] = $this->order
-            ->whereIn('owner_id', $sellerIds)
-            ->where('cash', 1)
-            ->where('type', 4)
-            ->when($from && $to, fn($q) => $q->where('created_at', $day))
-            ->sum('collected_cash');
+    $last_month_income  = array_fill(1, $days, 0);
+    $last_month_expense = array_fill(1, $days, 0);
 
-        $last_month_expense[$offset + 1] = $this->order
-            ->whereIn('owner_id', $sellerIds)
-            ->where('cash', 2)
-            ->where('type', 4)
-            ->when($from && $to, fn($q) => $q->where('created_at', $day))
-            ->sum('collected_cash');
+    $dailyRows = (clone $this->order)
+        ->whereIn('owner_id', $sellerIds)
+        ->where('type', 4)
+        ->whereIn('cash', [1, 2])
+        ->whereBetween('created_at', [$rangeStart, $rangeEnd])
+        ->selectRaw($dayExpr . ' as d, cash, SUM(collected_cash) as total')
+        ->groupBy('d', 'cash')
+        ->get();
+
+    foreach ($dailyRows as $row) {
+        // ترتيب اليوم داخل المدى المعروضة، لا رقم اليوم في الشهر.
+        $slot = $rangeStart->diffInDays(now()->parse($row->d)) + 1;
+
+        if ($slot < 1 || $slot > $days) {
+            continue;
+        }
+
+        if ((int) $row->cash === 1) {
+            $last_month_income[$slot] = (float) $row->total;
+        } else {
+            $last_month_expense[$slot] = (float) $row->total;
+        }
     }
 
     // Low stock products and latest accounts
@@ -250,7 +313,11 @@ $monthly_result_visitor=[];
     $accounts = $this->account->take(5)->get();
     $sellers  = $this->seller->where('role', 'seller')->get();
 
+    // إحصائيات المناديب محسوبة هنا مرة واحدة بدل حسابها داخل حلقة القالب.
+    $sellerStats = $this->sellerStats($sellerIds);
+
     return view('admin-views.dashboard', compact(
+        'sellerStats',
         'account',
         'monthly_income',
         'monthly_expense',
@@ -369,5 +436,162 @@ $monthly_result_visitor=[];
         $reg->delete();
         Toastr::success(translate('Region deleted successfully'));
         return back();
+    }
+
+    /**
+     * إحصائيات كل مندوب، محسوبة دفعة واحدة.
+     *
+     * كانت القالب يحسبها داخل حلقة على المناديب: عشرة استعلامات لكل مندوب،
+     * بالإضافة إلى تحميل كل فواتير المندوب وتفاصيلها إلى الذاكرة لتحديد حالة
+     * كل فاتورة. مع 13 مندوبًا صار العرض 10 ثوانٍ و151 استعلامًا.
+     *
+     * هنا تُقرأ البيانات مرة واحدة لكل المناديب وتُجمَّع في الذاكرة، فيبقى
+     * عدد الاستعلامات ثابتًا مهما زاد عدد المناديب.
+     */
+    private function sellerStats($sellerIds): array
+    {
+        $ids = collect($sellerIds)->filter()->values();
+
+        if ($ids->isEmpty()) {
+            return [];
+        }
+
+        // مجاميع الطلبات لكل مندوب ونوع، في استعلام واحد.
+        $orderTotals = \App\Models\Order::whereIn('owner_id', $ids)
+            ->whereIn('type', [4, 7])
+            ->groupBy('owner_id', 'type')
+            ->selectRaw('owner_id, type, COUNT(*) as cnt, SUM(order_amount) as amount, SUM(transaction_reference) as paid')
+            ->get();
+
+        // مجاميع CurrentOrder لكل مندوب/نوع/نقدي.
+        $currentTotals = \App\Models\CurrentOrder::whereIn('owner_id', $ids)
+            ->groupBy('owner_id', 'type', 'cash')
+            ->selectRaw('owner_id, type, cash, COUNT(*) as cnt, SUM(order_amount) as amount')
+            ->get();
+
+        // فواتير البيع وتفاصيلها ومرتجعاتها: تحميل واحد للجميع.
+        $orders = \App\Models\Order::whereIn('owner_id', $ids)
+            ->where('type', 4)
+            ->with('details:id,order_id,product_id,quantity,price')
+            ->get(['id', 'owner_id', 'order_amount', 'transaction_reference']);
+
+        $returnsByParent = \App\Models\Order::where('type', 7)
+            ->whereIn('parent_id', $orders->pluck('id'))
+            ->with('details:id,order_id,product_id,quantity,price')
+            ->get(['id', 'parent_id'])
+            ->groupBy('parent_id');
+
+        $stocks = \App\Models\Stock::whereIn('seller_id', $ids)
+            ->get(['seller_id', 'main_stock', 'stock'])
+            ->groupBy('seller_id');
+
+        $stats = [];
+
+        foreach ($ids as $sellerId) {
+            $sellerOrders = $orders->where('owner_id', $sellerId);
+
+            $collectedUnits = 0;
+            $statusCounts = [
+                'paid' => 0, 'unpaid' => 0, 'returned_fully' => 0,
+                'partial_paid' => 0, 'partial_returned' => 0, 'partial_both' => 0,
+            ];
+
+            $productIds = [];
+            $quantitySum = 0.0;
+            $priceSum = 0.0;
+
+            foreach ($sellerOrders as $o) {
+                $originalQty = (float) $o->details->sum('quantity');
+                $paidAmount  = (float) $o->transaction_reference;
+                $orderAmount = (float) $o->order_amount;
+
+                foreach ($o->details as $d) {
+                    $productIds[$d->product_id] = true;
+                    $quantitySum += (float) $d->quantity;
+                    $priceSum    += (float) $d->price * (float) $d->quantity;
+                }
+
+                $returns     = $returnsByParent->get($o->id, collect());
+                $returnedQty = (float) $returns->flatMap->details->sum('quantity');
+
+                if ($orderAmount <= $paidAmount && $orderAmount > 0) {
+                    $status = 'paid';
+                } elseif ($paidAmount == 0 && $originalQty > 0 && $returnedQty >= $originalQty) {
+                    $status = 'returned_fully';
+                } elseif ($paidAmount > 0 && ($orderAmount - $paidAmount) > 0 && $returnedQty == 0) {
+                    $status = 'partial_paid';
+                } elseif ($paidAmount == 0 && $returnedQty > 0 && $returnedQty < $originalQty) {
+                    $status = 'partial_returned';
+                } elseif ($paidAmount > 0 && $returnedQty > 0) {
+                    $status = 'partial_both';
+                } else {
+                    $status = 'unpaid';
+                }
+
+                $statusCounts[$status]++;
+
+                if ($status === 'paid') {
+                    $collectedUnits += (int) $originalQty;
+                } elseif ($status === 'partial_paid' && $orderAmount > 0) {
+                    $collectedUnits += (int) ceil(min(1, $paidAmount / $orderAmount) * $originalQty);
+                } elseif ($status === 'partial_both') {
+                    // نفس معادلة القالب الأصلي: النسبة تُحسب على الصافي بعد
+                    // خصم المرتجع، لا على قيمة الفاتورة كاملة.
+                    $returnedAmount = (float) $returns->flatMap->details
+                        ->sum(fn ($d) => (float) $d->price * (float) $d->quantity);
+
+                    $netQty    = max(0, $originalQty - $returnedQty);
+                    $netAmount = max(0.0, $orderAmount - $returnedAmount);
+
+                    if ($netAmount > 0) {
+                        $collectedUnits += (int) ceil(min(1, $paidAmount / $netAmount) * $netQty);
+                    }
+                }
+            }
+
+            $sellerStocks = $stocks->get($sellerId, collect());
+            $moved = $sellerStocks->filter(fn ($st) => $st->main_stock != $st->stock);
+
+            $t4 = $orderTotals->first(fn ($r) => $r->owner_id == $sellerId && (int) $r->type === 4);
+            $t7 = $orderTotals->first(fn ($r) => $r->owner_id == $sellerId && (int) $r->type === 7);
+
+            $cur = fn ($type, $cash) => (float) optional($currentTotals->first(
+                fn ($r) => $r->owner_id == $sellerId && (int) $r->type === $type && (int) $r->cash === $cash
+            ))->amount;
+
+            $stats[$sellerId] = [
+                'has_stock'      => $sellerStocks->isNotEmpty(),
+                // القالب يعرض العدد فقط، فلا داعي لتمرير الصفوف نفسها.
+                'stock_line_count' => $moved->count(),
+                'remain_stock'   => (float) $moved->sum('stock'),
+                'total_stock'    => (float) $moved->sum(fn ($st) => $st->main_stock - $st->stock),
+                'order_count'    => (int) $currentTotals->where('owner_id', $sellerId)->sum('cnt'),
+                'total_cash'     => $cur(4, 1),
+                'total_credit'   => $cur(4, 2),
+                'refund_total'   => (float) $currentTotals
+                                        ->where('owner_id', $sellerId)
+                                        ->where('type', 7)->sum('amount'),
+                'amount_type_4'  => (float) optional($t4)->amount,
+                'amount_type_7'  => (float) optional($t7)->amount,
+                'paid_type_4'    => (float) optional($t4)->paid,
+                'amount_due'     => (float) optional($t4)->amount - (float) optional($t7)->amount - (float) optional($t4)->paid,
+                'product_count'  => count($productIds),
+                'quantity_sum'   => $quantitySum,
+                'price_sum'      => $priceSum,
+                'collected_units' => $collectedUnits,
+                'status_counts'  => $statusCounts,
+                // نفس تعريفَي القالب الأصلي حرفيًا. لاحظ أن partial_paid
+                // يُحتسب في الاثنين معًا؛ أبقيناه كما هو حتى لا تتغيّر الأرقام
+                // المعروضة، فتغييره قرار عمل لا قرار أداء.
+                'collected_receipts'   => $statusCounts['paid']
+                                          + $statusCounts['partial_paid']
+                                          + $statusCounts['partial_both'],
+                'uncollected_receipts' => $statusCounts['unpaid']
+                                          + $statusCounts['partial_returned']
+                                          + $statusCounts['partial_paid'],
+            ];
+        }
+
+        return $stats;
     }
 }

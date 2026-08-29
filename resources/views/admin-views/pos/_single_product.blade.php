@@ -3,7 +3,7 @@
     <input type="hidden" id="product_qty" name="quantity" value=1>
 <a onclick="addToCart({{ $product->id }}, '{{ $type }}')" class="pos-product-item card">
         <div class="pos-product-item_thumb">
-            <img src="{{asset('storage/app/public/product')}}/{{$product['image']}}"
+            <img src="{{asset('storage/product')}}/{{$product['image']}}"
                 onerror="this.src='{{asset('public/assets/admin/img/160x160/img2.jpg')}}'"
             class="img-fit">
         </div>

@@ -96,6 +96,10 @@
                             <div class="col-12 col-md-6 col-lg-5 mb-3 mb-lg-0">
                                 <form action="{{ url()->current() }}" method="GET">
                                     <!-- Search -->
+                                    {{-- يحمل التاريخ حتى لا يُلغى المدى عند البحث --}}
+                                    <input type="hidden" name="from" value="{{ $from }}">
+                                    <input type="hidden" name="to" value="{{ $to }}">
+
                                     <div class="input-group input-group-merge input-group-flush">
                                         <div class="input-group-prepend">
                                             <div class="input-group-text">
@@ -104,7 +108,7 @@
                                         </div>
                                         <input id="datatableSearch_" type="search" name="search" class="form-control"
                                             placeholder="{{ \App\CPU\translate('search_by_description') }}"
-                                            value="{{ $search }}" required>
+                                            value="{{ $search }}">
                                         <button type="submit" class="btn btn-primary">{{ \App\CPU\translate('البحث') }}
                                         </button>
 
@@ -114,6 +118,9 @@
                             </div>
                             <div class="col-12 col-lg-7">
                                 <form action="{{ url()->current() }}" method="GET">
+                                    {{-- يحمل نص البحث حتى لا يُلغى عند تغيير المدى --}}
+                                    <input type="hidden" name="search" value="{{ $search }}">
+
                                     <div class="row">
                                         <div class="col-md-5">
                                             <div class="form-group">
@@ -121,7 +128,7 @@
                                                     for="exampleFormControlInput1">{{ \App\CPU\translate('من') }}
                                                 </label>
                                                 <input id="from_date" type="date" name="from" class="form-control"
-                                                    value="{{ $from }}" required>
+                                                    value="{{ $from }}">
                                             </div>
                                         </div>
                                         <div class="col-md-5">
@@ -130,12 +137,14 @@
                                                     for="exampleFormControlInput1">{{ \App\CPU\translate('الي') }}
                                                 </label>
                                                 <input id="to_date" type="date" name="to" class="form-control"
-                                                    value="{{ $to }}" required>
+                                                    value="{{ $to }}">
                                             </div>
                                         </div>
                                         <div class="col-md-2">
                                             <button href="" class="btn btn-success mt-4">
                                                 {{ \App\CPU\translate('بحث') }}</button>
+                                            {{-- التصدير يحمل فلاتر الشاشة الحالية --}}
+                                            <x-export-button route="admin.account.export-expense" class="btn btn-info mt-4" />
                                         </div>
                                     </div>
                                 </form>
@@ -161,6 +170,7 @@
     <th class="text-center">{{ \App\CPU\translate('الوصف') }} <i class="tio-document-text"></i></th>
     <th class="text-center">{{ \App\CPU\translate('الرصيد') }} <i class="tio-pie-chart"></i></th>
     <th class="text-center">{{ \App\CPU\translate('صورة') }} <i class="tio-pie-chart"></i></th>
+    <th class="text-center">{{ \App\CPU\translate('إجراءات') }}</th>
 </tr>
 
                             </thead>
@@ -201,7 +211,28 @@
                                         </td>
                                             <td>
                                         <img class="navbar-brand-logo"
-                         src="{{ asset('storage/app/public/shop/' . $expense->img) }}" alt="Logo">
+                         src="{{ asset('storage/shop/' . $expense->img) }}" alt="Logo">
+                                    </td>
+
+                                    {{-- تعديل المصروف أو حذفه، والحذف يرد المبلغ إلى الحساب --}}
+                                    <td class="text-center">
+                                        <a href="{{ route('admin.account.edit-expense', [$expense->id]) }}"
+                                           class="btn btn-sm btn-white" title="تعديل">
+                                            <i class="tio-edit"></i>
+                                        </a>
+
+                                        <button type="button" class="btn btn-sm btn-white text-danger"
+                                                title="حذف"
+                                                onclick="deleteExpense({{ $expense->id }})">
+                                            <i class="tio-delete"></i>
+                                        </button>
+
+                                        <form id="expense-{{ $expense->id }}"
+                                              action="{{ route('admin.account.delete-expense', [$expense->id]) }}"
+                                              method="post" class="d-none">
+                                            @csrf
+                                            @method('delete')
+                                        </form>
                                     </td>
                                     </tr>
                                 @endforeach
@@ -249,5 +280,18 @@
             }
 
         })
+    </script>
+@endpush
+
+@push('script_2')
+    <script>
+        "use strict";
+
+        // تأكيد قبل الحذف: العملية ترد المبلغ إلى الحساب ولا يمكن التراجع عنها.
+        function deleteExpense(id) {
+            if (confirm('هل تريد حذف هذا المصروف؟ سيُعاد المبلغ إلى الحساب.')) {
+                document.getElementById('expense-' + id).submit();
+            }
+        }
     </script>
 @endpush

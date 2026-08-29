@@ -11,9 +11,9 @@
         <!-- Product gallery-->
         <div class="d-flex align-items-center justify-content-center active h-one-qv">
             <img class="img-responsive style-one-qv"
-                 src="{{asset('storage/app/public/product')}}/{{$product['image']}}"
+                 src="{{asset('storage/product')}}/{{$product['image']}}"
                  onerror="this.src='{{asset('public/assets/admin/img/160x160/img2.jpg')}}'"
-                 data-zoom="{{asset('storage/app/public/product')}}/{{$product['image']}}"
+                 data-zoom="{{asset('storage/product')}}/{{$product['image']}}"
                  alt="{{\App\CPU\translate('Product image')}}" width="">
             <div class="cz-image-zoom-pane"></div>
         </div>

@@ -14,6 +14,13 @@ class Authenticate extends Middleware
      */
     protected function redirectTo($request)
     {
+        // Routes on the standard envelope let the exception handler answer, so
+        // they get { success:false, message:"Unauthenticated" } like every
+        // other error. Legacy API routes keep their original auth-001 payload.
+        if (StandardApiResponse::enabled($request)) {
+            return null;
+        }
+
         if ($request->is('api/*')) {
             $errors[] = ['code' => 'auth-001', 'message' => 'Unauthorized.'];
             abort(response()->json([

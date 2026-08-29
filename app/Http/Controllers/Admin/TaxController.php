@@ -26,7 +26,11 @@ class TaxController extends Controller
 
     public function create(): View|Factory|Application
     {
-        return view('admin-views.tax.index');
+        // This renders the list view, which iterates $taxes - without it the
+        // page died with "Undefined variable $taxes".
+        $taxes = $this->taxes->latest()->paginate(Helpers::pagination_limit());
+
+        return view('admin-views.tax.index', compact('taxes'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -50,8 +54,11 @@ class TaxController extends Controller
 
     public function edit($id): View|Factory|Application
     {
-        $tax = $this->taxes->find($id);
-        return view('admin-views.tax.edit', compact('tax'));
+        $taxe = $this->taxes->findOrFail($id);
+
+        // The view refers to $taxe; passing it as $tax left it undefined and
+        // the page answered 500.
+        return view('admin-views.tax.edit', compact('taxe'));
     }
 
     public function update(Request $request, $id): RedirectResponse

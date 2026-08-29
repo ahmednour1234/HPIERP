@@ -34,19 +34,42 @@ class AttendanceController extends Controller
             $query->whereBetween('date', [$request->start_date, $request->end_date]);
         }
 
+        // الإجماليات تُحسب على كامل نتيجة الفلتر لا على الصفحة المعروضة.
+        //
+        // كانت تُحسب من $attendances بعد الترقيم، فتصف عشرة صفوف فقط: ظهر
+        // «إجمالي ساعات العمل 27.26» و«عدد أيام العمل 2» بينما الحقيقة
+        // 5466 ساعة و298 يومًا. تُحسب هنا بـ SQL قبل الترقيم.
+        $totalsQuery = (clone $query);
+
+        $totalWorkedHours   = (float) (clone $totalsQuery)->sum('worked_hours');
+        $totalExpectedHours = (float) (clone $totalsQuery)->sum('expected_hours');
+        $totalTimeLate      = (int) (clone $totalsQuery)->sum('time_late');
+        $workingDays        = (int) (clone $totalsQuery)->distinct()->count('date');
+
+        // سجلات بلا تسجيل خروج: تُحتسب ساعاتها المتوقعة بينما ساعات العمل
+        // فيها صفر، فتبدو الفجوة بين المتوقع والفعلي أكبر من حقيقتها.
+        $openShifts = (int) (clone $totalsQuery)
+            ->where(function ($q) {
+                $q->whereNull('check_out')->orWhere('check_out', '');
+            })
+            ->count();
+
         // Retrieve all attendance records ordered by date descending
-        $attendances = $query->orderBy('date', 'desc')->paginate(10);
+        $attendances = $query->orderBy('date', 'desc')
+            ->paginate(10)
+            ->appends($request->query());
 
-        // Calculate total worked hours from all records (assuming worked_hours is stored in hours)
-        $totalWorkedHours = $attendances->sum('worked_hours');
+        // قائمة الموظفين للفلتر.
+        $employees = Admin::orderBy('f_name')->get();
 
-        // Calculate the number of distinct working days (using unique dates)
-        $workingDays = $attendances->pluck('date')->unique()->count();
-
-        // Retrieve all employees (admins) to populate the filter dropdown in the view
-        $employees = Admin::all();
-
-        // Return the view with the attendance data and summary information
-        return view('admin-views.attendances.index', compact('attendances', 'totalWorkedHours', 'workingDays', 'employees'));
+        return view('admin-views.attendances.index', compact(
+            'attendances',
+            'totalWorkedHours',
+            'totalExpectedHours',
+            'totalTimeLate',
+            'workingDays',
+            'openShifts',
+            'employees'
+        ));
     }
 }

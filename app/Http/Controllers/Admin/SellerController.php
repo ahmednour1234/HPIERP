@@ -209,16 +209,56 @@ public function store(Request $request): RedirectResponse
     }
 }
 
+    /**
+     * كل من يتبع هذا المستخدم في شجرة الإدارة: مرؤوسوه المباشرون، ومرؤوسو
+     * مديريه الفرعيين، وهكذا نزولًا. تُحسب بالتكرار لا باستعلام متداخل حتى
+     * تعمل على MySQL دون الحاجة إلى Recursive CTE.
+     */
+    private function descendantSellerIds($adminId): array
+    {
+        $all      = [];
+        $frontier = [(int) $adminId];
+
+        // حارس ضد الحلقات: البيانات قد تحوي دورة (أ يدير ب وب يدير أ).
+        $guard = 0;
+
+        while (!empty($frontier) && $guard++ < 20) {
+            $next = AdminSeller::whereIn('admin_id', $frontier)
+                ->pluck('seller_id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+
+            $next = array_values(array_diff(array_unique($next), $all));
+
+            if (empty($next)) {
+                break;
+            }
+
+            $all      = array_merge($all, $next);
+            $frontier = $next;
+        }
+
+        return array_values(array_unique($all));
+    }
+
     public function list(Request $request)
 {
     $query_param = [];
     $adminId = Auth::guard('admin')->id(); // Get the authenticated admin's ID
             $accounts = $this->account->orderBy('id')->get();
 
-    // Get the sellers linked to the authenticated admin through the admin_seller table
+    // المناديب التابعون للمستخدم الحالي، بما فيهم التابعون لمديرين يتبعونه.
+    //
+    // كان الاستعلام يربط admin_sellers على admin_id مباشرةً فقط، فيرى المدير
+    // مرؤوسيه المباشرين دون مرؤوسي مديريه الفرعيين، ولا يستطيع تعديلهم —
+    // وهو سبب أن التعديل لا يعمل إلا من Super Admin.
+    $scopedIds = $this->descendantSellerIds($adminId);
+
+    // العرض يعتمد على $seller->seller_id (كان يأتي من الـ join القديم)، فنُبقيه
+    // كاسم بديل لـ admins.id بدل ربط جدول لم نعد نحتاجه.
     $sellers = $this->seller
-                    ->join('admin_sellers', 'admins.id', '=', 'admin_sellers.seller_id')
-                    ->where('admin_sellers.admin_id', $adminId) // Filter by the authenticated admin
+                    ->select('admins.*', 'admins.id as seller_id')
+                    ->whereIn('admins.id', $scopedIds)
                     ->where('admins.role', 'seller'); // Ensure that only sellers are retrieved
 
     // Search functionality
@@ -314,8 +354,32 @@ public function prices(Request $request, $id): View|Factory|Application|Redirect
         return back();
     }
 
+    /**
+     * تعديل بيانات المندوب مقصور على Super Admin.
+     *
+     * كان أي حساب لديه صلاحية المناديب يستطيع تغيير بياناتهم. العلامة على
+     * الحساب نفسه (is_super) لا على role، لأن role = 'admin' يشمل أمين
+     * المخزن والمحاسب وغيرهم.
+     */
+    private function denyUnlessSuperAdmin()
+    {
+        $admin = Auth::guard('admin')->user();
+
+        if ($admin && (int) ($admin->is_super ?? 0) === 1) {
+            return null;
+        }
+
+        Toastr::error(\App\CPU\translate('تعديل بيانات المندوب متاح لمدير النظام فقط'));
+
+        return redirect()->route('admin.seller.list');
+    }
+
     public function edit(Request $request)
     {
+        if ($deny = $this->denyUnlessSuperAdmin()) {
+            return $deny;
+        }
+
         $regions = Region::all();
         $categories = $this->category->where(['position' => 0])->where('type',1)->where('status',1)->get();
         $customers = $this->customer->get();
@@ -329,6 +393,11 @@ $seller = $this->seller->with('regions')->find($request->id);
     }
 public function update(Request $request, $id): \Illuminate\Http\RedirectResponse
 {
+    // الحماية على الحفظ أيضًا؛ منع الشاشة وحدها يترك الطلب مفتوحًا.
+    if ($deny = $this->denyUnlessSuperAdmin()) {
+        return $deny;
+    }
+
     /** @var \App\Models\Admin $seller */
     $seller = $this->seller->findOrFail($id);
 
@@ -448,7 +517,14 @@ public function update(Request $request, $id): \Illuminate\Http\RedirectResponse
         $this->region->where('seller_id', $id)->delete();    // seller_regions
         $this->storages->where('seller_id', $id)->delete();  // seller_storages
         $this->cat->where('seller_id', $id)->delete();       // seller_categories
-        \App\Models\AdminSeller::where('admin_id', $id)->delete();
+        // تخصيص المناديب لا يُمسح إلا إذا كان الطلب يحمل قائمة جديدة.
+        //
+        // كان المسح غير مشروط بينما إعادة البناء مشروطة بـ type = manager،
+        // فأي حساب type فيه NULL (وهي حالة خمسة حسابات هنا) كان يفقد كل
+        // مناديبه بمجرد الحفظ.
+        if ($request->has('admins')) {
+            \App\Models\AdminSeller::where('admin_id', $id)->delete();
+        }
 
         // 6) إعادة البناء حسب النوع
         if (in_array($type, ['mandob', 'seller'], true)) {
@@ -473,8 +549,9 @@ public function update(Request $request, $id): \Illuminate\Http\RedirectResponse
                 $insertChunked($this->cat, $rows);
             }
 
-        } elseif (in_array($type, ['manager', 'bigmanager'], true)) {
-            // المرؤوسون (admins[]) — تحقق من وجودهم في sellers
+        } elseif (in_array($type, ['manager', 'bigmanager'], true) || $request->has('admins')) {
+            // يُعاد البناء أيضًا حين تصل قائمة admins[] بصرف النظر عن type،
+            // وإلا بقيت حسابات الإدارة (type = NULL) بلا تخصيص بعد الحفظ.
             $subordinateSellerIds = $validIds('admins', $admins);
 
             // اربط المدير بالمرؤوسين في جدول admin_sellers
@@ -701,14 +778,25 @@ public function getAvailableAdmins(Request $request)
 {
     $type = $request->type;
 
+    // القائمة هنا هي المناديب/المديرون الذين سيتبعون المدير الجديد.
+    //
+    // كان فلتر 'manager' يستبعد كل من يظهر في admin_sellers.admin_id، أي كل
+    // من يدير أحدًا بالفعل، فتخرج القائمة فارغة أو ناقصة ولا يمكن ضم مندوب
+    // إلى مدير قائم — والبيانات تُظهر مديرين يتبعهم 13 و7 و6 مناديب، فالإدارة
+    // المتعددة هي القاعدة لا الاستثناء. المطلوب استبعاد من له مدير بالفعل
+    // (seller_id) لا من يَملك مرؤوسين (admin_id).
     if ($type === 'manager') {
-        $usedAdminIds = AdminSeller::pluck('admin_id')->toArray();
+        $alreadyManaged = AdminSeller::pluck('seller_id')->toArray();
 
-        $admins = Admin::whereNotIn('id', $usedAdminIds)->get();
+        $admins = Admin::where('role', 'seller')
+            ->whereNotIn('id', $alreadyManaged)
+            ->orderBy('f_name')
+            ->get();
     } elseif ($type === 'bigmanager') {
-        $usedSellerIds = AdminSeller::pluck('seller_id')->toArray();
-
+        // المدير الأعلى يضم المديرين. لا نستبعد من يدير مناديب بالفعل — فهذا
+        // هو تعريف المدير — بل نعرضهم جميعًا ليختار منهم.
         $admins = Admin::where('type', 'manager')
+            ->orderBy('f_name')
             ->get();
     } else {
         return response()->json([]);

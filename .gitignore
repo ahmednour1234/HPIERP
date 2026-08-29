@@ -14,3 +14,19 @@ yarn-error.log
 /.vscode
 .DS_Store
 /public/assets/admin/js/theme.min.js*
+
+# Local API-testing database and its seed file: built from the production
+# dump, so they contain real customer data. Rebuild with tools/testdb/build.sh
+/storage/*.sqlite
+/storage/app/seed-data.sql
+
+# The production dump itself
+/u178445728_erpnew.sql
+
+# Local SQLite development (tools/run-local.sh). .env.local holds no secrets
+# but is per-machine; the database is generated.
+/.env.local
+
+# Local-only link that lets `artisan serve` return /public/assets/... as static
+# files (see tools/run-local.sh). Not needed in production.
+/public/public

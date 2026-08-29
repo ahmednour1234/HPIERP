@@ -1,20 +1,20 @@
 <div class="width-inone">
     <div class="text-center mb-3">
-        <h2 class="line-inone">{{ \App\Models\BusinessSetting::where(['key' => 'shop_name'])->first()->value }}</h2>
+        <h2 class="line-inone">{{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_name'])->first())->value }}</h2>
         <h5 class="style-inone">
-            {{ \App\Models\BusinessSetting::where(['key' => 'shop_address'])->first()->value }}
+            {{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_address'])->first())->value }}
         </h5>
         <h5 class="style-intwo">
             {{ \App\CPU\translate('Phone') }}
-            : {{ \App\Models\BusinessSetting::where(['key' => 'shop_phone'])->first()->value }}
+            : {{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_phone'])->first())->value }}
         </h5>
         <h5 class="style-intwo">
             {{ \App\CPU\translate('Email') }}
-            : {{ \App\Models\BusinessSetting::where(['key' => 'shop_email'])->first()->value }}
+            : {{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_email'])->first())->value }}
         </h5>
         <h5 class="style-intwo">
             {{ \App\CPU\translate('Vat_registration_number') }}
-            : {{ \App\Models\BusinessSetting::where(['key' => 'vat_reg_no'])->first()->value }}
+            : {{ optional(\App\Models\BusinessSetting::where(['key' => 'vat_reg_no'])->first())->value }}
         </h5>
     </div>
 

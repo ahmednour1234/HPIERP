@@ -83,6 +83,9 @@ class Kernel extends HttpKernel
         'check.setting.access' => \App\Http\Middleware\CheckSettingAccess::class,
         'check.storage.access' => \App\Http\Middleware\CheckStorageAccess::class,
         'check.notificaion.access' => \App\Http\Middleware\CheckNotificationAccess::class,
+        // Opts a route into the unified { success, message, data } envelope
+        // and the matching error rendering in App\Exceptions\Handler.
+        'api.standard' => \App\Http\Middleware\StandardApiResponse::class,
 
 
 

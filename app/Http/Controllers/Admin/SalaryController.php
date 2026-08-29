@@ -78,14 +78,16 @@ public function showsalary($id)
     public function show($id)
     {
         // Find the salary record by ID
-        $salary = Salary::find($id);
+        $salary = Salary::with('seller')->find($id);
 
         if (!$salary) {
             Toastr::error('Salary record not found.');
-            return redirect()->route('salaries.index');
+            return redirect()->route('admin.salaries.index');
         }
 
-        return view('admin.salaries.show', compact('salary'));
+        // كان المسار admin.salaries.show وهو غير موجود؛ قوالب هذا المشروع
+        // تحت admin-views.salary.*، فكانت الصفحة تعطي 500 دائمًا.
+        return view('admin-views.salary.show', compact('salary'));
     }
 
 public function store(Request $request)
@@ -100,6 +102,7 @@ public function store(Request $request)
         'salary_of_visitors' => 'nullable|numeric',
          'number_of_days' => 'nullable|numeric',
         'transport_amount' => 'nullable|numeric',
+        'collection_incentive' => 'nullable|numeric',
         'note' => 'nullable',
         'notemanager' => 'nullable',
         'discount' => 'nullable|numeric',
@@ -126,6 +129,7 @@ public function store(Request $request)
             'result_of_visitors' => $request->result_of_visitors,
             'salary_of_visitors' => $request->salary_of_visitors,
             'transport_amount' => $request->transport_amount,
+            'collection_incentive' => $request->collection_incentive ?? 0,
             'discount' => $request->discount,
             
         ]);
@@ -206,7 +210,7 @@ public function storerating(Request $request)
         }
 
         // Find the salary record
-        $salary = Salary::find($id);
+        $salary = Salary::with('seller')->find($id);
 
         if (!$salary) {
             Toastr::error('Salary record not found.');
@@ -217,6 +221,6 @@ public function storerating(Request $request)
         $salary->update($request->all());
 
         Toastr::success('Salary record updated successfully.');
-        return redirect()->route('salaries.index');
+        return redirect()->route('admin.salaries.index');
     }
 }

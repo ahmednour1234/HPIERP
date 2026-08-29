@@ -89,6 +89,7 @@
                         <thead class="thead-light">
                             <tr>
                                 <th>#</th>
+                                <th>{{ \App\CPU\translate('تاريخ التحويل') }}</th>
                                 <th>{{ \App\CPU\translate('الاسم') }}</th>
                                 <th>{{ \App\CPU\translate('الايميل') }}</th>
                                 <th>{{ \App\CPU\translate('المديونية') }}</th>
@@ -105,6 +106,7 @@
                             <tr>
                                 <td>{{ $transactions->firstItem() + $key }}</td>
 
+                                <td>{{ optional($transaction->created_at)->format('Y-m-d H:i') ?? '' }}</td>
                                 <td>{{ $transaction->sellers->f_name ?? '' }}</td>
                                 <td>{{ $transaction->sellers->email ?? '' }}</td>
                                 <td>{{ $transaction->sellers->credit ?? '0' }}</td>
@@ -115,7 +117,7 @@
 
                                 <td>
                                     @php
-                                        $imgPath = $transaction->img ? asset('storage/app/public/' . $transaction->img) : null;
+                                        $imgPath = $transaction->img ? asset('storage/' . $transaction->img) : null;
                                     @endphp
                                     @if($imgPath)
                                         <img
@@ -174,7 +176,7 @@
                             </tr>
                         @empty
                             <tr>
-                                <td colspan="9">
+                                <td colspan="10">
                                     <div class="text-center p-4">
                                         <img class="mb-3 w-one-cl"
                                              src="{{ asset('public/assets/admin/svg/illustrations/sorry.svg') }}"

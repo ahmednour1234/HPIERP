@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Store; // Assuming Store model exists
 use Illuminate\Support\Facades\Validator;
+use Brian2694\Toastr\Facades\Toastr;
 
 class StoresController extends Controller
 {
@@ -41,6 +42,14 @@ class StoresController extends Controller
     public function edit($store_id)
     {
         $store = Store::where('store_id', $store_id)->first();
+
+        // بدون هذا الفحص كان القالب يقرأ ->store_id على null فتظهر صفحة
+        // خطأ 500 بدل رسالة مفهومة عند فتح رابط قديم لمخزن محذوف.
+        if (!$store) {
+            Toastr::error(\App\CPU\translate('المخزن غير موجود'));
+            return redirect()->route('admin.stores.index');
+        }
+
         return view('admin-views.store.edit', compact('store'));
     }
 

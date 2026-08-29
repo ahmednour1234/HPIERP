@@ -162,6 +162,13 @@ class BrandController extends Controller
     public function updateStatus(Request $request): JsonResponse
     {
         $brand = $this->brand->find($request->id);
+
+        // find() returns null for a missing or absent id; the original
+        // dereferenced it straight away and answered 500.
+        if (!$brand) {
+            return response()->json(['errors' => [['code' => 'not-found', 'message' => 'Record not found.']]], 404);
+        }
+
         $brand->status = !$brand['status'];
         $brand->update();
         return response()->json([

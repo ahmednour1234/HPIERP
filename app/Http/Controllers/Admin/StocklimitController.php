@@ -24,13 +24,15 @@ class StocklimitController extends Controller
      */
     public function stock_limit(Request $request): Factory|View|Application
     {
-        $stock_limit = Helpers::get_business_settings('stock_limit');
+        // The setting is absent on a fresh install and the null it returns made
+        // the where() below throw "Illegal operator and value combination".
+        $stock_limit = (int) (Helpers::get_business_settings('stock_limit') ?? 0);
         $query_param = [];
         $search = $request['search'];
         $sort_oqrderQty= $request['sort_oqrderQty'];
         if ($request->has('search')) {
             $key = explode(' ', $request['search']);
-            $query = $this->product->where('quantity','<','limit_stock')->
+            $query = $this->product->whereColumn('quantity','<','limit_stock')->
                 where(function ($q) use ($key) {
                     foreach ($key as $value) {
                         $q->orWhere('name', 'like', "%{$value}%")

@@ -86,12 +86,12 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-box-seam me-1"></i> المنتجات
                 </label>
-                <select name="product_code" class="form-control select2-multiple w-100" 
+                <select name="product_code[]" class="form-control select2-multiple w-100" multiple 
                         data-placeholder="اختر منتج أو أكثر">
                     @isset($productsall)
                         @foreach($productsall as $product)
                             <option value="{{ $product->product_code }}"
-                               >
+                                {{ in_array((string) $product->product_code, array_map('strval', (array) request('product_code', [])), true) ? 'selected' : '' }}>
                                 {{ $product->name }} @if(!empty($product->product_code)) ({{ $product->product_code }}) @endif
                             </option>
                         @endforeach
@@ -122,14 +122,16 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-person-badge me-1"></i> البائع
                 </label>
-                <select name="seller_id" class="form-select select2" data-placeholder="كل البائعين">
-                    <option value="">كل البائعين</option>
+                <select name="seller_id[]" class="form-control select2-multiple w-100" multiple
+                        data-placeholder="كل البائعين">
                     @foreach ($sellers as $seller)
-                        <option value="{{ $seller->id }}" {{ request('seller_id') == $seller->id ? 'selected' : '' }}>
+                        <option value="{{ $seller->id }}"
+                            {{ in_array((string) $seller->id, array_map('strval', (array) request('seller_id', [])), true) ? 'selected' : '' }}>
                             {{ $seller->email }}
                         </option>
                     @endforeach
                 </select>
+                <small class="text-muted d-block mt-1">اتركه فارغًا لعرض كل البائعين</small>
             </div>
 
             {{-- المنطقة (Multi Select) --}}
@@ -154,14 +156,16 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-receipt-cutoff me-1"></i> نوع الطلب
                 </label>
-                <select name="order_type" class="form-select select2" data-placeholder="كل الأنواع">
-                    <option value="">كل الأنواع</option>
+                <select name="order_type[]" class="form-control select2-multiple w-100" multiple
+                        data-placeholder="كل الأنواع">
                     @foreach ([4 => 'مبيعات', 7 => 'مرتجع مبيعات', 12 => 'عينات', 24 => 'تبرعات'] as $key => $label)
-                        <option value="{{ $key }}" {{ request('order_type') == $key ? 'selected' : '' }}>
+                        <option value="{{ $key }}"
+                            {{ in_array((string) $key, array_map('strval', (array) request('order_type', [])), true) ? 'selected' : '' }}>
                             {{ $label }}
                         </option>
                     @endforeach
                 </select>
+                <small class="text-muted d-block mt-1">اتركه فارغًا لعرض كل الأنواع</small>
             </div>
 
             {{-- حالة الدفع --}}
@@ -169,11 +173,16 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-cash-coin me-1"></i> حالة الدفع
                 </label>
-                <select name="payment_status" class="form-select select2" data-placeholder="كل الحالات">
-                    <option value="">كل الحالات</option>
-                    <option value="paid" {{ request('payment_status') == 'paid' ? 'selected' : '' }}>تم التحصيل</option>
-                    <option value="unpaid" {{ request('payment_status') == 'unpaid' ? 'selected' : '' }}>لم يتم التحصيل</option>
+                <select name="payment_status[]" class="form-control select2-multiple w-100" multiple
+                        data-placeholder="كل الحالات">
+                    @foreach (['paid' => 'تم التحصيل', 'unpaid' => 'لم يتم التحصيل'] as $key => $label)
+                        <option value="{{ $key }}"
+                            {{ in_array($key, array_map('strval', (array) request('payment_status', [])), true) ? 'selected' : '' }}>
+                            {{ $label }}
+                        </option>
+                    @endforeach
                 </select>
+                <small class="text-muted d-block mt-1">اتركه فارغًا لعرض كل الحالات</small>
             </div>
 
             {{-- حالة الفاتورة (Multi Select) --}}
@@ -224,6 +233,12 @@
             <button type="button" class="btn btn-outline-secondary px-4" onclick="printTable()">
                 <i class="bi bi-printer me-1"></i> طباعة
             </button>
+
+            {{-- التصدير يحمل فلاتر الشاشة الحالية عبر request()->query() --}}
+            <a href="{{ route('admin.product.getreportProducts.export', request()->query()) }}"
+               class="btn btn-success px-4">
+                <i class="bi bi-file-earmark-excel me-1"></i> تصدير اكسيل
+            </a>
         </div>
     </form>
 
@@ -406,10 +421,15 @@
                 </tr>
             </thead>
             <tbody>
+            {{-- التسلسل الرقمي: $loop->iteration يخص الحلقة الداخلية فيعود إلى 1
+                 مع كل مجموعة منتج، فتظهر أرقام مكررة عند تطبيق الفلتر.
+                 عدّاد واحد مستقل عن الحلقتين يعطي تسلسلًا متصلًا. --}}
+            @php $rowNumber = ($orderDetails->firstItem() ?? 1) - 1; @endphp
             @foreach($products as $productDetails)
                 @foreach($productDetails as $index => $product)
+                    @php $rowNumber++; @endphp
                     <tr>
-                        <td>{{ $loop->iteration }}</td>
+                        <td>{{ $rowNumber }}</td>
                         <td>{{ $product['product_name'] }}</td>
                         <td>{{ $product['product_code'] }}</td>
                         <td>{{ $product['selling_price'] }}</td>
@@ -489,7 +509,7 @@
 
                         <td class="none">
                             <img
-                                src="{{ asset('storage/app/public/'.$product['img']) }}"
+                                src="{{ asset('storage/'.$product['img']) }}"
                                 alt="Image Description"
                                 style="width: 50px; height: auto; cursor: pointer;"
                                 data-toggle="modal"
@@ -515,7 +535,7 @@
                                 </div>
                                 <div class="modal-body text-center">
                                     <img
-                                        src="{{ asset('storage/app/public/'.$product['img']) }}"
+                                        src="{{ asset('storage/'.$product['img']) }}"
                                         alt="Image Description"
                                         style="max-width: 100%; height: auto;">
                                 </div>
@@ -669,17 +689,17 @@
             <body>
                 <div class="header-section">
                     <div class="left">
-                        <p><strong>رقم السجل التجاري:</strong> {{ \App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first()->value??'' }}</p>
-                        <p><strong>الرقم الضريبي:</strong> {{ \App\Models\BusinessSetting::where(["key" => "number_tax"])->first()->value ??''}}</p>
-                        <p><strong>البريد الإلكتروني:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_email"])->first()->value }}</p>
+                        <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value??'' }}</p>
+                        <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ??''}}</p>
+                        <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
                     </div>
                     <div class="logo">
-                        <img src="{{ asset('storage/app/public/shop/' . \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value) }}" alt="شعار المتجر">
+                        <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
                     </div>
                     <div class="right">
-                        <p><strong>اسم المؤسسة:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_name"])->first()->value }}</p>
-                        <p><strong>العنوان:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_address"])->first()->value }}</p>
-                        <p><strong>رقم الجوال:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_phone"])->first()->value }}</p>
+                        <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>
+                        <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value }}</p>
+                        <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value }}</p>
                     </div>
                 </div>
 

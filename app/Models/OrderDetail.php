@@ -9,6 +9,11 @@ class OrderDetail extends Model
 {
     use HasFactory;
   protected $fillable = [
+        'insert_flag',
+        'update_flag',
+        'product_details',
+        'discount_type',
+
         'order_id', // Add order_id to fillable properties
         'product_details',
         'product_id',

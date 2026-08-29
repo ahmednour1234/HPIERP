@@ -30,16 +30,24 @@ public function index(Request $request)
     $search    = $request->input('search');
 
     // بداية الاستعلام بدون شروط
-    $query = TransactionSeller::query()->with('sellers');
+    // accounts مُحمَّلة مسبقًا: الجدول يعرض اسم الحساب لكل صف.
+    $query = TransactionSeller::query()->with(['sellers', 'accounts']);
 
     // فلترة حسب البائع
     if (!empty($sellerId)) {
         $query->where('seller_id', $sellerId);
     }
 
-    // فلترة بالتاريخ
-    if (!empty($startDate) && !empty($endDate)) {
-        $query->whereBetween('created_at', [$startDate, $endDate]);
+    // فلترة بالتاريخ.
+    // كانت تستخدم whereBetween على created_at وهو datetime، فتاريخ النهاية
+    // يُقرأ 00:00:00 ويسقط يوم النهاية بالكامل، كما كانت تشترط إدخال
+    // التاريخين معًا فيُتجاهل الفلتر لو أُدخل أحدهما. whereDate يقارن
+    // الجزء التاريخي فقط، وكل شرط مستقل عن الآخر.
+    if (!empty($startDate)) {
+        $query->whereDate('created_at', '>=', $startDate);
+    }
+    if (!empty($endDate)) {
+        $query->whereDate('created_at', '<=', $endDate);
     }
 
     // فلترة بالبحث (اسم البائع أو البريد)
@@ -52,7 +60,7 @@ public function index(Request $request)
     }
 
     // جلب النتائج مع ترقيم الصفحات
-    $transactions = $query->latest()->paginate(10);
+    $transactions = $query->latest()->paginate(10)->appends($request->query());
 
     return view('admin-views.transaction_sellers.index', compact('transactions', 'sellers'));
 }

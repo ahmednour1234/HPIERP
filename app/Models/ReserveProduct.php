@@ -8,6 +8,11 @@ use Illuminate\Database\Eloquent\Model;
 class ReserveProduct extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'id', 'data', 'note', 'seller_id', 'customer_id', 'date', 'type',
+        'active', 'notification', 'insert_flag', 'update_flag',
+    ];
     
     public function seller()
     {

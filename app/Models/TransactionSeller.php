@@ -18,7 +18,9 @@ class TransactionSeller extends Model
         'account_id',
         'amount',
         'note',
-        'actvie',
+        // was 'actvie' - the typo meant `active` was never mass-assignable,
+        // so a deposit could not be filed with an explicit status.
+        'active',
         'img',
     ];
 

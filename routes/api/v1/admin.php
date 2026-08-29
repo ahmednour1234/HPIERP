@@ -29,6 +29,7 @@ Route::group(['prefix' => 'v1'], function () {
 
     Route::post('login', [AuthController::class, 'adminLogin']);
     Route::get('config', [SettingController::class, 'configuration']);
+
     Route::group(['middleware' => ['auth:admin-api']], function () {
                Route::get('seller/indexregions', [VisitorController::class, 'indexregions']);
 
@@ -100,7 +101,10 @@ Route::group(['prefix' => 'v1'], function () {
             Route::get('details', [CustomerController::class, 'getDetails']);
             Route::put('update', [CustomerController::class, 'postUpdate']);
             Route::get('delete', [CustomerController::class, 'delete']);
-            Route::post('add-balance', [CustomerController::class, 'addBalance']);
+            // Was routed at CustomerController@addBalance, which does not exist,
+            // so this endpoint always answered 500. Pointed at the v2
+            // implementation; no client can be relying on the old behaviour.
+            Route::post('add-balance', [\App\Http\Controllers\Api\V2\CustomerController::class, 'addBalance']);
             Route::post('update/balance', [CustomerController::class, 'update_balance']);
             Route::get('search', [CustomerController::class, 'getSearch']);
             Route::get('filter', [CustomerController::class, 'dateWiseFilter']);
@@ -176,8 +180,11 @@ Route::group(['prefix' => 'v1'], function () {
         Route::group(['prefix' => 'product'], function () {
             Route::get('list', [PosController::class, 'getSellerProducts']);
             Route::get('seller', [PosController::class, 'getSellerProducts']);
-            Route::post('store', [PosController::class, 'storeProduct']);
-            Route::post('update', [PosController::class, 'productUpdate']);
+            // PosController::storeProduct / productUpdate were never written,
+            // so both of these always answered 500. Pointed at the v2
+            // controller, which implements them.
+            Route::post('store', [\App\Http\Controllers\Api\V2\ProductController::class, 'store']);
+            Route::post('update', [\App\Http\Controllers\Api\V2\ProductController::class, 'update']);
             Route::get('search',  [PosController::class, 'getSearch']);
             Route::get('code/search', [ProductController::class, 'codeSearch']);
             Route::get('delete', [PosController::class, 'delete']);
@@ -190,8 +197,11 @@ Route::group(['prefix' => 'v1'], function () {
             Route::get('popular/filter', [ProductController::class, 'propularProductSort']);
             Route::get('supplier/wise', [ProductController::class, 'supplierWiseProduct']);
 
-            Route::post('customer/price', [ProductController::class, 'customerPrice']);
-            Route::post('customer/price/change', [ProductController::class, 'changeCustomerPrice']);
+            // Both crashed: customerPrice looped over an unvalidated cart, and
+            // changeCustomerPrice violated the customer_prices.local_id NOT NULL
+            // constraint. The v2 versions validate and set it.
+            Route::post('customer/price', [\App\Http\Controllers\Api\V2\ProductController::class, 'customerPrices']);
+            Route::post('customer/price/change', [\App\Http\Controllers\Api\V2\ProductController::class, 'setCustomerPrice']);
 
             Route::group(['prefix' => 'reservation'], function () {
                 Route::get('list/{type}', [PosController::class, 'reservations']);
@@ -235,7 +245,11 @@ Route::prefix('develop')->group(function () {
 
 Route::prefix('transactionseller')->group(function () {
     Route::get('/', [TransactionSellerController::class, 'index']);
-    Route::post('/', [TransactionSellerController::class, 'store']);
+    // The v1 store() inserted without a value for `img`, which is NOT NULL with
+    // no default, so every request that did not attach a photo answered 500.
+    // It also accepted a negative amount and a non-existent account_id.
+    // Pointed at the v2 implementation, which validates and files as pending.
+    Route::post('/', [\App\Http\Controllers\Api\V2\SellerDepositController::class, 'store']);
 });
     Route::post('/uploadcertificates', [DeveloperSellerController::class, 'storeImages']);
 

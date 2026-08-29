@@ -211,7 +211,7 @@
                                         
                                            <td>
                                         <img class="navbar-brand-logo"
-                         src="{{ asset('storage/app/public/shop/' . $transfer->img) }}" alt="Logo">
+                         src="{{ asset('storage/shop/' . $transfer->img) }}" alt="Logo">
                                     </td>
                                     </tr>
                                 @endforeach

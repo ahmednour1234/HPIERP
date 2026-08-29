@@ -63,6 +63,7 @@
     </div>
                                 </div>
                             <button type="submit" class="btn btn-primary">{{\App\CPU\translate('حفظ')}}</button>
+                                        <x-export-button route="admin.account.export-income" class="btn btn-info" />
                         </form>
                     </div>
                 </div>
@@ -90,6 +91,10 @@
                             <div class="col-12 col-md-6 col-lg-5 mb-3 mb-lg-0">
                                 <form action="{{url()->current()}}" method="GET">
                                     <!-- Search -->
+                                    {{-- يحمل التاريخ حتى لا يُلغى المدى عند البحث --}}
+                                    <input type="hidden" name="from" value="{{ $from }}">
+                                    <input type="hidden" name="to" value="{{ $to }}">
+
                                     <div class="input-group input-group-merge input-group-flush">
                                         <div class="input-group-prepend">
                                             <div class="input-group-text">
@@ -106,6 +111,9 @@
                             </div>
                             <div class="col-12 col-lg-7">
                                 <form action="{{url()->current()}}" method="GET">
+                                    {{-- يحمل نص البحث حتى لا يُلغى عند تغيير المدى --}}
+                                    <input type="hidden" name="search" value="{{ $search }}">
+
                                 <div class="row">
                                     <div class="col-md-5">
                                     <div class="form-group">
@@ -179,7 +187,7 @@
                                         </td>
                                                 <td>
                                         <img class="navbar-brand-logo"
-                         src="{{ asset('storage/app/public/shop/' . $income->img) }}" alt="Logo">
+                         src="{{ asset('storage/shop/' . $income->img) }}" alt="Logo">
                                     </td>
                                     </tr>
                                 @endforeach

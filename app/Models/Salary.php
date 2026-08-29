@@ -21,6 +21,7 @@ class Salary extends Model
         'result_of_visitors',
         'salary_of_visitors',
         'transport_amount',
+        'collection_incentive',
         'score',
         'notemanager',
         'total',

@@ -30,4 +30,10 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'us-east-1'),
     ],
 
+    // خرائط Google. بدون مفتاح ترفض Google تحميل الـ API وتبقى الخريطة فارغة.
+    // المفتاح الافتراضي هو المستخدم أصلًا في صفحات المصانع بهذا المشروع.
+    'google_maps' => [
+        'key' => env('GOOGLE_MAPS_API_KEY', 'AIzaSyAQgTQ30_TriFBdJPKKOK4zZQ8rfHCUk6c'),
+    ],
+
 ];

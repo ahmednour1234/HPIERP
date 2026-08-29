@@ -109,6 +109,37 @@ return response()->json([
      * @param Customer $customer
      * @return JsonResponse
      */
+/**
+ * سلسلة المديرين فوق مندوب معيَّن، صعودًا حتى القمة.
+ *
+ * admin_sellers تربط المدير (admin_id) بالتابع (seller_id)، فالصعود يكون
+ * بالبحث عن admin_id لكل seller_id. الحارس يمنع الدوران لو حوت البيانات دورة.
+ */
+private function managerChain($sellerId): array
+{
+    $chain    = [];
+    $frontier = [(int) $sellerId];
+    $guard    = 0;
+
+    while (!empty($frontier) && $guard++ < 20) {
+        $next = \App\Models\AdminSeller::whereIn('seller_id', $frontier)
+            ->pluck('admin_id')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+
+        $next = array_values(array_diff(array_unique($next), $chain, [(int) $sellerId]));
+
+        if (empty($next)) {
+            break;
+        }
+
+        $chain    = array_merge($chain, $next);
+        $frontier = $next;
+    }
+
+    return $chain;
+}
+
 public function postStore(Request $request): JsonResponse
 {
     try {
@@ -143,11 +174,19 @@ public function postStore(Request $request): JsonResponse
         // Get the authenticated seller's ID
         $seller_id = auth()->user()->id; // Assuming the authenticated user is a seller
 
-        // Attach the customer to the seller
-        $sellerCustomer = new SellerCustomer();
-        $sellerCustomer->seller_id = $seller_id;
-        $sellerCustomer->customer_id = $customer->id;
-        $sellerCustomer->save();
+        // ربط العميل بالمندوب، وبكل مديريه صعودًا في شجرة الإدارة.
+        //
+        // كان الربط يتم بالمندوب وحده، فلا يظهر العميل الجديد في قائمة مديره
+        // إلا بعد تحديث يدوي من الأدمن. الآن تتحدث القائمة تلقائيًا.
+        $ownerIds = array_merge([$seller_id], $this->managerChain($seller_id));
+
+        foreach (array_unique($ownerIds) as $ownerId) {
+            // firstOrCreate حتى لا يتكرر الربط لو أُعيد إرسال الطلب.
+            SellerCustomer::firstOrCreate([
+                'seller_id'   => $ownerId,
+                'customer_id' => $customer->id,
+            ]);
+        }
 
         // Return success response
         return response()->json([
@@ -190,6 +229,15 @@ public function postStore(Request $request): JsonResponse
     public function postUpdate(Request $request): JsonResponse
     {
         $customer = $this->customer->where('id', $request->id)->first();
+
+        // The unique rule below interpolates $customer->id, so a missing or
+        // unknown id crashed with "Attempt to read property id on null".
+        if (!$customer) {
+            return response()->json([
+                'errors' => [['code' => 'not-found', 'message' => 'Customer not found.']],
+            ], 404);
+        }
+
         $request->validate([
             'name' => 'required',
             'name_en' => 'required',

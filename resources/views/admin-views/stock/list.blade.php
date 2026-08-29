@@ -16,7 +16,7 @@
                         <i class="tio-files"></i>
                         <span>{{\App\CPU\translate('كشف نواقص')}} <span class="badge badge-soft-dark ml-2">{{$products->total()}}</span></span>
                     </h1>
-                    <span>{{ \App\CPU\translate('كشف نواقص المنتجات') }} {{ \App\Models\BusinessSetting::where(['key'=>'stock_limit'])->first()->value }}</span>
+                    <span>{{ \App\CPU\translate('كشف نواقص المنتجات') }} {{ optional(\App\Models\BusinessSetting::where(['key'=>'stock_limit'])->first())->value }}</span>
                 </div>
             </div>
         </div>
@@ -90,7 +90,7 @@
                                     </td>
                                     <td>
                                             <img class="img-one-sto"
-                                                src="{{asset('storage/app/public/product')}}/{{$product['image']}}"
+                                                src="{{asset('storage/product')}}/{{$product['image']}}"
                                                 onerror="this.src='{{asset('public/assets/admin/img/160x160/img2.jpg')}}'">
                                     </td>
                                     <td>

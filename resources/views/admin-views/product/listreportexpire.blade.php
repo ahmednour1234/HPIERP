@@ -44,6 +44,11 @@
                                     <!-- End Search -->
                                 </form>
                             </div>
+
+                            {{-- التصدير يحمل فلاتر الشاشة الحالية --}}
+                            <div class="mt-1 col-12 col-sm-3">
+                                <x-export-button route="admin.product.listreportexpire.export" />
+                            </div>
                             <div class="mt-1 col-12 col-sm-4">
                                 <select name="sort_orderQty" class="form-control" onchange="location.href='{{ url('/') }}/admin/product/listreportexpire/?sort_orderQty='+this.value">
                                     <option value="default" {{ $sort_orderQty == "default" ? 'selected' : '' }}>

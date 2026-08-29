@@ -47,10 +47,9 @@
                     <span class="input-group-text bg-white border-0">
                         <i class="tio-map-making text-muted"></i>
                     </span>
-                    <select name="region_id" class="form-select border-0">
-                        <option value="">{{ \App\CPU\translate('اختر المنطقة') }}</option>
+                    <select name="region_id[]" class="custom-select border-0" multiple size="4" style="height:auto;">
                         @foreach($regions as $region)
-                            <option value="{{ $region->id }}" @selected($regionId == $region->id)>{{ $region->name }}</option>
+                            <option value="{{ $region->id }}" @selected(in_array((string) $region->id, array_map('strval', (array) $regionId), true))>{{ $region->name }}</option>
                         @endforeach
                     </select>
                 </div>
@@ -76,6 +75,9 @@
                 <button type="button" class="btn btn-outline-secondary px-4 py-2 shadow-sm" onclick="printTable()">
                     <i class="tio-print me-1"></i> {{ \App\CPU\translate('طباعة') }}
                 </button>
+
+                    {{-- التصدير يحمل فلاتر الشاشة الحالية --}}
+                    <x-export-button route="admin.pos.donations.export" class="btn btn-success mt-2" />
             </div>
         </form>
     </div>
@@ -157,7 +159,7 @@
                             <td>{{ number_format($order['total_tax'], 2) }}</td>
                             <td>0.00</td>
                             <td class="none">
-    <img src="{{ asset('storage/app/public/'.$order['img']) }}" alt="Image Description" style="width: 50px; height: auto;">
+    <img src="{{ asset('storage/shop/'.$order['img']) }}" alt="Image Description" style="width: 50px; height: auto;">
 </td>
                             <td class="none">
                                 <button class="btn btn-sm btn-white" target="_blank" type="button"
@@ -370,17 +372,17 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
             <body>
             <div class="header-section">
                         <div class="left">
-                            <p><strong>رقم السجل التجاري:</strong> {{ \App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first()->value??'' }}</p>
-                            <p><strong>الرقم الضريبي:</strong> {{ \App\Models\BusinessSetting::where(["key" => "number_tax"])->first()->value ??''}}</p>
-                            <p><strong>البريد الإلكتروني:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_email"])->first()->value }}</p>
+                            <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value??'' }}</p>
+                            <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ??''}}</p>
+                            <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
                         </div>
                         <div class="logo">
-                            <img src="{{ asset('storage/app/public/shop/' . \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value) }}" alt="شعار المتجر">
+                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
                         </div>
                         <div class="right">
-                            <p><strong>اسم المؤسسة:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_name"])->first()->value }}</p>
-                            <p><strong>العنوان:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_address"])->first()->value }}</p>
-                            <p><strong>رقم الجوال:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_phone"])->first()->value }}</p>
+                            <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>
+                            <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value }}</p>
+                            <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value }}</p>
                         </div>
                     </div>
                     

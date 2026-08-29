@@ -182,7 +182,7 @@
                                         <h6 class="card-subtitle text-white">seller name:
                                             {{ $seller->f_name . ' ' . $seller->l_name }}</h6>
                                         <span class="card-title text-white">
-                                            vehicle code: {{ \App\Models\Store::where('store_id', $seller->vehicle_code)->first()->store_code }}
+                                            vehicle code: {{ optional(\App\Models\Store::where('store_id', $seller->vehicle_code)->first())->store_code }}
                                         </span>
                                         <span class="card-title text-white">
                                             total cash: {{ number_format($total_cash, 2) }}

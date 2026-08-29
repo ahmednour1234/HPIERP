@@ -49,11 +49,11 @@ body {
     <!-- الشعار والنص -->
     <div class="d-flex align-items-center gap-2">
         <a class="navbar-brand d-flex align-items-center" href="{{ route('admin.dashboard') }}" aria-label="Front">
-            @php($shop_logo=\App\Models\BusinessSetting::where(['key'=>'shop_logo'])->first()->value)
+            @php($shop_logo = $badgeService->setting('shop_logo'))
                         <span class="fw-bold ms-2" style="font-size: 20px; color: #333;margin-right:15px;">نظام الإدارة</span>
 
             <img class="navbar-brand-logo"
-                 src="{{ asset('storage/app/public/shop/' . $shop_logo) }}"
+                 src="{{ asset('storage/shop/' . $shop_logo) }}"
                  onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
                  alt="{{ \App\CPU\translate('logo') }}"
                  style="height: 40px; width: auto; border-radius: 6px; margin-right:50px;">
@@ -93,8 +93,8 @@ body {
         <i class="tio-notifications nav-icon"></i>
             <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
             {{\App\CPU\translate('الاشعارات')}}
-            @if(\App\Models\Order::where('notification', 1)->get()->count() > 0)
-                <span class="badge badge-pill badge-danger ml-1">{{ \App\Models\Order::where('notification', 1)->get()->count() +\App\Models\ReserveProduct::where('notification', 1)->get()->count() +\App\Models\TransactionSeller::get()->count() +\App\Models\HistoryInstallment::where('notification', 1)->get()->count()}}</span>
+            @if($badgeService->notificationTotal() > 0)
+                <span class="badge badge-pill badge-danger ml-1">{{ $badgeService->notificationTotal() }}</span>
             @endif
         </span>
     </a>
@@ -114,14 +114,14 @@ body {
                title="{{ \App\CPU\translate('list_stock') }}">
                 <span class="tio-circle nav-indicator-icon"></span>
                 <span class="text-truncate">{{ \App\CPU\translate('حجز المناديب') }}</span>
-                <span class="badge badge-success ml-2">{{ \App\Models\ReserveProduct::where('type', 4)->where('active',1)->count() }}</span>
+                <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_4_active'] }}</span>
             </a>
         </li>
         <li class="nav-item {{ Request::is('admin/admin/pos/reservations_notification') ? 'active' : '' }}">
 <a class="nav-link" href="{{ route('admin.pos.reservation_list_notification', ['type' => 7, 'active' => 1]) }}">
                 <span class="tio-circle nav-indicator-icon"></span>
                 <span class="text-truncate">{{ \App\CPU\translate('رد حجز المناديب') }}</span>
-                <span class="badge badge-success ml-2">{{ \App\Models\ReserveProduct::where('type', 7)->where('active',1)->count() }}</span>
+                <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_7_active'] }}</span>
             </a>
         </li>
            <li class="nav-item {{Request::is('admin/vehicle-stock')?'active':''}}">
@@ -152,7 +152,7 @@ body {
                                        title="{{\App\CPU\translate('stock_travels')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">{{\App\CPU\translate(' رحلات العربيات المنتهية')}}
-                                            <span class="badge badge-success ml-2">{{\App\Models\StockOrder::count()}}</span>
+                                            <span class="badge badge-success ml-2">{{ $badgeCounts['stock_orders'] }}</span>
                                         </span>
                                     </a>
                                 </li>
@@ -160,7 +160,7 @@ body {
 <a class="nav-link" href="{{ route('admin.pos.reservation_list_notification', ['type' => 3, 'active' => 2]) }}">
                 <span class="tio-circle nav-indicator-icon"></span>
                 <span class="text-truncate i">{{ \App\CPU\translate('اوامر الصرف بضاعة') }}</span>
-                <span class="badge badge-success ml-2">{{ \App\Models\ReserveProduct::where('type', 3)->where('active',2)->count() }}</span>
+                <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_3_active2'] }}</span>
             </a>
         </li>
     </ul>
@@ -338,7 +338,7 @@ body {
                      @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->pos == 1)
                       
                         <!-- Pos Pages -->
-                        @php($orders = \App\Models\Order::where('type', 4)->get()->count())
+                        @php($orders = $badgeCounts['orders_type_4'])
                         <li class="navbar-vertical-aside-has-menu">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
                             >
@@ -361,7 +361,7 @@ body {
                                        title="{{\App\CPU\translate('list_of_admin')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">{{\App\CPU\translate('تحويلات المناديب')}}</span>
-                                    <span class="badge badge-success ml-2">{{\App\Models\TransactionSeller::get()->count()}} </span>
+                                    <span class="badge badge-success ml-2">{{ $badgeCounts['transaction_sellers'] }} </span>
                                     </a>
                                 </li>
                               
@@ -375,12 +375,20 @@ body {
                                     </a>
                                 </li>
                                 
+                                <li class="nav-item {{Request::is('admin/pos/orders/archive')?'active':''}}">
+                                    <a class="nav-link " href="{{route('admin.pos.orders.archive')}}"
+                                       title="{{\App\CPU\translate('أرشيف الفواتير')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">{{\App\CPU\translate('أرشيف الفواتير')}}</span>
+                                    </a>
+                                </li>
+
                                 <li class="nav-item {{Request::is('admin/pos/refunds')?'active':''}}">
                                     <a class="nav-link " href="{{route('admin.pos.refunds')}}"
                                        title="{{\App\CPU\translate('refunds')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">{{\App\CPU\translate('المرتجعات المبيعات')}}
-                                            <span class="badge badge-success ml-2">{{\App\Models\Order::where('type', 7)->get()->count()}}</span>
+                                            <span class="badge badge-success ml-2">{{ $badgeCounts['orders_type_7'] }}</span>
                                         </span>
                                     </a>
                                 </li>
@@ -389,7 +397,7 @@ body {
                                        title="{{\App\CPU\translate('sample')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">{{\App\CPU\translate('عينات')}}
-                                            <span class="badge badge-success ml-2">{{\App\Models\Order::where('type', 12)->get()->count()}}</span>
+                                            <span class="badge badge-success ml-2">{{ $badgeCounts['orders_type_12'] }}</span>
                                         </span>
                                     </a>
                                 </li>
@@ -398,7 +406,7 @@ body {
                                        title="{{\App\CPU\translate('donations')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">{{\App\CPU\translate('تبرعات')}}
-                                            <span class="badge badge-success ml-2">{{\App\Models\Order::where('type', 24)->get()->count()}}</span>
+                                            <span class="badge badge-success ml-2">{{ $badgeCounts['orders_type_24'] }}</span>
                                         </span>
                                     </a>
                                 </li>
@@ -418,7 +426,7 @@ body {
     <a class="nav-link" href="{{ route('admin.pos.reservations', ['type' => 4, 'active' => 'all']) }}" title="{{ \App\CPU\translate('reservations') }}">
         <span class="tio-circle nav-indicator-icon"></span>
         <span class="text-truncate">{{ \App\CPU\translate('الحجوزات') }}
-            <span class="badge badge-success ml-2">{{ \App\Models\ReserveProduct::where('type', 4)->count() }}</span>
+            <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_4'] }}</span>
         </span>
     </a>
 </li>
@@ -426,7 +434,7 @@ body {
     <a class="nav-link" href="{{ route('admin.pos.reservations', ['type' => 7, 'active' => 'all']) }}" title="{{ \App\CPU\translate('reservations') }}">
         <span class="tio-circle nav-indicator-icon"></span>
         <span class="text-truncate">{{ \App\CPU\translate('رد الحجوزات') }}
-            <span class="badge badge-success ml-2">{{ \App\Models\ReserveProduct::where('type', 7)->count() }}</span>
+            <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_7'] }}</span>
         </span>
     </a>
 </li>
@@ -446,6 +454,18 @@ body {
             <a class="nav-link" href="{{ route('admin.product.getreportProducts') }}" title="{{ \App\CPU\translate('getreportProducts') }}">
                 <span class="tio-circle nav-indicator-icon"></span>
                 <span class="text-truncate">{{ \App\CPU\translate('كشف المنتجات المباعة') }}</span>
+            </a>
+        </li>
+        <li class="nav-item {{ Request::is('admin/reports/monthly-sales') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.reports.monthly-sales') }}" title="ملخص المبيعات الشهري">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">ملخص المبيعات الشهري</span>
+            </a>
+        </li>
+        <li class="nav-item {{ Request::is('admin/visitors/showResultVisitors*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.visitor.indexresult') }}" title="تقرير أداء المناديب">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">تقرير أداء المناديب</span>
             </a>
         </li>
         <li class="nav-item {{ Request::is('admin/product/listreportexpire') ? 'active' : '' }}">

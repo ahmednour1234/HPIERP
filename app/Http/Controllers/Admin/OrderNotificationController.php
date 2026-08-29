@@ -52,15 +52,15 @@ class OrderNotificationController extends Controller
         $search = $request->input('search');
 
         // Perform search query using relationships and filtered by order_type and active status
-        $notifications = \App\Models\Order::with(['owner', 'customer'])
+        $notifications = \App\Models\Order::with(['seller', 'customer'])
             ->where('type', 4)
             ->where('active', 0)
             ->where(function ($query) use ($search) {
-                $query->whereHas('owner', function ($query) use ($search) {
+                $query->whereHas('seller', function ($query) use ($search) {
                     $query->where('f_name', 'LIKE', "%{$search}%")
                           ->orWhere('l_name', 'LIKE', "%{$search}%");
                 })
-                ->orWhereHas('user', function ($query) use ($search) {
+                ->orWhereHas('customer', function ($query) use ($search) {
                     $query->where('name', 'LIKE', "%{$search}%");
                 });
             })

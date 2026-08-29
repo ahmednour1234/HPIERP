@@ -116,10 +116,12 @@
 <body>
 
 <div class="card">
-    @php($shop_logo=\App\Models\BusinessSetting::where(['key'=>'shop_logo'])->first()->value)
+    {{-- optional(): the row does not exist until a logo is uploaded, and
+         reading ->value on null took the whole login page down with a 500. --}}
+    @php($shop_logo=optional(\App\Models\BusinessSetting::where(['key'=>'shop_logo'])->first())->value)
 
     <div class="logo-container">
-        <img src="{{asset('storage/app/public/shop')}}/{{ $shop_logo }}"  alt="IQ Point Logo">
+        <img src="{{asset('storage/shop')}}/{{ $shop_logo }}"  alt="IQ Point Logo">
     </div>
     <h2 class="h-one-auth pb-2">{{\App\CPU\translate('نظام')}} <span class="ss">ERP</span> متكامل</h2>
 

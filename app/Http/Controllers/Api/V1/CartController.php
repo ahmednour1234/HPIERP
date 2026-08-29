@@ -26,8 +26,19 @@ class CartController extends Controller
      * @param $id
      * @return JsonResponse
      */
-    public function removeCart(Request $request, $id): JsonResponse
+    public function removeCart(Request $request, $id = null): JsonResponse
     {
+        // The route is declared without an {id} segment, so the parameter was
+        // never supplied and every call died with "Too few arguments". Fall
+        // back to the request body, which is how clients actually send it.
+        $id = $id ?? $request->input('id');
+
+        if (!$id) {
+            return response()->json([
+                'errors' => [['code' => 'id', 'message' => 'A cart item id is required.']],
+            ], 403);
+        }
+
         DB::table('poss')->where('id', $id)->delete();
         return response()->json([
             'success' => true,

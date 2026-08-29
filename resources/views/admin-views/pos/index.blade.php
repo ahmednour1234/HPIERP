@@ -47,11 +47,11 @@
         <div class="navbar-nav-wrap">
             <div class="navbar-brand-wrapper">
                 <!-- Logo Div-->
-                @php($shop_logo=\App\Models\BusinessSetting::where('key','shop_logo')->first()->value)
+                @php($shop_logo=optional(\App\Models\BusinessSetting::where('key','shop_logo')->first())->value)
                 <a class="navbar-brand pt-0 pb-0" href="{{route('admin.dashboard')}}" aria-label="Front">
                     <img class="navbar-brand-logo w-i1"
                         onerror="this.src='{{asset('public/assets/admin/img/160x160/img2.jpg')}}'"
-                        src="{{asset('storage/app/public/shop/'.$shop_logo)}}"
+                        src="{{asset('storage/shop/'.$shop_logo)}}"
                         alt="Logo">
                 </a>
             </div>
@@ -98,7 +98,7 @@
                                 <div class="avatar avatar-sm avatar-circle">
                                     <img class="avatar-img"
                                         onerror="this.src='{{asset('public/assets/admin/img/160x160/img1.jpg')}}'"
-                                        src="{{asset('storage/app/public/admin')}}/{{auth('admin')->user()->image}}"
+                                        src="{{asset('storage/admin')}}/{{auth('admin')->user()->image}}"
                                         alt="Image">
                                     <span class="avatar-status avatar-sm-status avatar-status-success"></span>
                                 </div>
@@ -111,7 +111,7 @@
                                         <div class="avatar avatar-sm avatar-circle mr-2">
                                             <img class="avatar-img"
                                                 onerror="this.src='{{asset('public/assets/admin/img/160x160/img1.jpg')}}'"
-                                                src="{{asset('storage/app/public/admin')}}/{{auth('admin')->user()->image}}"
+                                                src="{{asset('storage/admin')}}/{{auth('admin')->user()->image}}"
                                                 alt="Owner image">
                                         </div>
                                         <div class="media-body">

@@ -245,24 +245,24 @@
                     </label>
                     <select name="seller_id" id="seller" class="form-select">
                         <option value="">{{ \App\CPU\translate('اختر بائع') }}</option>
-                        @foreach($sellers as $sellerId)
+                        @foreach($sellers as $sellerOption)
                             <option
-                                value="{{ $sellerId }}"
-                                {{ request('seller_id') == $sellerId ? 'selected' : '' }}
+                                value="{{ $sellerOption->id }}"
+                                {{ request('seller_id') == $sellerOption->id ? 'selected' : '' }}
                             >
-                                {{ \App\Models\Seller::find($sellerId)->email }}
+                                {{ $sellerOption->email }}
                             </option>
                         @endforeach
                     </select>
                 </div>
 
-                <!-- Specialist Dropdown -->
+                <!-- الفئة (كانت تسمى التخصص) -->
                 <div class="col-md-3">
                     <label for="specialist" class="form-label">
-                        {{ \App\CPU\translate('اختار التخصص') }}
+                        {{ \App\CPU\translate('الفئة') }}
                     </label>
                     <select name="specialist" id="specialist" class="form-select">
-                        <option value="">{{ \App\CPU\translate('اختر التخصص') }}</option>
+                        <option value="">{{ \App\CPU\translate('كل الفئات') }}</option>
                         <option value="1" {{ request('specialist') == 1 ? 'selected' : '' }}>
                             {{ \App\CPU\translate('صيدلية') }}
                         </option>
@@ -272,12 +272,44 @@
                         <option value="3" {{ request('specialist') == 3 ? 'selected' : '' }}>
                             {{ \App\CPU\translate('مستشفى') }}
                         </option>
-                         
-                        <option value="4">
+                        {{-- كان هذا الخيار بلا فحص selected، فيضيع عند إعادة العرض --}}
+                        <option value="4" {{ request('specialist') == 4 ? 'selected' : '' }}>
                             {{ \App\CPU\translate('طبيب') }}
                         </option>
                     </select>
                 </div>
+
+                <!-- التخصص: أطفال / نسا وتوليد / ... وهو category_id من نوع 0 -->
+                <div class="col-md-3">
+                    <label for="category_id" class="form-label">
+                        {{ \App\CPU\translate('التخصص') }}
+                    </label>
+                    <select name="category_id" id="category_id" class="form-select">
+                        <option value="">{{ \App\CPU\translate('كل التخصصات') }}</option>
+                        @foreach($categories as $category)
+                            <option value="{{ $category->id }}"
+                                {{ (string) request('category_id') === (string) $category->id ? 'selected' : '' }}>
+                                {{ $category->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- المنطقة: يمكن تحديد أكثر من منطقة معًا -->
+                <div class="col-md-3">
+                    <label for="region_id" class="form-label">
+                        {{ \App\CPU\translate('المنطقة (يمكن اختيار أكثر من منطقة)') }}
+                    </label>
+                    <select name="region_id[]" id="region_id" class="form-select" multiple size="4">
+                        @foreach($regions as $region)
+                            <option value="{{ $region->id }}"
+                                {{ in_array((string) $region->id, $regionIds, true) ? 'selected' : '' }}>
+                                {{ $region->name }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
 
                 <!-- Search Button -->
                 <div class="col-md-2">
@@ -293,7 +325,17 @@
 
         <div class="d-flex gap-3 justify-content-end">
             <!-- Export Button -->
+            {{-- التصدير يحمل فلاتر الشاشة الحالية، وإلا صدّر كل العملاء --}}
             <form action="{{ route('admin.customer.export') }}" method="GET" class="d-inline-block">
+                @foreach(request()->except('page') as $qkey => $qvalue)
+                    @if(is_array($qvalue))
+                        @foreach($qvalue as $qitem)
+                            <input type="hidden" name="{{ $qkey }}[]" value="{{ $qitem }}">
+                        @endforeach
+                    @else
+                        <input type="hidden" name="{{ $qkey }}" value="{{ $qvalue }}">
+                    @endif
+                @endforeach
                 <button type="submit" class="btn btn-success">
                     <i class="tio-download-to me-1"></i>
                     {{ \App\CPU\translate('اصدار في اكسل') }}
@@ -701,17 +743,17 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
             <body>
             <div class="header-section">
                         <div class="left">
-                            <p><strong>رقم السجل التجاري:</strong> {{ \App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first()->value??'' }}</p>
-                            <p><strong>الرقم الضريبي:</strong> {{ \App\Models\BusinessSetting::where(["key" => "number_tax"])->first()->value ??''}}</p>
-                            <p><strong>البريد الإلكتروني:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_email"])->first()->value }}</p>
+                            <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value??'' }}</p>
+                            <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ??''}}</p>
+                            <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
                         </div>
                         <div class="logo">
-                            <img src="{{ asset('storage/app/public/shop/' . \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value) }}" alt="شعار المتجر">
+                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
                         </div>
                         <div class="right">
-                            <p><strong>اسم المؤسسة:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_name"])->first()->value }}</p>
-                            <p><strong>العنوان:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_address"])->first()->value }}</p>
-                            <p><strong>رقم الجوال:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_phone"])->first()->value }}</p>
+                            <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>
+                            <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value }}</p>
+                            <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value }}</p>
                         </div>
                     </div>
                     

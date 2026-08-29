@@ -66,7 +66,7 @@
                                 <td>{{ $material->unit->unit_type ?? '-' }}</td>
                                 <td>
                                     @if ($material->pdf_file)
-                                        <a href="{{ asset('storage/app/public/materials/pdf/' . $material->pdf_file) }}" target="_blank">📄 عرض</a>
+                                        <a href="{{ asset('storage/materials/pdf/' . $material->pdf_file) }}" target="_blank">📄 عرض</a>
                                     @else
                                         -
                                     @endif

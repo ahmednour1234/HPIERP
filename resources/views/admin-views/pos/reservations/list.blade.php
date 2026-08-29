@@ -46,6 +46,36 @@
         <input type="date" name="to_date" class="form-control" placeholder="To Date" value="{{ $toDate }}" aria-label="To Date">
     </div>
     <!-- End Search by Date Range -->
+
+    {{-- Narrow to one seller. --}}
+    <div class="input-group mt-3">
+        <select name="seller_id" class="form-control">
+            <option value="">{{ \App\CPU\translate('كل المناديب') }}</option>
+            @foreach (($sellers ?? []) as $s)
+                <option value="{{ $s->id }}"
+                    {{ (string) request('seller_id') === (string) $s->id ? 'selected' : '' }}>
+                    {{ trim($s->f_name . ' ' . $s->l_name) }}
+                    @if ($s->mandob_code) ({{ $s->mandob_code }}) @endif
+                </option>
+            @endforeach
+        </select>
+    </div>
+
+    <div class="mt-3">
+        <button type="submit" class="btn btn-primary">
+            <i class="tio-filter-list"></i> {{ \App\CPU\translate('search') }}
+        </button>
+
+        <a href="{{ url()->current() }}" class="btn btn-secondary">
+            {{ \App\CPU\translate('reset') }}
+        </a>
+
+        {{-- Carries the current filters, so the download matches the screen. --}}
+        <a href="{{ route('admin.pos.reservations.export', array_merge([$type ?? 4, $active ?? 'all'], request()->query())) }}"
+           class="btn btn-success">
+            <i class="tio-file-outlined"></i> {{ \App\CPU\translate('تصدير CSV') }}
+        </a>
+    </div>
 </form>
                     </div>
 
@@ -68,6 +98,7 @@
                         <th>{{\App\CPU\translate('Sellter Name')}}</th>
                         <th>{{\App\CPU\translate('Customer Name')}}</th>
                         <th>{{\App\CPU\translate('Products')}}</th>
+                        <th>{{\App\CPU\translate('ملاحظات المندوب')}}</th>
                           <th>{{\App\CPU\translate('Date')}}</th>
                         <th>{{\App\CPU\translate('actions')}}</th>
                     </tr>
@@ -84,11 +115,14 @@
                             <td>
                                 <ul>
                                     @foreach(json_decode($item->data) as $value)
-                                        @php $product = \App\Models\Product::find($value->product_id) @endphp
-                                        <li>{{ $product->name ?? '' . ' ' .  $value->stock ?? ''}}</li>
+                                        {{-- product_name is stored on the line; the
+                                            Product::find() here ran a query per row. --}}
+                                        <li>{{ $value->product_name ?? '' }} ({{ $value->stock ?? 0 }})</li>
                                     @endforeach
                                 </ul>
                             </td>
+                            {{-- The note the seller typed when placing the request. --}}
+                            <td>{{ $item->note ?: '-' }}</td>
                             <td>{{date('d M Y',strtotime($item['created_at']))}}</td>
                             <td>
                                 <button class="btn btn-sm btn-white" target="_blank" type="button"

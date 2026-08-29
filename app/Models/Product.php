@@ -13,6 +13,15 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 class Product extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'local_id', 'name', 'name_en', 'product_code', 'unit_type', 'unit_value',
+        'brand', 'category_id', 'purchase_price', 'purchase_price1', 'purchase_price2',
+        'purchase_price3', 'purchase_price4', 'selling_price', 'selling_price1',
+        'selling_price2', 'selling_price3', 'selling_price4', 'discount_type', 'discount',
+        'limit_stock', 'limit_web', 'tax', 'tax_id', 'quantity', 'image', 'supplier_id',
+        'expiry_date', 'company_id', 'type',
+    ];
     /**
      * Get the user that owns the Product
      *

@@ -3,11 +3,11 @@
         <div class="navbar-nav-wrap">
             <div class="navbar-brand-wrapper">
                 <!-- Logo -->
-                @php($shop_logo = \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value)
+                @php($shop_logo = $badgeService->setting('shop_logo'))
                 <a class="navbar-brand" href="{{ route('admin.dashboard') }}" aria-label="">
                     <img class="navbar-brand-logo"
                          onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
-                         src="{{ asset('storage/app/public/shop/' . $shop_logo) }}" alt="Logo">
+                         src="{{ asset('storage/shop/' . $shop_logo) }}" alt="Logo">
                 </a>
                 <!-- End Logo -->
             </div>
@@ -57,26 +57,28 @@
             }'>
             <i class="tio-notifications text-white"></i>
 
-            @if(\App\Models\Order::where('notification', 1)->get()->count() +\App\Models\ReserveProduct::where('notification', 1)->get()->count()  +\App\Models\HistoryInstallment::where('notification', 1)->get()->count() > 0)
-                <span class="badge badge-pill badge-danger">{{ \App\Models\Order::where('notification', 1)->get()->count() +\App\Models\ReserveProduct::where('notification', 1)->get()->count()  +\App\Models\HistoryInstallment::where('notification', 1)->get()->count()+\App\Models\TransactionSeller::get()->count() }}</span>
+            {{-- العدد يأتي محسوبًا مرة واحدة من AdminBadgeCounts بدل ست
+                 عمليات ->get()->count() متكررة هنا. --}}
+            @if($badgeService->notificationTotal() > 0)
+                <span class="badge badge-pill badge-danger">{{ $badgeService->notificationTotal() }}</span>
             @endif
         </a>
 
         <div id="notificationDropdown" class="hs-unfold-content dropdown-unfold dropdown-menu dropdown-menu-right navbar-dropdown-menu"
              style="max-height: 400px; overflow-y: auto;">
             <div class="dropdown-item-text">
-                <span class="card-title h5">Notifications</span>
+                <span class="card-title h5">{{ \App\CPU\translate('Notifications') }}</span>
             </div>
             <div class="dropdown-divider"></div>
 
             <!-- Installments Notifications -->
            <!-- Installments Notifications -->
-@foreach (\App\Models\HistoryInstallment::where('notification', 1)->orderBy('created_at', 'desc')->get() as $installment)
+@foreach ($badgeService->notifications()['installments'] as $installment)
     <a href="{{ route('admin.admin.notifications.show', ['id' => $installment->id, 'type' => 'installment']) }}">
         <div class="media align-items-center">
             <i class="tio-check-circle text-success mr-2"></i>
             <div class="media-body">
-                <span class="text-truncate pr-2">Installment due: {{ $installment->amount }}</span>
+                <span class="text-truncate pr-2">{{ \App\CPU\translate('Installment due') }}: {{ $installment->amount }}</span>
                 <small class="text-muted">{{ $installment->created_at->diffForHumans() }}</small>
             </div>
         </div>
@@ -85,12 +87,12 @@
 @endforeach
 
 <!-- Orders Notifications -->
-@foreach (\App\Models\Order::where('notification', 1)->orderBy('created_at', 'desc')->get() as $order)
+@foreach ($badgeService->notifications()['orders'] as $order)
     <a href="{{ route('admin.admin.notifications.show', ['id' => $order->id, 'type' => 'order']) }}">
         <div class="media align-items-center">
             <i class="tio-shopping-cart text-primary mr-2"></i>
             <div class="media-body">
-                <span class="text-truncate pr-2">New order: {{ $order->id }}</span>
+                <span class="text-truncate pr-2">{{ \App\CPU\translate('New order') }}: {{ $order->id }}</span>
                 <small class="text-muted">{{ $order->created_at->diffForHumans() }}</small>
             </div>
         </div>
@@ -99,12 +101,12 @@
 @endforeach
 
 <!-- Reservations Notifications -->
-@foreach (\App\Models\ReserveProduct::where('notification', 1)->orderBy('created_at', 'desc')->get() as $reservation)
+@foreach ($badgeService->notifications()['reservations'] as $reservation)
     <a href="{{ route('admin.admin.notifications.show', ['id' => $reservation->id, 'type' => 'reserveProduct']) }}">
         <div class="media align-items-center">
             <i class="tio-calendar text-info mr-2"></i>
             <div class="media-body">
-                <span class="text-truncate pr-2">Reservation made: {{ $reservation->id }}</span>
+                <span class="text-truncate pr-2">{{ \App\CPU\translate('Reservation made') }}: {{ $reservation->id }}</span>
                 <small class="text-muted">{{ $reservation->created_at->diffForHumans() }}</small>
             </div>
         </div>
@@ -131,7 +133,7 @@
                                 <div class="avatar avatar-sm avatar-circle">
                                     <img class="avatar-img"
                                          onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
-                                         src="{{ asset('storage/app/public/admin') }}/{{ auth('admin')->user()->image }}"
+                                         src="{{ asset('storage/admin') }}/{{ auth('admin')->user()->image }}"
                                          alt="{{ \App\CPU\translate('image_description') }}">
                                     <span class="avatar-status avatar-sm-status avatar-status-success"></span>
                                 </div>
@@ -144,7 +146,7 @@
                                         <div class="avatar avatar-sm avatar-circle mr-2">
                                             <img class="avatar-img"
                                                  onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
-                                                 src="{{ asset('storage/app/public/admin') }}/{{ auth('admin')->user()->image }}"
+                                                 src="{{ asset('storage/admin') }}/{{ auth('admin')->user()->image }}"
                                                  alt="{{ \App\CPU\translate('image_description') }}">
                                         </div>
                                         <div class="media-body">

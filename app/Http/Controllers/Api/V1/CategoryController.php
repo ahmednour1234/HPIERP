@@ -163,6 +163,13 @@ class CategoryController extends Controller
     public function updateStatus(Request $request): JsonResponse
     {
         $category = $this->category->find($request->id);
+
+        // find() returns null for a missing or absent id; the original
+        // dereferenced it straight away and answered 500.
+        if (!$category) {
+            return response()->json(['errors' => [['code' => 'not-found', 'message' => 'Record not found.']]], 404);
+        }
+
         $category->status = !$category['status'];
         $category->update();
         return response()->json([

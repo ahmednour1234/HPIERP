@@ -9,6 +9,10 @@ class Account extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'storage_id', 'account', 'description', 'balance', 'account_number', 'total_in', 'total_out', 'company_id',
+    ];
+
     public function transections()
     {
         return $this->hasMany(Transection::class);

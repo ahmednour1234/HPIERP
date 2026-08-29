@@ -177,7 +177,7 @@
                                 </div>
                                 <div class="form-group my-4">
                                     <center>
-                                        <img class="img-one-cusu" id="viewer" src="{{ asset('storage/app/public/customer/' . $customer['image']) }}" onerror="this.src='{{ asset('public/assets/admin/img/400x400/img2.jpg') }}'" alt="{{ __('الصورة') }}"/>
+                                        <img class="img-one-cusu" id="viewer" src="{{ asset('storage/customer/' . $customer['image']) }}" onerror="this.src='{{ asset('public/assets/admin/img/400x400/img2.jpg') }}'" alt="{{ __('الصورة') }}"/>
                                     </center>
                                 </div>
                             </div>

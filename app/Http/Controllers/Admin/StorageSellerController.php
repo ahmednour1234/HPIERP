@@ -45,6 +45,15 @@ class StorageSellerController extends Controller
     return view('admin-views.storage.list', compact('storageSellers', 'storages', 'sellers'));
 }
 
+    /**
+     * There is no separate create view: admin-views.storage.list already
+     * carries the add form. The route declares create(), and without this the
+     * page answered 500 with "Method ... does not exist".
+     */
+    public function create()
+    {
+        return $this->index();
+    }
     public function store(Request $request): RedirectResponse
     {
         $request->validate([

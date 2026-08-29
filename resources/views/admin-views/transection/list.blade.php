@@ -47,10 +47,13 @@
                                     <option value="Income" {{ $tran_type=='Income'?'selected':''}}>{{\App\CPU\translate('الدخل')}}</option>
     <!--                    <option value="مشتريات" {{ $tran_type == 4 ? 'selected' : '' }}>{{ \App\CPU\translate('مشتريات') }}</option>-->
     <!--<option value="مردود مشتريات" {{ $tran_type == 7 ? 'selected' : '' }}>{{ \App\CPU\translate('مردود مشتريات') }}</option>-->
-    <option value="4" {{ $tran_type == 4 ? 'selected' : '' }}>{{ \App\CPU\translate('مبيعات') }}</option>
-    <option value="7" {{ $tran_type == 7 ? 'selected' : '' }}>{{ \App\CPU\translate('مردود مبيعات') }}</option>
-    <option value="26" {{ $tran_type == 26 ? 'selected' : '' }}>{{ \App\CPU\translate('استلام نقدية') }}</option>
-    <option value="13" {{ $tran_type == 13 ? 'selected' : '' }}>{{ \App\CPU\translate('دفع نقدية') }}</option>
+    {{-- "مبيعات أجل" و"مبيعات" كلاهما نوع 4، ويفرّق بينهما cash، فيُمرَّران
+         كقيمتين مركّبتين يفكّهما المتحكّم. --}}
+    <option value="4_credit" {{ $tran_type === '4_credit' ? 'selected' : '' }}>{{ \App\CPU\translate('مبيعات أجل') }}</option>
+    <option value="4_cash" {{ $tran_type === '4_cash' ? 'selected' : '' }}>{{ \App\CPU\translate('مبيعات') }}</option>
+    <option value="26" {{ $tran_type == 26 ? 'selected' : '' }}>{{ \App\CPU\translate('تحصيل نقدي') }}</option>
+    <option value="13" {{ $tran_type == 13 ? 'selected' : '' }}>{{ \App\CPU\translate('تحصيل من الآجل') }}</option>
+    <option value="7" {{ $tran_type == 7 ? 'selected' : '' }}>{{ \App\CPU\translate('مرتجع') }}</option>
                                 </select>
                             </div>
 
@@ -128,18 +131,24 @@
         <span class="badge badge-success">
             {{ \App\CPU\translate('الدخل') }} <br>
         </span>
-     @elseif ($transection->tran_type == 4)
-        <span class="badge badge-danger">مبيعات</span>
+    {{-- المسميات حسب المطلوب. البيع من نوع 4 ينقسم بحسب cash:
+         cash = 2 آجل، cash = 1 نقدي — وهو ما تؤكده البيانات. --}}
+    @elseif ($transection->tran_type == 4)
+        @if($transection->cash == 2)
+            <span class="badge badge-warning">مبيعات أجل</span>
+        @else
+            <span class="badge badge-danger">مبيعات</span>
+        @endif
     @elseif($transection->tran_type == 7)
-        <span class="badge badge-info">مرتجع مبيعات</span>
+        <span class="badge badge-info">مرتجع</span>
     @elseif($transection->tran_type == 8)
         <span class="badge badge-warning">مشتريات</span>
     @elseif($transection->tran_type == 14)
         <span class="badge badge-success">مرتجع مشتريات</span>
     @elseif($transection->tran_type == 13)
-        <span class="badge badge-soft-warning">دفع نقدية</span>
+        <span class="badge badge-soft-warning">تحصيل من الآجل</span>
     @elseif($transection->tran_type == 26)
-        <span class="badge badge-soft-success">استلام نقدية</span>
+        <span class="badge badge-soft-success">تحصيل نقدي</span>
     @endif
 </td>
 

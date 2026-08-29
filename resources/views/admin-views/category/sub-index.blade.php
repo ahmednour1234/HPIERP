@@ -104,7 +104,7 @@
                                     <td>{{$categories->firstitem()+$key}}</td>
                                     <td>
                                         <span class="d-block font-size-sm text-body">
-                                            {{$category->parent['name']}}
+                                            {{ optional($category->parent)->name ?? '-' }}
                                         </span>
                                     </td>
 

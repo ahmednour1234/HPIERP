@@ -59,8 +59,9 @@ Route::post('/supply_orders/issue/{order}', [SupplyOrderController::class, 'issu
 // راوتات المورد الافتراضية
 Route::resource('/supply_orders', SupplyOrderController::class)
      ->only(['index','create','store','show','edit','update']);
+// edit/update are not implemented on the controller, so they are not exposed.
 Route::resource('/production_orders', ProductionOrderController::class)
-     ->only(['index','create','store','show','edit','update']);
+     ->only(['index','create','store','show']);
 
 Route::prefix('purchases')->name('purchases.')->group(function(){
     Route::get('/', [PurchaseController::class, 'index'])->name('index');
@@ -132,11 +133,15 @@ Route::get('/stores/{store_id}/edit', [StoresController::class, 'edit'])->name('
         Route::group(['prefix' => 'product', 'as' => 'product.', 'middleware' => 'check.unit.access'], function () {
             Route::get('add', 'ProductController@index')->name('add');
             Route::get('getreportProducts', 'ProductController@getreportProducts')->name('getreportProducts');
+            // التصدير يحترم نفس فلاتر الشاشة.
+            Route::get('getreportProducts/export', 'ProductController@exportReportProducts')->name('getreportProducts.export');
             Route::post('store', 'ProductController@store')->name('store');
            Route::get('addexpire', 'ProductController@indexexpire')->name('addexpire');
             Route::post('storeexpire', 'ProductController@storeexpire')->name('storeexpire');
             Route::get('list', 'ProductController@list')->name('list');
             Route::get('listreportexpire', 'ProductController@listreportexpire')->name('listreportexpire');
+            // التصدير يحترم نفس فلاتر الشاشة.
+            Route::get('listreportexpire/export', 'ProductController@exportReportExpire')->name('listreportexpire.export');
             Route::get('listProductsByOrderType', 'ProductController@listProductsByOrderType')->name('listProductsByOrderType');
             Route::get('edit/{id}', 'ProductController@edit')->name('edit');
             Route::post('update/{id}', 'ProductController@update')->name('update');
@@ -151,6 +156,12 @@ Route::get('/stores/{store_id}/edit', [StoresController::class, 'edit'])->name('
             Route::get('get-categories', 'ProductController@get_categories')->name('get-categories');
             Route::get('remove-image/{id}/{name}', 'ProductController@remove_image')->name('remove-image');
         });
+
+// تقرير ملخص المبيعات الشهري
+Route::group(['prefix' => 'reports', 'as' => 'reports.'], function () {
+    Route::get('monthly-sales', 'MonthlySalesReportController@index')->name('monthly-sales');
+    Route::get('monthly-sales/export', 'MonthlySalesReportController@export')->name('monthly-sales.export');
+});
 
 Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.access'], function () {
             Route::get('/pos/{type}', 'POSController@index')->name('index');
@@ -168,22 +179,50 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
             Route::post('order', 'POSController@place_order')->name('order');
             Route::post('storeplaceorder', 'POSController@storeplaceorder')->name('storeplaceorder');
             Route::get('orders', 'POSController@order_list')->name('orders');
-            Route::get('order-details/{id}', 'POSController@order_details')->name('order-details');
+            // Export and collection-reversal honour the same filters as the listing.
+            Route::get('orders/export','POSController@order_export')->name('orders.export');
+
+            // أرشيف الفواتير المكتملة. الأرشفة وسم قابل للتراجع لا حذف.
+            Route::get('orders/archive', 'InvoiceArchiveController@index')->name('orders.archive');
+            Route::get('orders/archive/export', 'InvoiceArchiveController@export')->name('orders.archive.export');
+            Route::post('orders/archive/all', 'InvoiceArchiveController@archiveAll')->name('orders.archive.all');
+            Route::post('orders/{id}/archive', 'InvoiceArchiveController@archiveOne')->name('orders.archive.one');
+            Route::post('orders/{id}/unarchive', 'InvoiceArchiveController@unarchiveOne')->name('orders.unarchive');
+            Route::post('orders/reverse-collection/{id}','POSController@order_reverse_collection')->name('orders.reverse');
+            // تحصيل فاتورة من الويب، بنفس خدمة التطبيق.
+            Route::post('orders/collect/{id}','POSController@collect_payment')->name('orders.collect');
+            // مسار معطَّل: POSController::order_details خاصية لا دالة، ولا يشير
+            // إليه أي رابط في التطبيق، فكان يعطي 500 لمن يفتحه مباشرة.
+            // Route::get('order-details/{id}', 'POSController@order_details')->name('order-details');
             Route::get('refunds', 'POSController@refund_list')->name('refunds');
+            // Exports honour the same filters as their listings.
+            Route::get('refunds/export','POSController@refund_export')->name('refunds.export');
+            Route::get('installments/export','POSController@installment_export')->name('installments.export');
             Route::get('sample', 'POSController@sample_list')->name('sample');
+            // التصدير يحترم نفس فلاتر الشاشة.
+            Route::get('sample/export', 'POSController@sample_export')->name('sample.export');
             Route::get('donations', 'POSController@donation_list')->name('donations');
+            // التصدير يحترم نفس فلاتر الشاشة.
+            Route::get('donations/export', 'POSController@donation_export')->name('donations.export');
             Route::get('installments', 'POSController@installment_list')->name('installments');
                         Route::post('installments/reserve/{id}', 'POSController@cancelInstallment')->name('cancelInstallment');
             Route::get('stocks', 'StockController@history')->name('stocks');
+            // التصدير يحترم نفس فلاتر الشاشة.
+            Route::get('stocks/export', 'POSController@stock_history_export')->name('stocks.export');
             Route::post('reserveProduct', 'POSController@reserveProduct')->name('reserveProduct');
             // Route::get('installment', 'POSController@installment_list')->name('installment');
            Route::get('reservations/{type}/{active}','POSController@reservation_list')->name('reservations');
+           // Export honours the same filters as the listing.
+           Route::get('reservations/export/{type}/{active}','POSController@reservation_export')->name('reservations.export');
             Route::get('reservations_notification/{type}/{active}', 'POSController@reservation_list_notification')->name('reservation_list_notification');
             Route::get('invoice/{id}', 'POSController@generate_invoice');
                         Route::get('generate_invoice_purchase/{id}', 'POSController@generate_invoice_purchase');
+            Route::get('refund/invoice/{id}', 'POSController@refund_generate_invoice');
             Route::get('sample/invoice/{id}', 'POSController@sample_generate_invoice');
             Route::get('donation/invoice/{id}', 'POSController@donation_generate_invoice');
             Route::post('deactivateReservedProductsByReservationId/{id}', 'POSController@deactivateReservedProductsByReservationId')->name('deactivateReservedProductsByReservationId');
+            // رد مخزون تم صرفه: يعكس أثر الصرف على المندوب والمخزن معًا.
+            Route::post('return-dispatch/{id}', 'StockController@return_dispatch')->name('return-dispatch');
             Route::get('we/reservations/invoice/{id}', 'POSController@generate_reservation_invoice')->name('generate_reservation_invoice');
                         Route::get('we/reservations/invoicea2/{id}', 'POSController@generate_reservation_invoicea2')->name('generate_reservation_invoicea2');
 
@@ -203,6 +242,10 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
         });
 
         Route::group(['prefix' => 'vehicle-stock', 'as' => 'stock.', 'middleware' => 'check.stock.access'], function () {
+            // Export honours the same filters as the listing.
+            Route::get('export', 'StockController@export')->name('export');
+            // Give part of what a seller is carrying back to the warehouse.
+            Route::post('return/{id}', 'StockController@returnToWarehouse')->name('return');
             Route::get('/', 'StockController@index')->name('index');
             Route::get('products/{seller_id}', 'StockController@stock_products')->name('products');
             Route::get('vehicles', 'StockController@vehicles')->name('vehicles');
@@ -217,6 +260,8 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
  Route::group(['prefix' => 'visitors', 'as' => 'visitor.'], function () {
             Route::get('/', 'VisitorController@index')->name('index');
                         Route::get('/indexresult', 'VisitorController@indexresult')->name('indexresult');
+            // التصدير يحترم نفس فلاتر شاشة الزيارات المنفذة.
+            Route::get('/indexresult/export', 'VisitorController@exportResult')->name('indexresult.export');
             Route::get('/showResultVisitors/{seller_id}', 'VisitorController@showResultVisitors')->name('showResultVisitors');
             Route::get('visitor/{seller_id}', 'VisitorController@stock_products')->name('products');
             Route::get('visitor', 'VisitorController@vehicles')->name('vehicles');
@@ -235,7 +280,6 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
             Route::get('add','AccountController@add')->name('add');
             Route::post('store', 'AccountController@store')->name('store');
             Route::get('list', 'AccountController@list')->name('list');
-            Route::get('view/{id}', 'AccountController@view')->name('view');
             Route::get('edit/{id}', 'AccountController@edit')->name('edit');
             Route::post('update/{id}', 'AccountController@update')->name('update');
             Route::delete('delete/{id}', 'AccountController@delete')->name('delete');
@@ -243,10 +287,18 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
             //expense
             Route::get('add-expense','ExpenseController@add')->name('add-expense');
             Route::post('store-expense', 'ExpenseController@store')->name('store-expense');
+            // التصدير يحترم نفس فلاتر الشاشة.
+            Route::get('export-expense', 'ExpenseController@export')->name('export-expense');
+            // تعديل المصروف وحذفه، مع عكس أثرهما على رصيد الحساب.
+            Route::get('edit-expense/{id}', 'ExpenseController@edit')->name('edit-expense');
+            Route::post('update-expense/{id}', 'ExpenseController@update')->name('update-expense');
+            Route::delete('delete-expense/{id}', 'ExpenseController@delete')->name('delete-expense');
 
             //income
             Route::get('add-income', 'IncomeController@add')->name('add-income');
             Route::post('store-income', 'IncomeController@store')->name('store-income');
+            // التصدير يحترم نفس فلاتر الشاشة.
+            Route::get('export-income', 'IncomeController@export')->name('export-income');
             //transfer
             Route::get('add-transfer', 'TransferController@add')->name('add-transfer');
             Route::post('store-transfer', 'TransferController@store')->name('store-transfer');
@@ -422,7 +474,6 @@ Route::prefix('admin/salaries')->group(function () {
 
     Route::get('/{id}', [SalaryController::class, 'show'])->name('salaries.show');
     Route::get('admin/salary/show/{id}', [SalaryController::class, 'showsalary'])->name('salaries.showsalary');
-    Route::get('/{id}/edit', [SalaryController::class, 'edit'])->name('salaries.edit');
 });
 Route::prefix('admin/developsellers')->group(function () {
     Route::get('/{type}', [DevelopSellerController::class, 'index'])->name('developsellers.index');

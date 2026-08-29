@@ -34,9 +34,16 @@ class adminController extends Controller
 
   public function showmap()
     {
-        $admins = Admin::select('f_name', 'latitude', 'longitude')
+        // خريطة المناديب. الإحداثيات تُخزَّن نصًا وكثير من الصفوف تحمل '0'
+        // وهي نقطة في المحيط قبالة أفريقيا لا موقعًا حقيقيًا، فتُستبعد إلى
+        // جانب الفارغة؛ وإلا ظهرت علامات في مكان خاطئ أو أزاحت مركز الخريطة.
+        $admins = Admin::select('id', 'f_name', 'l_name', 'mandob_code', 'latitude', 'longitude')
                         ->whereNotNull('latitude')
                         ->whereNotNull('longitude')
+                        ->where('latitude', '!=', '')
+                        ->where('longitude', '!=', '')
+                        ->whereRaw('CAST(latitude AS DECIMAL(12,8)) != 0')
+                        ->whereRaw('CAST(longitude AS DECIMAL(12,8)) != 0')
                         ->get();
 
         return view('admin-views.map.index', compact('admins'));

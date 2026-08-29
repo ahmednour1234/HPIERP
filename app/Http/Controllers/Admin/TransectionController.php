@@ -41,8 +41,18 @@ class TransectionController extends Controller
             when($acc_id!=null, function($q) use ($request){
                 return $q->where('account_id',$request['account_id']);
             })
-            ->when($tran_type!=null, function($q) use ($request){
-                return $q->where('tran_type',$request['tran_type']);
+            // "مبيعات أجل" و"مبيعات" كلاهما tran_type = 4 ويفرّق بينهما cash،
+            // فتصل القيمة مركّبة (4_credit / 4_cash) وتُفكّ هنا.
+            ->when($tran_type!=null, function($q) use ($tran_type){
+                if ($tran_type === '4_credit') {
+                    return $q->where('tran_type', 4)->where('cash', 2);
+                }
+
+                if ($tran_type === '4_cash') {
+                    return $q->where('tran_type', 4)->where('cash', '!=', 2);
+                }
+
+                return $q->where('tran_type', $tran_type);
             })
             ->when($from!=null, function($q) use ($request){
                 return $q->whereBetween('date', [$request['from'], $request['to']]);
@@ -75,8 +85,18 @@ class TransectionController extends Controller
                 when($acc_id!=null, function($q) use ($request){
                     return $q->where('account_id',$request['account_id']);
                 })
-                ->when($tran_type!=null, function($q) use ($request){
-                    return $q->where('tran_type',$request['tran_type']);
+                // نفس فكّ القيمة المركّبة المستخدم في العرض، حتى يصف الملف
+                // نفس الصفوف التي تصفها الشاشة.
+                ->when($tran_type!=null, function($q) use ($tran_type){
+                    if ($tran_type === '4_credit') {
+                        return $q->where('tran_type', 4)->where('cash', 2);
+                    }
+
+                    if ($tran_type === '4_cash') {
+                        return $q->where('tran_type', 4)->where('cash', '!=', 2);
+                    }
+
+                    return $q->where('tran_type', $tran_type);
                 })
                 ->when($from!=null, function($q) use ($request){
                     return $q->whereBetween('date', [$request['from'], $request['to']]);

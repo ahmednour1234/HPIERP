@@ -19,10 +19,16 @@
     </coverage>
     <php>
         <server name="APP_ENV" value="testing"/>
+        <!-- .env sets APP_URL to a login page rather than a base URL, which
+             makes every test request resolve to that path instead of the one
+             being requested. Pin a real base URL for the suite. -->
+        <server name="APP_URL" value="http://localhost"/>
         <server name="BCRYPT_ROUNDS" value="4"/>
         <server name="CACHE_DRIVER" value="array"/>
-        <!-- <server name="DB_CONNECTION" value="sqlite"/> -->
-        <!-- <server name="DB_DATABASE" value=":memory:"/> -->
+        <!-- Tests always run against SQLite so they can never touch the
+             production MySQL database configured in .env -->
+        <server name="DB_CONNECTION" value="sqlite"/>
+        <server name="DB_DATABASE" value=":memory:"/>
         <server name="MAIL_MAILER" value="array"/>
         <server name="QUEUE_CONNECTION" value="sync"/>
         <server name="SESSION_DRIVER" value="array"/>

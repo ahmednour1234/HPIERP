@@ -21,7 +21,7 @@
                             @csrf
                             <div class="row">
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($shop_name = \App\Models\BusinessSetting::where('key', 'shop_name')->first()->value)
+                                    @php($shop_name = optional(\App\Models\BusinessSetting::where('key', 'shop_name')->first())->value)
                                     <div class="form-group">
                                         <label class="input-label" for="exampleFormControlInput1">{{ \App\CPU\translate('shop_name') }} </label>
                                         <input type="text" name="shop_name" value="{{ $shop_name }}"
@@ -29,7 +29,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($shop_email = \App\Models\BusinessSetting::where('key', 'shop_email')->first()->value)
+                                    @php($shop_email = optional(\App\Models\BusinessSetting::where('key', 'shop_email')->first())->value)
                                     <div class="form-group">
                                         <label class="input-label" for="exampleFormControlInput1">{{ \App\CPU\translate('shop_email') }} </label>
                                         <input type="email" name="shop_email" value="{{ $shop_email }}"
@@ -37,7 +37,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($shop_phone = \App\Models\BusinessSetting::where('key', 'shop_phone')->first()->value)
+                                    @php($shop_phone = optional(\App\Models\BusinessSetting::where('key', 'shop_phone')->first())->value)
                                     <div class="form-group">
                                         <label class="input-label" for="exampleFormControlInput1">{{ \App\CPU\translate('shop_phone') }} </label>
                                         <input type="text" name="shop_phone" value="{{ $shop_phone }}"
@@ -45,7 +45,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($shop_address = \App\Models\BusinessSetting::where('key', 'shop_address')->first()->value)
+                                    @php($shop_address = optional(\App\Models\BusinessSetting::where('key', 'shop_address')->first())->value)
                                     <div class="form-group">
                                         <label class="input-label" for="exampleFormControlInput1">{{ \App\CPU\translate('shop_address') }}</label>
                                         <input type="text" name="shop_address" value="{{ $shop_address }}"
@@ -53,7 +53,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($pagination_limit = \App\Models\BusinessSetting::where('key', 'pagination_limit')->first()->value)
+                                    @php($pagination_limit = optional(\App\Models\BusinessSetting::where('key', 'pagination_limit')->first())->value)
                                     <div class="form-group">
                                         <label class="input-label" for="exampleFormControlInput1">{{ \App\CPU\translate('pagination_limit') }}</label>
                                         <input min="1" type="number" name="pagination_limit" value="{{ $pagination_limit }}"
@@ -61,7 +61,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($currency_code = \App\Models\BusinessSetting::where('key', 'currency')->first()->value)
+                                    @php($currency_code = optional(\App\Models\BusinessSetting::where('key', 'currency')->first())->value)
                                     <div class="form-group">
                                         <label class="input-label" for="exampleFormControlInput1">{{ \App\CPU\translate('currency') }}</label>
                                         <select name="currency" class="form-control js-select2-custom">
@@ -331,7 +331,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($footer_text = \App\Models\BusinessSetting::where('key', 'footer_text')->first()->value)
+                                    @php($footer_text = optional(\App\Models\BusinessSetting::where('key', 'footer_text')->first())->value)
                                     <div class="form-group">
                                         <label class="input-label" for="exampleFormControlInput1">{{ \App\CPU\translate('footer_text') }}</label>
                                         <input type="text" name="footer_text" value="{{ $footer_text }}"
@@ -339,7 +339,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($stock_limit = \App\Models\BusinessSetting::where('key', 'stock_limit')->first()->value)
+                                    @php($stock_limit = optional(\App\Models\BusinessSetting::where('key', 'stock_limit')->first())->value)
                                     <div class="form-group">
                                         <label class="input-label" for="exampleFormControlInput1">{{ \App\CPU\translate('minimum_stock_limit_for_warning') }}</label>
                                         <input type="number" name="stock_limit" value="{{ $stock_limit }}" min="1"
@@ -496,7 +496,7 @@
                                     </div>
                                 </div>
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($vat_reg_no = \App\Models\BusinessSetting::where(['key' => 'vat_reg_no'])->first()->value)
+                                    @php($vat_reg_no = optional(\App\Models\BusinessSetting::where(['key' => 'vat_reg_no'])->first())->value)
                                     <div class="form-group ">
                                         <label>{{ \App\CPU\translate('vat_reg_no') }}</label>
                                         <input class="form-control" type="text" name="vat_reg_no"
@@ -504,7 +504,7 @@
                                     </div>
                                 </div>
                                                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($kilometer= \App\Models\BusinessSetting::where(['key' => 'kilometer'])->first()->value)
+                                    @php($kilometer= optional(\App\Models\BusinessSetting::where(['key' => 'kilometer'])->first())->value)
                                     <div class="form-group ">
                                         <label>{{ \App\CPU\translate('kilometer') }}</label>
                                         <input class="form-control" type="number" name="kilometer"
@@ -513,7 +513,7 @@
                                 </div>
 
                                 <div class="col-sm-6 col-lg-4 mb-3 mb-lg-2">
-                                    @php($shop_logo = \App\Models\BusinessSetting::where('key', 'shop_logo')->first()->value)
+                                    @php($shop_logo = optional(\App\Models\BusinessSetting::where('key', 'shop_logo')->first())->value)
                                     <div class="form-group ">
                                         <label>{{ \App\CPU\translate('logo') }}</label><small class="text-danger">* ( {{ \App\CPU\translate('ratio_1:1') }} )</small>
                                         <div class="custom-file">
@@ -524,14 +524,14 @@
                                         <center>
                                             <img class="img-one-bs my-4" id="viewer"
                                                  onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
-                                                 src="{{ asset('storage/app/public/shop/' . $shop_logo) }}" alt="" />
+                                                 src="{{ asset('storage/shop/' . $shop_logo) }}" alt="" />
                                         </center>
                                     </div>
                                 </div>
                             </div>
 
 {{--                            <div class="row">--}}
-{{--                                @php($shop_logo = \App\Models\BusinessSetting::where('key', 'shop_logo')->first()->value)--}}
+{{--                                @php($shop_logo = optional(\App\Models\BusinessSetting::where('key', 'shop_logo')->first())->value)--}}
 {{--                                <div class="col-sm-6 col-lg-6 mb-3 mb-lg-2">--}}
 {{--                                    <div class="form-group ">--}}
 {{--                                        <label>{{ \App\CPU\translate('logo') }}</label><small class="text-danger">*--}}
@@ -548,7 +548,7 @@
 {{--                                        <center>--}}
 {{--                                            <img class="img-one-bs" id="viewer"--}}
 {{--                                                onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"--}}
-{{--                                                src="{{ asset('storage/app/public/shop/' . $shop_logo) }}"--}}
+{{--                                                src="{{ asset('storage/shop/' . $shop_logo) }}"--}}
 {{--                                                alt="" />--}}
 {{--                                        </center>--}}
 {{--                                    </div>--}}
@@ -569,7 +569,7 @@
     <script>
         "use strict";
         $(document).on('ready', function() {
-            @php($country = \App\Models\BusinessSetting::where('key', 'country')->first()->value)
+            @php($country = optional(\App\Models\BusinessSetting::where('key', 'country')->first())->value)
             $("#country option[value='{{ $country }}']").attr('selected', 'selected').change();
         });
         @php($time_zone = \App\Models\BusinessSetting::where('key', 'time_zone')->first())

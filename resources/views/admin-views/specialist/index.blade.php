@@ -115,7 +115,7 @@
                                     <tr>
                                         <td>{{ $categories->firstitem() + $key }}</td>
                                         <td>
-                                            <img src="{{ asset('storage/app/public/category') }}/{{ $category['image'] }}"
+                                            <img src="{{ asset('storage/category') }}/{{ $category['image'] }}"
                                                 class="img-two-cati"
                                                 onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'">
                                         </td>

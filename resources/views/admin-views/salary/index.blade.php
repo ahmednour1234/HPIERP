@@ -38,6 +38,12 @@
                     </div>
 
                     <div class="form-group">
+                        <label for="collection_incentive">{{ \App\CPU\translate('حافز التحصيل') }}</label>
+                        <input type="text" id="collection_incentive" name="collection_incentive"
+                               class="form-control" value="0">
+                    </div>
+
+                    <div class="form-group">
                         <label for="number_of_days">{{ \App\CPU\translate('عدد أيام العمل') }}</label>
                         <input type="text" id="number_of_days" name="number_of_days" class="form-control" readonly>
                     </div>
@@ -120,11 +126,12 @@
                 let salary = parseFloat($('#salary').val()) || 0;
                 let commission = parseFloat($('#commission').val()) || 0;
                 let transportAmount = parseFloat($('#transport_amount').val()) || 0;
+                let collectionIncentive = parseFloat($('#collection_incentive').val()) || 0;
                 let salaryOfVisitors = parseFloat($('#salary_of_visitors').val()) || 0;
                 let discount = parseFloat($('#discount').val()) || 0;
                 let other = parseFloat($('#other').val()) || 0;
 
-                let total = salary + transportAmount + salaryOfVisitors + other - discount;
+                let total = salary + transportAmount + collectionIncentive + salaryOfVisitors + other - discount;
                 $('#total').val(total.toFixed(2));
             }
 
@@ -159,7 +166,7 @@
                 }
             });
 
-            $('#salary_of_visitors, #transport_amount, #discount, #other').on('input', calculateTotal);
+            $('#salary_of_visitors, #transport_amount, #collection_incentive, #discount, #other').on('input', calculateTotal);
         });
     </script>
 @endpush

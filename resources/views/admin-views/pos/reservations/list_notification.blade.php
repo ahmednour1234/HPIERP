@@ -192,6 +192,14 @@
                                             title="طباعة الفاتورة">
                                         <i class="tio-print-outlined"></i>
                                     </button>
+
+                                    {{-- رد مخزون تم صرفه: يعكس أثر الصرف --}}
+                                    <button class="btn btn-sm btn-soft-warning mx-1"
+                                            data-toggle="modal"
+                                            data-target="#returnModal-{{ $item->id }}"
+                                            title="رد المخزون">
+                                        <i class="tio-undo"></i>
+                                    </button>
                                     @endif
                                 </div>
                             </td>
@@ -221,6 +229,65 @@
                                             </button>
                                             <button type="submit" class="btn btn-danger">
                                                 {{ \App\CPU\translate('تأكيد الرفض') }}
+                                            </button>
+                                        </div>
+                                    </form>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Return Stock Modal -->
+                        {{-- الرد يعكس الصرف: ينقص من رصيد المندوب ويعيد الكمية
+                             إلى المخزن. لا يُسمح إلا بما لم يُبَع بعد. --}}
+                        <div class="modal fade" id="returnModal-{{ $item->id }}" tabindex="-1">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header bg-light">
+                                        <h5 class="modal-title">{{ \App\CPU\translate('رد مخزون تم صرفه') }}</h5>
+                                        <button type="button" class="close" data-dismiss="modal">
+                                            <span aria-hidden="true">&times;</span>
+                                        </button>
+                                    </div>
+                                    <form action="{{ route('admin.pos.return-dispatch', $item->id) }}" method="POST">
+                                        @csrf
+                                        <div class="modal-body">
+                                            <table class="table table-sm table-bordered">
+                                                <thead class="thead-light">
+                                                    <tr>
+                                                        <th>{{ \App\CPU\translate('الصنف') }}</th>
+                                                        <th class="text-center">{{ \App\CPU\translate('المصروف') }}</th>
+                                                        <th class="text-center" style="width:120px;">{{ \App\CPU\translate('الكمية المردودة') }}</th>
+                                                    </tr>
+                                                </thead>
+                                                <tbody>
+                                                    @foreach($products as $idx => $line)
+                                                        <tr>
+                                                            <td>{{ $line->product_name ?? '' }}</td>
+                                                            <td class="text-center">{{ $line->stock ?? 0 }}</td>
+                                                            <td>
+                                                                <input type="number" min="0"
+                                                                       max="{{ $line->stock ?? 0 }}"
+                                                                       name="quantities[{{ $idx }}]"
+                                                                       class="form-control form-control-sm"
+                                                                       value="0">
+                                                            </td>
+                                                        </tr>
+                                                    @endforeach
+                                                </tbody>
+                                            </table>
+
+                                            <div class="form-group mb-0">
+                                                <label class="small">{{ \App\CPU\translate('سبب الرد') }}</label>
+                                                <input type="text" name="note" class="form-control form-control-sm"
+                                                       maxlength="500">
+                                            </div>
+                                        </div>
+                                        <div class="modal-footer">
+                                            <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                                {{ \App\CPU\translate('إلغاء') }}
+                                            </button>
+                                            <button type="submit" class="btn btn-warning">
+                                                {{ \App\CPU\translate('تأكيد الرد') }}
                                             </button>
                                         </div>
                                     </form>

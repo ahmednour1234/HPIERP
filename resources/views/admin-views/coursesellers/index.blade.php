@@ -99,7 +99,7 @@
         @if(!empty($imgData)) <!-- Check if imgData is not empty -->
             <div>
                 @foreach($imgData as $image) <!-- Loop through each image in the array -->
-                    <img src="{{ asset('storage/app/public/' . $image) }}" alt="Course Image" class="img-thumbnail" style="max-width: 100px; margin: 5px;"> <!-- Display each image as an img tag -->
+                    <img src="{{ asset('storage/' . $image) }}" alt="Course Image" class="img-thumbnail" style="max-width: 100px; margin: 5px;"> <!-- Display each image as an img tag -->
                 @endforeach
             </div>
         @else

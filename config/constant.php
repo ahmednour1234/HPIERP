@@ -1,5 +1,8 @@
 <?php
-const TELEPHONE_CODES = [
+// define() rather than a bare `const`: the config file is re-loaded whenever
+// the application boots again in the same process (once per test), and a
+// top-level const would fatal with "already defined".
+if (!defined('TELEPHONE_CODES')) define('TELEPHONE_CODES', [
     ["name" => 'UK (+44)', "code" => '44'],
     ["name" => 'USA (+1)', "code" => '1'],
     ["name" => 'Algeria (+213)', "code" => '213'],
@@ -212,9 +215,9 @@ const TELEPHONE_CODES = [
     ["name" => 'Yemen (South)(+967)', "code" => '967'],
     ["name" => 'Zambia (+260)', "code" => '260'],
     ["name" => 'Zimbabwe (+263)', "code" => '263'],
-];
+]);
 
-const TIME_ZONE = [
+if (!defined('TIME_ZONE')) define('TIME_ZONE', [
     "Pacific/Midway",
     "Pacific/Samoa",
     "Pacific/Honolulu",
@@ -356,4 +359,4 @@ const TIME_ZONE = [
     "Asia/Magadan",
     "Pacific/Auckland",
     "Pacific/Tongatapu",
-];
+]);

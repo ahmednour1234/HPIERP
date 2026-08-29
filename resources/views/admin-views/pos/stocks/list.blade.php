@@ -34,6 +34,9 @@
                                 </div>
                                 <input type="search" name="search" class="form-control" placeholder="{{ \App\CPU\translate('search_by_customer_name_or_seller_name') }}" aria-label="Search" value="{{ $search }}" >
                                 <button type="submit" class="btn btn-primary">{{ \App\CPU\translate('search') }}</button>
+
+                    {{-- التصدير يحمل فلاتر الشاشة الحالية --}}
+                    <x-export-button route="admin.pos.stocks.export" />
                             </div>
                             <!-- End Search by Order ID -->
                         

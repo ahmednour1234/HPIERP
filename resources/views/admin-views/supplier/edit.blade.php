@@ -97,7 +97,7 @@
                                             <center>
                                                 <img class="img-one-su" id="viewer"
                                                     onerror="this.src='{{asset('public/assets/admin/img/400x400/img2.jpg')}}'"
-                                                src="{{asset('storage/app/public/supplier')}}/{{$supplier['image']}}" alt="{{\App\CPU\translate('image')}}"/>
+                                                src="{{asset('storage/supplier')}}/{{$supplier['image']}}" alt="{{\App\CPU\translate('image')}}"/>
                                             </center>
                                         </div>
                                     </div>

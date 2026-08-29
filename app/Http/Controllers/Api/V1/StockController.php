@@ -261,7 +261,8 @@ public function index(Request $request): JsonResponse
         
         $data = [
             'vehicle_code' => $this->vehicleCode($seller->vehicle_code),
-            'vehicle_name' => \App\Models\Store::where('store_id', $seller->vehicle_code)->first()->store_name1,
+            // optional(): a seller with no matching store row crashed the settlement.
+            'vehicle_name' => optional(\App\Models\Store::where('store_id', $seller->vehicle_code)->first())->store_name1,
             'product_count' => $stocks->count(),
             'total_stock' => $total_stock,
             'order_count' => $order_count,

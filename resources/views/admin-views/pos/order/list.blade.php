@@ -24,58 +24,138 @@
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white py-3 px-4">
         <h5 class="mb-0 text-primary fw-bold">
-            <i class="tio-search me-2"></i> {{ \App\CPU\translate('بحث وتصفية') }}
+            <i class="tio-search mr-2"></i> {{ \App\CPU\translate('بحث وتصفية') }}
         </h5>
     </div>
     <div class="card-body bg-light p-4">
-        <form action="{{ url()->current() }}" method="GET" class="row g-3">
-            <!-- Search Input -->
-            <div class="col-md-4">
-                <label class="form-label text-secondary fw-semibold">{{ \App\CPU\translate('بحث') }}</label>
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-white border-0">
-                        <i class="tio-search text-muted"></i>
-                    </span>
-                    <input type="search" name="search" class="form-control border-0" placeholder="{{ \App\CPU\translate('رقم الفاتورة، اسم العميل أو البائع') }}" value="{{ $search }}">
+        <form action="{{ url()->current() }}" method="GET" class="filter-panel-v2">
+
+            {{-- Row 1: the free-text search gets its own line — it is the
+                 control people reach for first and benefits from the width. --}}
+            <div class="row g-3 mb-3">
+                <div class="col-lg-6">
+                    <label class="form-label text-secondary fw-semibold small">
+                        {{ \App\CPU\translate('بحث') }}
+                    </label>
+                    <div class="input-group shadow-sm">
+                        <span class="input-group-text bg-white border-0">
+                            <i class="tio-search text-muted"></i>
+                        </span>
+                        <input type="search" name="search" class="form-control border-0"
+                               placeholder="{{ \App\CPU\translate('رقم الفاتورة، اسم العميل أو البائع') }}"
+                               value="{{ $search }}">
+                    </div>
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label text-secondary fw-semibold small">
+                        {{ \App\CPU\translate('من تاريخ') }}
+                    </label>
+                    <input type="date" name="from_date" class="form-control shadow-sm" value="{{ $fromDate }}">
+                </div>
+
+                <div class="col-lg-3 col-md-6">
+                    <label class="form-label text-secondary fw-semibold small">
+                        {{ \App\CPU\translate('إلى تاريخ') }}
+                    </label>
+                    <input type="date" name="to_date" class="form-control shadow-sm" value="{{ $toDate }}">
                 </div>
             </div>
 
-            <!-- Region Select -->
-            <div class="col-md-4">
-                <label class="form-label text-secondary fw-semibold">{{ \App\CPU\translate('المنطقة') }}</label>
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-white border-0">
-                        <i class="tio-map-making text-muted"></i>
-                    </span>
-                    <select name="region_id" class="form-select border-0">
-                        <option value="">{{ \App\CPU\translate('اختر المنطقة') }}</option>
+            {{-- Row 2: the region picker is five rows tall, so it sits in its own column
+                 with the short selects stacked beside it. In a single flat row the
+                 short controls floated against the top of the tall one. --}}
+            <div class="row g-3 mb-3 filter-row-aligned align-items-start">
+                <div class="col-lg-4 col-md-6">
+                    <label class="form-label text-secondary fw-semibold small d-block">
+                        {{ \App\CPU\translate('المنطقة') }}
+                        <span class="text-muted fw-normal">({{ \App\CPU\translate('اختيار متعدد') }})</span>
+                    </label>
+                    {{-- region_id[] posts an array; applyRegionFilter() also accepts
+                         a single value, so older links keep working. --}}
+                    <select name="region_id[]" class="custom-select shadow-sm" multiple size="5"
+                            style="height:auto;">
                         @foreach($regions as $region)
-                            <option value="{{ $region->id }}" @selected($regionId == $region->id)>{{ $region->name }}</option>
+                            {{-- The count tells you a region is empty before you filter by it. --}}
+                            <option value="{{ $region->id }}"
+                                @selected(in_array((string) $region->id, (array) $regionId))
+                                class="{{ (isset($region->invoice_count) && $region->invoice_count === 0) ? 'text-muted' : '' }}">
+                                {{ $region->name }}
+                                @isset($region->invoice_count) ({{ $region->invoice_count }}) @endisset
+                            </option>
                         @endforeach
                     </select>
+                    <small class="text-muted d-block mt-1">
+                        {{ \App\CPU\translate('اضغط Ctrl لاختيار أكثر من منطقة') }}
+                    </small>
+                </div>
+
+                <div class="col-lg-8 col-md-6">
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary fw-semibold small d-block">
+                                {{ \App\CPU\translate('المندوب') }}
+                            </label>
+                            <select name="seller_id" class="custom-select shadow-sm">
+                                <option value="">{{ \App\CPU\translate('الكل') }}</option>
+                                @foreach (($sellers ?? []) as $s)
+                                    <option value="{{ $s->id }}"
+                                        @selected((string) request('seller_id') === (string) $s->id)>
+                                        {{ trim($s->f_name . ' ' . $s->l_name) }}@if ($s->mandob_code) ({{ $s->mandob_code }})@endif
+                                    </option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary fw-semibold small d-block">
+                                {{ \App\CPU\translate('طريقة الدفع') }}
+                            </label>
+                            <select name="cash" class="custom-select shadow-sm">
+                                <option value="">{{ \App\CPU\translate('الكل') }}</option>
+                                <option value="1" @selected(request('cash') === '1')>{{ \App\CPU\translate('كاش') }}</option>
+                                <option value="2" @selected(request('cash') === '2')>{{ \App\CPU\translate('آجل') }}</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label text-secondary fw-semibold small d-block">
+                                {{ \App\CPU\translate('حالة التحصيل') }}
+                            </label>
+                            <select name="done" class="custom-select shadow-sm">
+                                <option value="">{{ \App\CPU\translate('الكل') }}</option>
+                                <option value="1" @selected(request('done') === '1')>{{ \App\CPU\translate('محصّلة بالكامل') }}</option>
+                                <option value="0" @selected(request('done') === '0')>{{ \App\CPU\translate('عليها متبقي') }}</option>
+                                {{-- فواتير صدر عليها مرتجع --}}
+                                <option value="returned" @selected(request('done') === 'returned')>{{ \App\CPU\translate('عليها مرتجع') }}</option>
+                            </select>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Date Range From -->
-            <div class="col-md-2">
-                <label class="form-label text-secondary fw-semibold">{{ \App\CPU\translate('من تاريخ') }}</label>
-                <input type="date" name="from_date" class="form-control shadow-sm" value="{{ $fromDate }}">
-            </div>
+{{-- Row 3: apply and reset on one side, the outputs on the other. --}}
+            <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top">
+                <div>
+                    <button type="submit" class="btn btn-primary px-4">
+                        <i class="tio-filter-list"></i> {{ \App\CPU\translate('تطبيق') }}
+                    </button>
+                    <a href="{{ url()->current() }}" class="btn btn-outline-secondary px-4">
+                        {{ \App\CPU\translate('إعادة تعيين') }}
+                    </a>
+                </div>
 
-            <!-- Date Range To -->
-            <div class="col-md-2">
-                <label class="form-label text-secondary fw-semibold">{{ \App\CPU\translate('إلى تاريخ') }}</label>
-                <input type="date" name="to_date" class="form-control shadow-sm" value="{{ $toDate }}">
-            </div>
-
-            <!-- Action Buttons -->
-            <div class="col-md-12 text-end">
-                <button type="submit" class="btn btn-primary me-2 px-4 py-2 shadow-sm">
-                    <i class="tio-filter_list me-1"></i> {{ \App\CPU\translate('تطبيق') }}
-                </button>
-                <button type="button" class="btn btn-outline-secondary px-4 py-2 shadow-sm" onclick="printTable()">
-                    <i class="tio-print me-1"></i> {{ \App\CPU\translate('طباعة') }}
-                </button>
+                <div>
+                    {{-- Both carry the current filters, so what is downloaded or
+                         printed matches what is on screen. --}}
+                    <a href="{{ route('admin.pos.orders.export', request()->query()) }}"
+                       class="btn btn-success px-4">
+                        <i class="tio-file-outlined"></i> {{ \App\CPU\translate('تصدير CSV') }}
+                    </a>
+                    <button type="button" class="btn btn-outline-secondary px-4" onclick="printTable()">
+                        <i class="tio-print"></i> {{ \App\CPU\translate('طباعة') }}
+                    </button>
+                </div>
             </div>
         </form>
     </div>
@@ -122,6 +202,7 @@
                         <th>{{\App\CPU\translate('ضريبة')}}</th>
                         <th>{{\App\CPU\translate('المبلغ المدفوع')}}</th>
                 <th>{{\App\CPU\translate('المبلغ المحصل')}}</th>
+                        <th>{{\App\CPU\translate('التحصيلات')}}</th>
                         <th class="none">{{\App\CPU\translate('صورة الفاتورة')}}</th>
                         <th class="none">{{\App\CPU\translate('روؤية الفاتورة')}}</th>
                     </tr>
@@ -171,13 +252,137 @@
         {{ number_format($order->transaction_reference, 2) }}
     @endif
 </td>
+                            {{-- Collections: what has come in against this invoice, what is
+                                 left, and the control to reverse a collection. --}}
+<td style="min-width:170px;">
+                                @php
+                                    $invoiceTotal = (float) $order->order_amount;
+                                    $collected    = (float) $order->collected_cash;
+                                    $remaining    = max($invoiceTotal - $collected, 0);
+                                @endphp
+
+                                <div class="mb-1">
+                                    <span class="font-weight-bold">{{ number_format($collected, 2) }}</span>
+                                    <small class="text-muted">/ {{ number_format($invoiceTotal, 2) }}</small>
+                                </div>
+
+                                @if ($remaining > 0)
+                                    <span class="badge badge-soft-warning d-inline-block mb-1">
+                                        {{ \App\CPU\translate('متبقي') }} {{ number_format($remaining, 2) }}
+                                    </span>
+                                @else
+                                    <span class="badge badge-soft-success d-inline-block mb-1">
+                                        {{ \App\CPU\translate('محصّلة') }}
+                                    </span>
+                                @endif
+
+                                {{-- تحصيل من الويب: يظهر فقط إن كان على الفاتورة متبقٍ.
+                                     نفس خدمة التطبيق، فالقيود واحدة. --}}
+                                @php($remaining = round((float) $order->order_amount - (float) $order->collected_cash, 2))
+
+                                @if ($remaining > 0)
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-success btn-block"
+                                            data-toggle="modal"
+                                            data-target="#collectModal-{{ $order->id }}"
+                                            title="{{ \App\CPU\translate('تحصيل مبلغ على هذه الفاتورة') }}">
+                                        <i class="tio-dollar"></i> {{ \App\CPU\translate('تحصيل') }}
+                                    </button>
+
+                                    <div class="modal fade" id="collectModal-{{ $order->id }}" tabindex="-1">
+                                        <div class="modal-dialog modal-dialog-centered">
+                                            <div class="modal-content">
+                                                <form action="{{ route('admin.pos.orders.collect', [$order->id]) }}"
+                                                      method="post" enctype="multipart/form-data">
+                                                    @csrf
+                                                    <div class="modal-header bg-light">
+                                                        <h5 class="modal-title">
+                                                            {{ \App\CPU\translate('تحصيل فاتورة') }} #{{ $order->id }}
+                                                        </h5>
+                                                        <button type="button" class="close" data-dismiss="modal">
+                                                            <span aria-hidden="true">&times;</span>
+                                                        </button>
+                                                    </div>
+                                                    <div class="modal-body text-right">
+                                                        <p class="mb-3">
+                                                            {{ \App\CPU\translate('المتبقي') }}:
+                                                            <strong>{{ number_format($remaining, 2) }}</strong>
+                                                        </p>
+
+                                                        <div class="form-group">
+                                                            <label class="small">{{ \App\CPU\translate('المبلغ') }}</label>
+                                                            <input type="number" step="0.01" min="0.01"
+                                                                   max="{{ $remaining }}"
+                                                                   name="amount" class="form-control" required>
+                                                        </div>
+
+                                                        <div class="form-group">
+                                                            <label class="small">{{ \App\CPU\translate('الحساب') }}</label>
+                                                            <select name="account_id" class="form-control" required>
+                                                                @foreach (($accounts ?? []) as $acc)
+                                                                    <option value="{{ $acc->id }}">{{ $acc->account }}</option>
+                                                                @endforeach
+                                                            </select>
+                                                        </div>
+
+                                                        <div class="form-group">
+                                                            <label class="small">{{ \App\CPU\translate('التاريخ') }}</label>
+                                                            <input type="date" name="date" class="form-control"
+                                                                   value="{{ now()->toDateString() }}">
+                                                        </div>
+
+                                                        <div class="form-group">
+                                                            <label class="small">{{ \App\CPU\translate('ملاحظة') }}</label>
+                                                            <input type="text" name="note" class="form-control" maxlength="255">
+                                                        </div>
+
+                                                        <div class="form-group mb-0">
+                                                            <label class="small">{{ \App\CPU\translate('صورة الإيصال') }}</label>
+                                                            <input type="file" name="img" class="form-control" accept="image/*">
+                                                        </div>
+                                                    </div>
+                                                    <div class="modal-footer">
+                                                        <button type="button" class="btn btn-secondary" data-dismiss="modal">
+                                                            {{ \App\CPU\translate('إلغاء') }}
+                                                        </button>
+                                                        <button type="submit" class="btn btn-success">
+                                                            {{ \App\CPU\translate('تأكيد التحصيل') }}
+                                                        </button>
+                                                    </div>
+                                                </form>
+                                            </div>
+                                        </div>
+                                    </div>
+                                @endif
+
+                                @if ($collected > 0)
+                                    {{-- A real button: this was an <a><small> with no button
+                                         class, so it read as plain text under the badge. --}}
+                                    <button type="button"
+                                            class="btn btn-sm btn-outline-danger btn-block btn-reverse-collection"
+                                            title="{{ \App\CPU\translate('رد مبلغ محصّل على هذه الفاتورة') }}"
+                                            onclick="reverseCollection({{ $order->id }}, {{ $collected }})">
+                                        <i class="tio-undo"></i> {{ \App\CPU\translate('رد التحصيل') }}
+                                    </button>
+                                    <form action="{{ route('admin.pos.orders.reverse', [$order->id]) }}"
+                                          method="post" id="reverse-{{ $order->id }}" class="d-none">
+                                        @csrf
+                                        <input type="hidden" name="amount" value="">
+                                        <input type="hidden" name="note" value="">
+                                    </form>
+                                @endif
+                            </td>
    <td class="none">
-    <img 
-        src="{{ asset('storage/app/public/'.$order['img']) }}" 
+    @if (!empty($order['img']))
+        <img 
+        src="{{ asset('storage/shop/'.$order['img']) }}" 
         alt="Image Description" 
         style="width: 50px; height: auto; cursor: pointer;" 
         data-toggle="modal" 
         data-target="#imageModal{{ $order['id'] }}">
+    @else
+        <span class="text-muted">-</span>
+    @endif
 </td>
 
 <!-- Modal -->
@@ -191,10 +396,14 @@
                 </button>
             </div>
             <div class="modal-body text-center">
-                <img 
-                    src="{{ asset('storage/app/public/'.$order['img']) }}" 
+                @if (!empty($order['img']))
+        <img 
+                    src="{{ asset('storage/shop/'.$order['img']) }}" 
                     alt="Image Description" 
                     style="max-width: 100%; height: auto;">
+    @else
+        <span class="text-muted">-</span>
+    @endif
             </div>
         </div>
     </div>
@@ -411,17 +620,17 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
             <body>
             <div class="header-section">
                         <div class="left">
-                            <p><strong>رقم السجل التجاري:</strong> {{ \App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first()->value??'' }}</p>
-                            <p><strong>الرقم الضريبي:</strong> {{ \App\Models\BusinessSetting::where(["key" => "number_tax"])->first()->value ??''}}</p>
-                            <p><strong>البريد الإلكتروني:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_email"])->first()->value }}</p>
+                            <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value??'' }}</p>
+                            <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ??''}}</p>
+                            <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
                         </div>
                         <div class="logo">
-                            <img src="{{ asset('storage/app/public/shop/' . \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value) }}" alt="شعار المتجر">
+                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
                         </div>
                         <div class="right">
-                            <p><strong>اسم المؤسسة:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_name"])->first()->value }}</p>
-                            <p><strong>العنوان:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_address"])->first()->value }}</p>
-                            <p><strong>رقم الجوال:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_phone"])->first()->value }}</p>
+                            <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>
+                            <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value }}</p>
+                            <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value }}</p>
                         </div>
                     </div>
                     
@@ -477,4 +686,32 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
     </script>
 
     <script src={{asset("public/assets/admin/js/global.js")}}></script>
+@endpush
+@push('script')
+    <script>
+        // Ask how much to reverse, cap it at what was collected, then submit
+        // that row's hidden form.
+        function reverseCollection(id, collected) {
+            const raw = prompt('{{ \App\CPU\translate("المبلغ المراد رده") }} (' + collected + ')', collected);
+            if (raw === null) return;
+
+            const amount = parseFloat(raw);
+
+            if (isNaN(amount) || amount <= 0) {
+                alert('{{ \App\CPU\translate("أدخل مبلغاً صحيحاً") }}');
+                return;
+            }
+            if (amount > collected) {
+                alert('{{ \App\CPU\translate("المبلغ أكبر من المحصّل") }} (' + collected + ')');
+                return;
+            }
+
+            const note = prompt('{{ \App\CPU\translate("سبب الرد (اختياري)") }}', '');
+
+            const form = document.getElementById('reverse-' + id);
+            form.querySelector('input[name="amount"]').value = amount;
+            form.querySelector('input[name="note"]').value = note || '';
+            form.submit();
+        }
+    </script>
 @endpush

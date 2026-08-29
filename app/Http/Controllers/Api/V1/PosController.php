@@ -194,16 +194,15 @@ public function orderListnotinstall(Request $request): JsonResponse
 
         // الفاتورة "غير مُحصّلة" لو (المحصّل + جنيه) أقل من القيمة الفعلية بعد المرتجع
         ->whereRaw("
-            (o.transaction_reference + ?) < GREATEST(
-                0,
-                o.order_amount
-                - (
-                    (CASE WHEN COALESCE(oq.qty,0) > 0
-                          THEN (o.order_amount / COALESCE(oq.qty,0))
-                          ELSE 0 END)
-                    * COALESCE(rq.qty,0)
-                  )
-            )
+            (o.transaction_reference + ?) < (CASE WHEN (o.order_amount
+                - ((CASE WHEN COALESCE(oq.qty,0) > 0
+                         THEN (o.order_amount / COALESCE(oq.qty,0))
+                         ELSE 0 END) * COALESCE(rq.qty,0))) > 0
+                  THEN (o.order_amount
+                - ((CASE WHEN COALESCE(oq.qty,0) > 0
+                         THEN (o.order_amount / COALESCE(oq.qty,0))
+                         ELSE 0 END) * COALESCE(rq.qty,0)))
+                  ELSE 0 END)
         ", [$tolerance])
 
         // معلومات مشتقة مفيدة للواجهة/التتبع
@@ -217,13 +216,15 @@ public function orderListnotinstall(Request $request): JsonResponse
             ((CASE WHEN COALESCE(oq.qty,0) > 0
                    THEN (o.order_amount / COALESCE(oq.qty,0))
                    ELSE 0 END) * COALESCE(rq.qty,0)) AS return_amount,
-            GREATEST(
-              0,
-              o.order_amount
-              - ((CASE WHEN COALESCE(oq.qty,0) > 0
-                       THEN (o.order_amount / COALESCE(oq.qty,0))
-                       ELSE 0 END) * COALESCE(rq.qty,0))
-            ) AS effective_amount
+            (CASE WHEN (o.order_amount
+                - ((CASE WHEN COALESCE(oq.qty,0) > 0
+                         THEN (o.order_amount / COALESCE(oq.qty,0))
+                         ELSE 0 END) * COALESCE(rq.qty,0))) > 0
+                  THEN (o.order_amount
+                - ((CASE WHEN COALESCE(oq.qty,0) > 0
+                         THEN (o.order_amount / COALESCE(oq.qty,0))
+                         ELSE 0 END) * COALESCE(rq.qty,0)))
+                  ELSE 0 END) AS effective_amount
         ")
         ->with(['account','customer'])
         ->orderByDesc('o.id');
@@ -267,16 +268,15 @@ public function orderListnotinstall(Request $request): JsonResponse
 
         // الفاتورة "مُحصّلة" لو (المحصّل + جنيه) >= القيمة الفعلية بعد المرتجع
         ->whereRaw("
-            (o.transaction_reference + ?) >= GREATEST(
-                0,
-                o.order_amount
-                - (
-                    (CASE WHEN COALESCE(oq.qty,0) > 0
-                          THEN (o.order_amount / COALESCE(oq.qty,0))
-                          ELSE 0 END)
-                    * COALESCE(rq.qty,0)
-                  )
-            )
+            (o.transaction_reference + ?) >= (CASE WHEN (o.order_amount
+                - ((CASE WHEN COALESCE(oq.qty,0) > 0
+                         THEN (o.order_amount / COALESCE(oq.qty,0))
+                         ELSE 0 END) * COALESCE(rq.qty,0))) > 0
+                  THEN (o.order_amount
+                - ((CASE WHEN COALESCE(oq.qty,0) > 0
+                         THEN (o.order_amount / COALESCE(oq.qty,0))
+                         ELSE 0 END) * COALESCE(rq.qty,0)))
+                  ELSE 0 END)
         ", [$tolerance])
 
         // اختيار أعمدة مشتقة (مفيدة لو حبيت تعرضها في الـ API)
@@ -290,13 +290,15 @@ public function orderListnotinstall(Request $request): JsonResponse
             ((CASE WHEN COALESCE(oq.qty,0) > 0
                    THEN (o.order_amount / COALESCE(oq.qty,0))
                    ELSE 0 END) * COALESCE(rq.qty,0)) AS return_amount,
-            GREATEST(
-              0,
-              o.order_amount
-              - ((CASE WHEN COALESCE(oq.qty,0) > 0
-                       THEN (o.order_amount / COALESCE(oq.qty,0))
-                       ELSE 0 END) * COALESCE(rq.qty,0))
-            ) AS effective_amount
+            (CASE WHEN (o.order_amount
+                - ((CASE WHEN COALESCE(oq.qty,0) > 0
+                         THEN (o.order_amount / COALESCE(oq.qty,0))
+                         ELSE 0 END) * COALESCE(rq.qty,0))) > 0
+                  THEN (o.order_amount
+                - ((CASE WHEN COALESCE(oq.qty,0) > 0
+                         THEN (o.order_amount / COALESCE(oq.qty,0))
+                         ELSE 0 END) * COALESCE(rq.qty,0)))
+                  ELSE 0 END) AS effective_amount
         ")
         ->with(['account','customer'])
         ->orderByDesc('o.id');
@@ -1443,6 +1445,11 @@ if ($oldOrder->type == 7 || $oldOrder->type==12 || $oldOrder->type==24 ) {
             ],
         ], 200);
 
+    } catch (\Illuminate\Validation\ValidationException $e) {
+        // A failed validation is a client error, not a server one; the broad
+        // catch below was reporting it as 500.
+        \DB::rollBack();
+        throw $e;
     } catch (\Exception $e) {
         \DB::rollBack();
         return response()->json([

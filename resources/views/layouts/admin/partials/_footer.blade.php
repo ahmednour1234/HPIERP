@@ -2,8 +2,8 @@
     <div class="row justify-content-between align-items-center">
         <div class="col">
             <p class="font-size-sm mb-0">
-                @php($shop_name=\App\Models\BusinessSetting::where('key','shop_name')->first()->value)
-                @php($footer_text=\App\Models\BusinessSetting::where('key','footer_text')->first()->value)
+                @php($shop_name=optional(\App\Models\BusinessSetting::where('key','shop_name')->first())->value)
+                @php($footer_text=optional(\App\Models\BusinessSetting::where('key','footer_text')->first())->value)
                 &copy;  By:Tayer. <span
                     class="d-none d-sm-inline-block">{{ $footer_text }}</span>
             </p>

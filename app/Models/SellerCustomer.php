@@ -9,6 +9,8 @@ class SellerCustomer extends Model
 {
     use HasFactory;
 
+    protected $fillable = ['local_id', 'customer_id', 'seller_id'];
+
     public $timestamps = false;
     
     public function cat()

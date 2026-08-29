@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class Unit extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'local_id', 'unit_type', 'symbol', 'conversion_rate', 'base_unit_id', 'is_base', 'company_id',
+    ];
     public $timestamps = true;
     function convertQuantity($value, Unit $from, Unit $to)
 {

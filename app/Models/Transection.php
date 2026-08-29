@@ -28,7 +28,13 @@ class Transection extends Model
         'date',
         'customer_id',
         'order_id',
-        'cash'
+        'cash',
+        // Without these the create() array silently dropped them: an order's
+        // receipt photo never reached its ledger entry, and supplier and
+        // production references could not be set through mass assignment.
+        'img',
+        'supplier_id',
+        'active',
     ];
 
     // Define the relationship with the Account model

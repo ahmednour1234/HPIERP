@@ -46,7 +46,7 @@
                                     <div class="form-group">
                                         <center>
                                             <img class="img-one-br" id="viewer"
-                                                src="{{asset('storage/app/public/brand')}}/{{$brand['image']}}" alt="{{\App\CPU\translate('image')}}"/>
+                                                src="{{asset('storage/brand')}}/{{$brand['image']}}" alt="{{\App\CPU\translate('image')}}"/>
                                         </center>
                                     </div>
                                 </div>

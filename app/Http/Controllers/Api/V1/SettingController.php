@@ -58,9 +58,13 @@ class SettingController extends Controller
             'value' => $request['footer_text']
         ]);
 
-        $curr_logo = $this->business_setting->where(['key' => 'shop_logo'])->first();
+        // optional(): the row does not exist until a logo is first uploaded,
+        // and reading ->value on null answered 500 for the whole request.
+        $curr_logo = optional($this->business_setting->where(['key' => 'shop_logo'])->first())->value;
         DB::table('business_settings')->updateOrInsert(['key' => 'shop_logo'], [
-            'value' => $request->has('shop_logo') ? Helpers::update('shop/', $curr_logo->value, 'png', $request->file('shop_logo')) : $curr_logo->value
+            'value' => $request->hasFile('shop_logo')
+                ? Helpers::update('shop/', $curr_logo, 'png', $request->file('shop_logo'))
+                : $curr_logo
         ]);
         DB::table('business_settings')->updateOrInsert(['key' => 'time_zone'], [
             'value' => $request['time_zone'],

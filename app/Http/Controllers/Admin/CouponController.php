@@ -86,7 +86,8 @@ class CouponController extends Controller
      */
     public function status(Request $request): RedirectResponse
     {
-        $coupon = $this->coupon->find($request->id);
+        // findOrFail: assigning ->status on a null result fataled with a 500.
+        $coupon = $this->coupon->findOrFail($request->id);
         $coupon->status = $request->status;
         $coupon->save();
 
@@ -100,7 +101,9 @@ class CouponController extends Controller
      */
     public function edit($id): Factory|View|Application
     {
-        $coupon = $this->coupon->where(['id' => $id])->first();
+        // findOrFail: an unknown id returned null and the view then crashed
+        // with a 500 instead of a clean 404.
+        $coupon = $this->coupon->findOrFail($id);
         return view('admin-views.coupon.edit', compact('coupon'));
     }
 

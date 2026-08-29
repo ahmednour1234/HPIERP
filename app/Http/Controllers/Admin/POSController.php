@@ -43,6 +43,8 @@ use Carbon\Carbon;
 
 class POSController extends Controller
 {
+    use \App\Traits\ExportsCsv;
+
     public function __construct(
         private Category $category,
         private Product $product,
@@ -996,8 +998,14 @@ return redirect()->back()->with('error', 'Insufficient stock');
         }
     } catch (\Exception $e) {
         DB::rollBack();
-        dd( $e->getMessage());
-        Toastr::error(translate('order_failed_warning'. $e->getMessage()));
+
+        // كان هنا dd() يوقف الطلب ويعرض تفريغًا خامًا للمستخدم، فلا تصل
+        // الرسالة ولا تحدث العودة. التسجيل في اللوج هو مكان التفاصيل.
+        \Illuminate\Support\Facades\Log::error('POS order failed: ' . $e->getMessage(), [
+            'exception' => $e,
+        ]);
+
+        Toastr::error(translate('order_failed_warning') . ' ' . $e->getMessage());
         return back();
     }
         // Insert order details
@@ -1202,106 +1210,505 @@ public function deactivateReservedProductsByReservationId(Request $request, $res
 
 public function order_list(Request $request): Factory|View|Application
 {
-    $search = $request->input('search');
-    $fromDate = $request->input('from_date');
-    $toDate = $request->input('to_date');
-    $regionId = $request->input('region_id');
-    $done = $request->input('done'); // For the 'done' filter (1 or 0)
-    $toNewDate = date('Y-m-d', strtotime("+1 day", strtotime($toDate)));
-    $adminId = Auth::guard('admin')->id();
+    $orders = $this->salesInvoiceQuery($request)
+        ->paginate(Helpers::pagination_limit())
+        ->appends($request->query());
 
-    // Retrieve seller_id(s) associated with the authenticated admin
+    // Totals over the whole filtered set, not the page. The previous version
+    // called ->sum() on the paginator, so the figures under the table
+    // described only the 25 rows on screen.
+    $totals = $this->salesInvoiceTotals($request);
+
+    $search   = $request->input('search');
+    $fromDate = $request->input('from_date');
+    $toDate   = $request->input('to_date');
+    $regionId = $this->selectedRegions($request);
+    $done     = $request->input('done');
+
+    // With counts, so the picker shows which regions hold invoices.
+    $regions = $this->regionsWithCounts(4);
+    $sellers = \App\Models\Seller::where('role', 'seller')
+        ->orderBy('f_name')->get(['id', 'f_name', 'l_name', 'mandob_code']);
+
+    $orderAmountSum   = $totals['total'];
+    $collectedCashSum = $totals['collected'];
+    $remainingSum     = $totals['remaining'];
+    $quantitySum      = $totals['quantity'];
+    $productCount     = $totals['lines'];
+
+    // الحسابات لنافذة التحصيل من الويب.
+    $accounts = \App\Models\Account::orderBy('account')->get(['id', 'account']);
+
+    return view('admin-views.pos.order.list', compact(
+        'orders', 'search', 'fromDate', 'toDate', 'regions', 'regionId', 'sellers',
+        'orderAmountSum', 'collectedCashSum', 'remainingSum', 'quantitySum',
+        'productCount', 'done', 'accounts'
+    ));
+}
+
+/**
+ * The sales-invoice query shared by the listing, the totals and the export,
+ * so all three always describe the same set of rows.
+ */
+
+
+/**
+ * Write rows out as CSV. maatwebsite/excel is not installed and Excel opens
+ * CSV directly; the BOM keeps the Arabic headings readable.
+ */
+private function streamCsv($rows, string $filename)
+{
+    return response()->streamDownload(function () use ($rows) {
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+
+        if ($rows->isNotEmpty()) {
+            fputcsv($out, array_keys($rows->first()));
+            foreach ($rows as $row) {
+                fputcsv($out, array_values($row));
+            }
+        } else {
+            fputcsv($out, ['لا توجد بيانات']);
+        }
+
+        fclose($out);
+    }, $filename, [
+        'Content-Type'        => 'text/csv; charset=UTF-8',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
+}
+
+/** Refunds matching the current filter, as CSV. */
+public function refund_export(Request $request)
+{
+    $adminId   = Auth::guard('admin')->id();
     $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id');
+
+    $query = $this->order
+        ->where('type', 7)
+        ->where(function ($q) use ($sellerIds, $adminId) {
+            $q->whereIn('owner_id', $sellerIds)->orWhere('owner_id', $adminId);
+        })
+        ->with(['customer', 'seller', 'details']);
+
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $query->where(function ($q) use ($search) {
+            $q->where('id', 'like', "%{$search}%")
+              ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$search}%"))
+              ->orWhereHas('seller', fn ($s) =>
+                    $s->where('f_name', 'like', "%{$search}%")
+                      ->orWhere('l_name', 'like', "%{$search}%"));
+        });
+    }
+
+    if ($request->filled('from_date')) {
+        $query->whereDate('created_at', '>=', $request->input('from_date'));
+    }
+    if ($request->filled('to_date')) {
+        $query->whereDate('created_at', '<=', $request->input('to_date'));
+    }
+
+    $this->applyRegionFilter($query, $request);
+
+    $rows = $query->latest('id')->get()->map(fn ($refund) => [
+        'رقم المرتجع'  => $refund->id,
+        'الفاتورة الأصلية' => $refund->parent_id ?: '',
+        'التاريخ'      => optional($refund->created_at)->format('Y-m-d H:i'),
+        'المندوب'      => trim(($refund->seller->f_name ?? '') . ' ' . ($refund->seller->l_name ?? '')),
+        'كود المندوب'  => $refund->seller->mandob_code ?? '',
+        'العميل'       => $refund->customer->name ?? '',
+        'المنطقة'      => optional($refund->customer->regions ?? null)->name ?? '',
+        'عدد الأصناف'  => $refund->details->count(),
+        'الكمية'       => (float) $refund->details->sum('quantity'),
+        'قيمة المرتجع' => round((float) $refund->order_amount, 2),
+        'الضريبة'      => (float) $refund->total_tax,
+    ]);
+
+    return $this->streamCsv($rows, 'refunds-' . now()->format('Y-m-d') . '.csv');
+}
+
+/** Collections matching the current filter, as CSV. */
+public function installment_export(Request $request)
+{
+    $adminId   = Auth::guard('admin')->id();
+    $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
+    $sellerIds[] = $adminId;
+
+    $query = \App\Models\Installment::with(['customer', 'seller'])
+        ->whereIn('seller_id', $sellerIds);
+
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $query->where(function ($q) use ($search) {
+            $q->where('id', 'like', "%{$search}%")
+              ->orWhere('order_id', 'like', "%{$search}%")
+              ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$search}%"));
+        });
+    }
+
+    if ($request->filled('from_date')) {
+        $query->whereDate('created_at', '>=', $request->input('from_date'));
+    }
+    if ($request->filled('to_date')) {
+        $query->whereDate('created_at', '<=', $request->input('to_date'));
+    }
+
+    $this->applyRegionFilter($query, $request);
+
+    $rows = $query->latest('id')->get()->map(fn ($i) => [
+        'رقم التحصيل' => $i->id,
+        'رقم الفاتورة' => $i->order_id ?: '',
+        'التاريخ'     => optional($i->created_at)->format('Y-m-d H:i'),
+        'المندوب'     => trim(($i->seller->f_name ?? '') . ' ' . ($i->seller->l_name ?? '')),
+        'العميل'      => $i->customer->name ?? '',
+        'المنطقة'     => optional($i->customer->regions ?? null)->name ?? '',
+        'المبلغ'      => round((float) $i->total_price, 2),
+        'ملاحظات'     => $i->note,
+    ]);
+
+    return $this->streamCsv($rows, 'collections-' . now()->format('Y-m-d') . '.csv');
+}
+/**
+ * Narrow a query to one or more customer regions.
+ *
+ * `region_id` may be a single value or an array, so the page can offer a
+ * multi-select while older links carrying one id keep working.
+ */
+
+/**
+ * Regions with the number of matching invoices of a given type, so the picker
+ * can show which ones actually hold anything.
+ */
+private function regionsWithCounts(int $orderType): \Illuminate\Support\Collection
+{
+    $adminId   = Auth::guard('admin')->id();
+    $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
+    $sellerIds[] = $adminId;
+
+    $counts = \App\Models\Order::query()
+        ->join('customers', 'customers.id', '=', 'orders.user_id')
+        ->where('orders.type', $orderType)
+        ->whereIn('orders.owner_id', $sellerIds)
+        ->groupBy('customers.region_id')
+        // selectRaw with an alias: pluck(DB::raw(...)) does not give the
+        // expression a usable column name.
+        ->selectRaw('customers.region_id as region_id, COUNT(orders.id) as total')
+        ->pluck('total', 'region_id');
+
+    return $this->regions->orderBy('name')->get()->map(function ($region) use ($counts) {
+        $region->invoice_count = (int) ($counts[$region->id] ?? 0);
+        return $region;
+    });
+}
+private function applyRegionFilter($query, Request $request): void
+{
+    $regions = array_filter((array) $request->input('region_id'), fn ($v) => $v !== '' && $v !== null);
+
+    if (!$regions) {
+        return;
+    }
+
+    $query->whereHas('customer', fn ($q) => $q->whereIn('region_id', $regions));
+}
+
+/** The region ids currently selected, for re-checking the control. */
+private function selectedRegions(Request $request): array
+{
+    return array_map('strval', array_filter(
+        (array) $request->input('region_id'),
+        fn ($v) => $v !== '' && $v !== null
+    ));
+}
+private function salesInvoiceQuery(Request $request)
+{
+    $adminId   = Auth::guard('admin')->id();
+    $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id');
+
     $orders = $this->order
         ->where('type', 4)
         ->where(function ($query) use ($sellerIds, $adminId) {
-            $query->whereIn('owner_id', $sellerIds)
-                  ->orWhere('owner_id', $adminId);
+            $query->whereIn('owner_id', $sellerIds)->orWhere('owner_id', $adminId);
         })
-        ->latest()
-        ->with(['customer', 'seller', 'details']); // Assuming relationship for details is set
-// dd($orders);
+        ->with(['customer', 'seller', 'details']);
 
-    // Apply search filter
-    if (!empty($search)) {
-        $orders->where(function($query) use ($search) {
+    // الفواتير المؤرشفة تخرج من قوائم العمل اليومية. الأرشفة وسم لا حذف،
+    // فهي تبقى في التقارير والأرصدة، ولها شاشتها الخاصة. show_archived=1
+    // يعيدها إلى العرض عند الحاجة دون تغيير أي شيء آخر.
+    if (!$request->boolean('show_archived')) {
+        $orders->whereNull('archived_at');
+    }
+
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+
+        $orders->where(function ($query) use ($search) {
             $query->where('id', 'like', "%{$search}%")
-                  ->orWhereHas('customer', function($query) use ($search) {
-                      $query->where('name', 'like', "%{$search}%");
-                  })
-                  ->orWhereHas('seller', function($query) use ($search) {
-                      $query->where('email', 'like', "%{$search}%")
-                            ->orWhere('l_name', 'like', "%{$search}%");
-                  });
+                  ->orWhereHas('customer', fn ($q) => $q->where('name', 'like', "%{$search}%"))
+                  ->orWhereHas('seller', fn ($q) =>
+                        $q->where('f_name', 'like', "%{$search}%")
+                          ->orWhere('l_name', 'like', "%{$search}%")
+                          ->orWhere('mandob_code', 'like', "%{$search}%"));
         });
     }
 
-    // Apply date filter
-    if (!empty($fromDate) && !empty($toNewDate)) {
-        $orders->whereBetween('created_at', [$fromDate, $toNewDate]);
+    // Each end applies on its own rather than needing both.
+    if ($request->filled('from_date')) {
+        $orders->whereDate('created_at', '>=', $request->input('from_date'));
+    }
+    if ($request->filled('to_date')) {
+        $orders->whereDate('created_at', '<=', $request->input('to_date'));
     }
 
-    // Apply region filter for customer
-    if (!empty($regionId)) {
-        $orders->whereHas('customer', function($query) use ($regionId) {
-            $query->where('region_id', $regionId);
-        });
+    $this->applyRegionFilter($orders, $request);
+
+    if ($request->filled('seller_id')) {
+        $orders->where('owner_id', $request->input('seller_id'));
     }
 
-    // // Apply done status filter (1 or 0)
-    // if (isset($done)) {
-    //     if ($done == 1) {
-    //     $orders = $orders->where('order_amount', '=', \DB::raw('transaction_reference'));
-    //     } else {
-    //     $orders = $orders->where('order_amount', '>', \DB::raw('transaction_reference'));
-    //     }
-    // }
+    // Cash or credit.
+    if ($request->filled('cash')) {
+        $orders->where('cash', (int) $request->input('cash'));
+    }
 
-    // // Apply done status filter before pagination
-    // if ($done == 1) {
-    //     // Filter where order_amount = transaction_reference
-    //     $orders = $orders->where('order_amount', '=', \DB::raw('transaction_reference'));
-    // } else {
-    //     // Filter where order_amount > transaction_reference
-    //     $orders = $orders->where('order_amount', '>', \DB::raw('transaction_reference'));
-    // }
+    // Settled vs outstanding. This was commented out, so the control on the
+    // page submitted and nothing changed.
+    if ($request->filled('done')) {
+        $done = (string) $request->input('done');
 
-    // Paginate the filtered orders
-    $orders = $orders->paginate(Helpers::pagination_limit())->appends([
-        'search' => $search,
-        'from_date' => $fromDate,
-        'to_date' => $toDate,
-        'region_id' => $regionId,
-        'done' => $done,
+        if ($done === '1') {
+            $orders->whereColumn('collected_cash', '>=', 'order_amount');
+        } elseif ($done === 'returned') {
+            // الفواتير التي صدر عليها مرتجع: المرتجع فاتورة نوع 7 تحمل
+            // parent_id بالفاتورة الأصلية.
+            $orders->whereIn('id', function ($q) {
+                $q->select('parent_id')
+                  ->from('orders')
+                  ->where('type', 7)
+                  ->whereNotNull('parent_id');
+            });
+        } else {
+            $orders->whereColumn('collected_cash', '<', 'order_amount');
+        }
+    }
+
+    return $orders->latest('id');
+}
+
+/** Totals for the current filter, computed in SQL over every matching row. */
+private function salesInvoiceTotals(Request $request): array
+{
+    $row = $this->salesInvoiceQuery($request)
+        ->reorder()
+        ->selectRaw('COUNT(*) as invoices,
+                     COALESCE(SUM(order_amount), 0)   as total,
+                     COALESCE(SUM(collected_cash), 0) as collected')
+        ->first();
+
+    $total     = (float) ($row->total ?? 0);
+    $collected = (float) ($row->collected ?? 0);
+
+    // The line figures need the details, so they are summed separately.
+    $ids = (clone $this->salesInvoiceQuery($request))->reorder()->pluck('id');
+
+    $lines = \App\Models\OrderDetail::whereIn('order_id', $ids);
+
+    return [
+        'invoices'  => (int) ($row->invoices ?? 0),
+        'total'     => round($total, 2),
+        'collected' => round($collected, 2),
+        'remaining' => round(max($total - $collected, 0), 2),
+        'quantity'  => (float) (clone $lines)->sum('quantity'),
+        'lines'     => (clone $lines)->count(),
+    ];
+}
+
+/**
+ * The current filter as CSV. maatwebsite/excel is not installed and Excel
+ * opens CSV directly; the BOM keeps the Arabic headings readable.
+ */
+public function order_export(Request $request)
+{
+    $rows = $this->salesInvoiceQuery($request)->get()->map(function ($order) {
+        $total     = (float) $order->order_amount;
+        $collected = (float) $order->collected_cash;
+
+        return [
+            'رقم الفاتورة' => $order->id,
+            'التاريخ'      => optional($order->created_at)->format('Y-m-d H:i'),
+            'المندوب'      => trim(($order->seller->f_name ?? '') . ' ' . ($order->seller->l_name ?? '')),
+            'كود المندوب'  => $order->seller->mandob_code ?? '',
+            'العميل'       => $order->customer->name ?? '',
+            'المنطقة'      => optional($order->customer->regions ?? null)->name ?? '',
+            'طريقة الدفع'  => (int) $order->cash === 2 ? 'آجل' : 'كاش',
+            'عدد الأصناف'  => $order->details->count(),
+            'الكمية'       => (float) $order->details->sum('quantity'),
+            'إجمالي الفاتورة' => round($total, 2),
+            'خصم إضافي'    => (float) $order->extra_discount,
+            'الضريبة'      => (float) $order->total_tax,
+            'المحصّل'      => round($collected, 2),
+            'المتبقي'      => round(max($total - $collected, 0), 2),
+            'الحالة'       => $collected >= $total ? 'محصّلة' : ($collected > 0 ? 'محصّلة جزئياً' : 'غير محصّلة'),
+        ];
+    });
+
+    $filename = 'sales-invoices-' . now()->format('Y-m-d') . '.csv';
+
+    return response()->streamDownload(function () use ($rows) {
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+
+        if ($rows->isNotEmpty()) {
+            fputcsv($out, array_keys($rows->first()));
+            foreach ($rows as $row) {
+                fputcsv($out, array_values($row));
+            }
+        } else {
+            fputcsv($out, ['لا توجد بيانات']);
+        }
+
+        fclose($out);
+    }, $filename, [
+        'Content-Type'        => 'text/csv; charset=UTF-8',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
+}
+
+/**
+ * Reverse a collection on an invoice.
+ *
+ * The money comes back off the account and the customer owes it again — the
+ * invoice becomes outstanding rather than being cancelled. Every write shares
+ * one transaction and the rows are locked, so two admins reversing at once
+ * cannot both read the same collected figure.
+ */
+/**
+ * تحصيل فاتورة من الويب.
+ *
+ * كان التحصيل متاحًا من التطبيق فقط (api/v2/orders/{id}/collect). هذه الشاشة
+ * تستخدم نفس خدمة OrderService::collectPayment بدل تكرار منطق المال، فتبقى
+ * القيود واحدة: لا تحصيل على مرتجع، ولا مبلغ يتجاوز المتبقي، والعملية كلها
+ * داخل معاملة واحدة مع قفل على الفاتورة والحساب.
+ */
+public function collect_payment(Request $request, $id): RedirectResponse
+{
+    $request->validate([
+        'amount'     => ['required', 'numeric', 'gt:0'],
+        'account_id' => ['required', 'exists:accounts,id'],
+        'date'       => ['nullable', 'date'],
+        'note'       => ['nullable', 'string', 'max:255'],
+        'img'        => ['nullable', 'image'],
     ]);
 
-    // Calculate sums after pagination
-    $orderAmountSum = $orders->sum('order_amount');
-    $collectedCashSum = $orders->sum('transaction_reference');
-    $quantitySum = $orders->sum(function ($order) {
-        return $order->details->sum('quantity'); // Use 'details' instead of 'orderDetails'
-    });
-    $productCount = $orders->sum(function ($order) {
-        return $order->details->count(); // Use 'details' instead of 'orderDetails'
-    });
+    // الخدمة تتحقق أن المستدعي هو مالك الفاتورة نفسه، وهو المنطق الصحيح
+    // للتطبيق. من الويب يحصّل الإداري نيابةً عن مناديبه، فنفحص الملكية هنا
+    // ثم نمرّر مالك الفاتورة للخدمة.
+    $order = $this->order->find($id);
 
-    // Get regions for the dropdown
-    $regions = $this->regions->get();
+    if (!$order) {
+        Toastr::error(translate('الفاتورة غير موجودة'));
+        return back();
+    }
 
-    // Return the view with the necessary data
-    return view('admin-views.pos.order.list', compact(
-        'orders',
-        'search',
-        'fromDate',
-        'toDate',
-        'regions',
-        'regionId',
-        'orderAmountSum',
-        'collectedCashSum',
-        'quantitySum',
-        'productCount',
-        'done'
-    ));
+    $adminId   = (int) Auth::guard('admin')->id();
+    $ownedIds  = AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->map(fn ($v) => (int) $v)->all();
+    $ownedIds[] = $adminId;
+
+    if (!in_array((int) $order->owner_id, $ownedIds, true)) {
+        Toastr::error(translate('هذه الفاتورة لا تخص مناديبك'));
+        return back();
+    }
+
+    try {
+        app(\App\Services\OrderService::class)->collectPayment(
+            (int) $id,
+            (int) $order->owner_id,
+            [
+                'amount'     => $request->input('amount'),
+                'account_id' => $request->input('account_id'),
+                'date'       => $request->input('date') ?: now()->toDateString(),
+                'note'       => $request->input('note'),
+            ],
+            $request->file('img')
+        );
+    } catch (\Throwable $e) {
+        Toastr::error(translate($e->getMessage()));
+        return back();
+    }
+
+    Toastr::success(translate('تم تحصيل المبلغ بنجاح'));
+    return back();
+}
+
+public function order_reverse_collection(Request $request, $id): RedirectResponse
+{
+    $request->validate([
+        'amount' => ['required', 'numeric', 'gt:0'],
+        'note'   => ['nullable', 'string', 'max:255'],
+    ]);
+
+    $amount = (float) $request->input('amount');
+
+    try {
+        \DB::transaction(function () use ($id, $amount, $request) {
+            $order = $this->order->lockForUpdate()->findOrFail($id);
+
+            if ((int) $order->type === 7) {
+                throw new \InvalidArgumentException('لا يمكن رد تحصيل فاتورة مرتجع');
+            }
+
+            $collected = (float) $order->collected_cash;
+
+            if ($amount > $collected) {
+                throw new \InvalidArgumentException(
+                    'المبلغ أكبر من المحصّل على الفاتورة (' . round($collected, 2) . ')'
+                );
+            }
+
+            // Reverse the ledger entry: money out of the account.
+            $account = $order->payment_id
+                ? \App\Models\Account::lockForUpdate()->find($order->payment_id)
+                : null;
+
+            \App\Models\Transection::create([
+                'tran_type'   => 'Receivable',
+                'account_id'  => $order->payment_id,
+                'seller_id'   => $order->owner_id,
+                'customer_id' => $order->user_id,
+                'order_id'    => $order->id,
+                'amount'      => $amount,
+                'description' => $request->input('note') ?: 'رد تحصيل فاتورة',
+                'debit'       => 0,
+                'credit'      => 1,
+                'balance'     => $account ? $account->balance - $amount : 0,
+                'date'        => now()->toDateString(),
+                'cash'        => $order->cash,
+            ]);
+
+            if ($account) {
+                $account->balance   = $account->balance - $amount;
+                $account->total_out = (float) $account->total_out + $amount;
+                $account->save();
+            }
+
+            // The customer owes it again.
+            $customer = \App\Models\Customer::lockForUpdate()->find($order->user_id);
+            if ($customer) {
+                $customer->balance = (float) $customer->balance + $amount;
+                $customer->save();
+            }
+
+            $order->collected_cash = $collected - $amount;
+            $order->save();
+        });
+    } catch (\InvalidArgumentException $e) {
+        Toastr::error($e->getMessage());
+        return back();
+    }
+
+    Toastr::success(translate('تم رد التحصيل'));
+
+    return back();
 }
 
 
@@ -1312,7 +1719,7 @@ public function refund_list(Request $request): Factory|View|Application
     $fromDate = $request->input('from_date');
     $toDate = $request->input('to_date');
     $toNewDate = date('Y-m-d', strtotime("+1 day", strtotime($toDate)));
-    $regionId = $request->input('region_id'); // Capture region_id from the request
+    $regionId = $this->selectedRegions($request); // Capture region_id from the request
 
     $adminId = Auth::guard('admin')->id(); // Get the authenticated admin ID
 
@@ -1326,7 +1733,9 @@ public function refund_list(Request $request): Factory|View|Application
               ->orWhere('owner_id', $adminId);
     })
     ->latest()
-    ->with(['customer', 'seller']); // Assuming relationships are named 'customer' and 'seller'
+    // regions مُحمَّلة مسبقًا: العمود يعرض اسم المنطقة لكل صف، وبدونها
+    // ينفَّذ استعلام لكل سطر.
+    ->with(['customer.regions', 'seller']);
 
     $regions = $this->regions->get();
 
@@ -1350,16 +1759,118 @@ public function refund_list(Request $request): Factory|View|Application
     }
 
     // Apply region filter
-    if ($regionId) {
-        $query->whereHas('customer', function($query) use ($regionId) {
-            $query->where('region_id', $regionId); // Assuming 'region_id' exists in the customers table
-        });
-    }
+    $this->applyRegionFilter($query, $request);
 
     // Paginate the results
     $refunds = $query->paginate(Helpers::pagination_limit())->appends($request->query());
 
     return view('admin-views.pos.refund.list', compact('refunds', 'search', 'fromDate', 'toDate', 'regionId', 'regions'));
+}
+
+/**
+ * تصدير قوائم الطلبات ذات الشكل الواحد (عينات، تبرعات) إلى اكسيل.
+ *
+ * العينات والتبرعات والمرتجعات تشترك في نفس الفلاتر ونفس الأعمدة تقريبًا،
+ * فبدل تكرار الدالة لكل نوع نمرّر نوع الطلب واسم الملف.
+ */
+private function orderTypeExport(Request $request, int $type, string $prefix, string $idLabel)
+{
+    $adminId   = Auth::guard('admin')->id();
+    $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id');
+
+    $query = $this->order
+        ->where('type', $type)
+        ->where(function ($q) use ($sellerIds, $adminId) {
+            $q->whereIn('owner_id', $sellerIds)->orWhere('owner_id', $adminId);
+        })
+        ->with(['customer.regions', 'seller', 'details']);
+
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $query->where(function ($q) use ($search) {
+            $q->where('id', 'like', "%{$search}%")
+              ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$search}%"))
+              ->orWhereHas('seller', fn ($sq) =>
+                    $sq->where('f_name', 'like', "%{$search}%")
+                       ->orWhere('l_name', 'like', "%{$search}%"));
+        });
+    }
+
+    if ($request->filled('from_date')) {
+        $query->whereDate('created_at', '>=', $request->input('from_date'));
+    }
+    if ($request->filled('to_date')) {
+        $query->whereDate('created_at', '<=', $request->input('to_date'));
+    }
+
+    $this->applyRegionFilter($query, $request);
+
+    $rows = $query->latest('id')->get()->map(fn ($order) => [
+        $idLabel        => $order->id,
+        'التاريخ'       => optional($order->created_at)->format('Y-m-d H:i'),
+        'المندوب'       => trim(($order->seller->f_name ?? '') . ' ' . ($order->seller->l_name ?? '')),
+        'كود المندوب'   => $order->seller->mandob_code ?? '',
+        'العميل'        => $order->customer->name ?? '',
+        'المنطقة'       => optional($order->customer->regions ?? null)->name ?? '',
+        'عدد الأصناف'   => $order->details->count(),
+        'الكمية'        => (float) $order->details->sum('quantity'),
+        'القيمة'        => round((float) $order->order_amount, 2),
+        'المحصل'        => round((float) $order->transaction_reference, 2),
+    ]);
+
+    return $this->streamCsvRows($rows, $this->exportFilename($prefix));
+}
+
+/** العينات كملف اكسيل، بنفس فلاتر الشاشة. */
+public function sample_export(Request $request)
+{
+    return $this->orderTypeExport($request, 12, 'samples', 'رقم العينة');
+}
+
+/** التبرعات كملف اكسيل، بنفس فلاتر الشاشة. */
+public function donation_export(Request $request)
+{
+    return $this->orderTypeExport($request, 24, 'donations', 'رقم التبرع');
+}
+
+/** حركة المخزون كملف اكسيل، بنفس فلاتر الشاشة. */
+public function stock_history_export(Request $request)
+{
+    $adminId   = Auth::guard('admin')->id();
+    $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
+    $sellerIds[] = $adminId;
+
+    $query = \App\Models\StockHistory::with(['product', 'seller'])
+        ->whereIn('seller_id', $sellerIds);
+
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+        $query->where(function ($q) use ($search) {
+            $q->where('order_id', 'like', "%{$search}%")
+              ->orWhereHas('product', fn ($p) => $p->where('name', 'like', "%{$search}%")
+                                                  ->orWhere('product_code', 'like', "%{$search}%"));
+        });
+    }
+
+    if ($request->filled('from_date')) {
+        $query->whereDate('created_at', '>=', $request->input('from_date'));
+    }
+    if ($request->filled('to_date')) {
+        $query->whereDate('created_at', '<=', $request->input('to_date'));
+    }
+
+    $rows = $query->latest('id')->get()->map(fn ($h) => [
+        'رقم التسوية' => $h->order_id,
+        'التاريخ'     => optional($h->created_at)->format('Y-m-d H:i'),
+        'المندوب'     => trim(($h->seller->f_name ?? '') . ' ' . ($h->seller->l_name ?? '')),
+        'المنتج'      => $h->product->name ?? '',
+        'كود المنتج'  => $h->product->product_code ?? '',
+        'ما كان بحوزته' => $h->main_stock,
+        'المباع'      => $h->stock,
+        'المتبقي'     => max(0, (int) $h->main_stock - (int) $h->stock),
+    ]);
+
+    return $this->streamCsvRows($rows, $this->exportFilename('stock-history'));
 }
 
 public function sample_list(Request $request): Factory|View|Application
@@ -1368,7 +1879,7 @@ public function sample_list(Request $request): Factory|View|Application
     $search = $request->input('search');
     $fromDate = $request->input('from_date');
     $toDate = $request->input('to_date');
-    $regionId = $request->input('region_id');
+    $regionId = $this->selectedRegions($request);
     $done = $request->input('done'); // For the 'done' filter (1 or 0)
     $toNewDate = date('Y-m-d', strtotime("+1 day", strtotime($toDate)));
     $adminId = Auth::guard('admin')->id();
@@ -1405,11 +1916,8 @@ public function sample_list(Request $request): Factory|View|Application
     }
 
     // Apply region filter for customer
-    if (!empty($regionId)) {
-        $orders->whereHas('customer', function($query) use ($regionId) {
-            $query->where('region_id', $regionId);
-        });
-    }
+    // Accepts a single region or several.
+    $this->applyRegionFilter($orders, $request);
 
     // // Apply done status filter (1 or 0)
     // if (isset($done)) {
@@ -1473,7 +1981,7 @@ public function donation_list(Request $request): Factory|View|Application
     $search = $request->input('search');
     $fromDate = $request->input('from_date');
     $toDate = $request->input('to_date');
-    $regionId = $request->input('region_id');
+    $regionId = $this->selectedRegions($request);
     $done = $request->input('done'); // For the 'done' filter (1 or 0)
     $toNewDate = date('Y-m-d', strtotime("+1 day", strtotime($toDate)));
     $adminId = Auth::guard('admin')->id();
@@ -1510,11 +2018,8 @@ public function donation_list(Request $request): Factory|View|Application
     }
 
     // Apply region filter for customer
-    if (!empty($regionId)) {
-        $orders->whereHas('customer', function($query) use ($regionId) {
-            $query->where('region_id', $regionId);
-        });
-    }
+    // Accepts a single region or several.
+    $this->applyRegionFilter($orders, $request);
 
     // // Apply done status filter (1 or 0)
     // if (isset($done)) {
@@ -1611,11 +2116,8 @@ public function installment_list(Request $request): Factory|View|Application
     }
 
     // نفس فلتر المنطقة:
-    if (!empty($regionId)) {
-        $ordersCashQuery->whereHas('customer', function ($q) use ($regionId) {
-            $q->where('region_id', $regionId);
-        });
-    }
+    // Accepts a single region or several.
+    $this->applyRegionFilter($ordersCashQuery, $request);
 
     // نفس فلتر التاريخ (استخدام Carbon مع نهاية اليوم لضمان الشمول):
     if (!empty($fromDate) && !empty($toDate)) {
@@ -1651,11 +2153,8 @@ public function installment_list(Request $request): Factory|View|Application
         });
     }
 
-    if (!empty($regionId)) {
-        $baseQuery->whereHas('customer', function ($q) use ($regionId) {
-            $q->where('region_id', $regionId);
-        });
-    }
+    // Accepts a single region or several.
+    $this->applyRegionFilter($baseQuery, $request);
 
     if (!empty($fromDate) && !empty($toDate)) {
         $baseQuery->whereBetween('created_at', [
@@ -1692,7 +2191,11 @@ public function installment_list(Request $request): Factory|View|Application
 
     public function generate_installments_invoice($id)
     {
-        $installment = $this->installment->find($id);
+        // نفس الفحص: التحصيل يخص مندوبًا، فلا يُعرض إلا لمن يملكه.
+        $installment = $this->installment
+            ->where('id', $id)
+            ->whereIn('seller_id', $this->invoiceOwnerIds())
+            ->first();
 
         return response()->json([
             'success' => 1,
@@ -1701,56 +2204,127 @@ public function installment_list(Request $request): Factory|View|Application
     }
 public function reservation_list(Request $request, $type, $active): Factory|View|Application
 {
-    $search = $request->input('search');
-    $fromDate = $request->input('from_date');
-    $toDate = $request->input('to_date');
-    $toNewDate = date('Y-m-d', strtotime("+1 day", strtotime($toDate))); // Adjust to include the end date
-
-    // Start with reservations filtered by type
-    $reservations = ReserveProduct::where('type', $type);
-
-$adminId = Auth::guard('admin')->id(); // Get the authenticated admin ID
-
-    // Retrieve seller_id(s) associated with the authenticated admin
-    $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id'); 
-
-    $reservations = ReserveProduct::where('type', $type)
-        ->whereIn('seller_id', $sellerIds)->orwhere('seller_id',$adminId)// Filter by associated seller_id(s)
-        ->latest()
-        ->with(['customer', 'seller']); // Assuming relationships are named 'customer' and 'seller'
-
-    // Apply active status filter
-    if ($active === 'all') {
-        $reservations->whereIn('active', [0, 1]);
-    } else {
-        $reservations->where('active', $active);
-    }
-
-    // Apply search filter if provided
-    if ($search) {
-        $reservations->where(function ($query) use ($search) {
-            $query->whereHas('customer', function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%");
-            })
-            ->orWhereHas('seller', function ($query) use ($search) {
-                $query->where('f_name', 'like', "%{$search}%")
-                      ->orWhere('l_name', 'like', "%{$search}%");
-            });
-        });
-    }
-
-    // Apply date range filter if provided
-    if ($fromDate && $toDate) {
-        $reservations->whereBetween('created_at', [$fromDate, $toNewDate]);
-    }
-
-    // Paginate results
-    $reservations = $reservations->latest()
+    $reservations = $this->reservationQuery($request, $type, $active)
         ->paginate(Helpers::pagination_limit())
         ->appends($request->query());
 
-    // Pass data to the view
-    return view('admin-views.pos.reservations.list', compact('reservations', 'search', 'fromDate', 'toDate'));
+    $search   = $request->input('search');
+    $fromDate = $request->input('from_date');
+    $toDate   = $request->input('to_date');
+
+    $sellers = \App\Models\Seller::where('role', 'seller')
+        ->orderBy('f_name')->get(['id', 'f_name', 'l_name', 'mandob_code']);
+
+    return view('admin-views.pos.reservations.list',
+        compact('reservations', 'search', 'fromDate', 'toDate', 'sellers', 'type', 'active'));
+}
+
+/**
+ * The reservation query shared by the listing and the export, so a download
+ * always matches what was on screen.
+ */
+private function reservationQuery(Request $request, $type, $active)
+{
+    $adminId   = Auth::guard('admin')->id();
+    $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
+
+    // Grouped: the previous version chained ->orwhere() straight onto the
+    // builder, which cancelled the type and active filters and let rows
+    // belonging to other admins through.
+    $query = ReserveProduct::with(['customer', 'seller'])
+        ->where('type', $type)
+        ->where(function ($q) use ($sellerIds, $adminId) {
+            $q->whereIn('seller_id', $sellerIds)->orWhere('seller_id', $adminId);
+        });
+
+    if ($active === 'all') {
+        $query->whereIn('active', [0, 1]);
+    } else {
+        $query->where('active', $active);
+    }
+
+    if ($request->filled('seller_id')) {
+        $query->where('seller_id', $request->input('seller_id'));
+    }
+
+    if ($request->filled('search')) {
+        $search = $request->input('search');
+
+        $query->where(function ($q) use ($search) {
+            $q->where('id', $search)
+              // The note the seller typed when placing the request.
+              ->orWhere('note', 'like', "%{$search}%")
+              ->orWhereHas('customer', fn ($c) => $c->where('name', 'like', "%{$search}%"))
+              ->orWhereHas('seller', fn ($s) =>
+                    $s->where('f_name', 'like', "%{$search}%")
+                      ->orWhere('l_name', 'like', "%{$search}%")
+                      ->orWhere('mandob_code', 'like', "%{$search}%"));
+        });
+    }
+
+    // Each end applies on its own; the previous version needed both or it
+    // ignored the range entirely.
+    if ($request->filled('from_date')) {
+        $query->whereDate('created_at', '>=', $request->input('from_date'));
+    }
+    if ($request->filled('to_date')) {
+        $query->whereDate('created_at', '<=', $request->input('to_date'));
+    }
+
+    return $query->latest('id');
+}
+
+/**
+ * The current filter as CSV. maatwebsite/excel is not installed, and Excel
+ * opens CSV directly; the BOM keeps the Arabic headings readable.
+ */
+public function reservation_export(Request $request, $type, $active)
+{
+    $rows = $this->reservationQuery($request, $type, $active)->get()->map(function ($r) {
+        $lines = json_decode($r->data, true) ?: [];
+
+        $total = 0;
+        $names = [];
+        foreach ($lines as $line) {
+            $total  += (float) ($line['price'] ?? 0) * (float) ($line['stock'] ?? 0);
+            $names[] = ($line['product_name'] ?? '') . ' (' . (float) ($line['stock'] ?? 0) . ')';
+        }
+
+        return [
+            'رقم الطلب'   => $r->id,
+            'المندوب'     => trim(($r->seller->f_name ?? '') . ' ' . ($r->seller->l_name ?? '')),
+            'كود المندوب' => $r->seller->mandob_code ?? '',
+            'العميل'      => $r->customer->name ?? '',
+            'النوع'       => (string) $r->type === '7' ? 'مرتجع' : 'طلب',
+            'الحالة'      => (int) $r->active === 1 ? 'قيد التنفيذ' : 'مغلق',
+            'عدد الأصناف' => count($lines),
+            'الأصناف'     => implode(' | ', $names),
+            'الإجمالي'    => round($total, 2),
+            'ملاحظات المندوب' => $r->note,
+            'التاريخ'     => optional($r->created_at)->format('Y-m-d H:i'),
+        ];
+    });
+
+    $filename = 'reservations-' . $type . '-' . now()->format('Y-m-d') . '.csv';
+
+    return response()->streamDownload(function () use ($rows) {
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+
+        if ($rows->isNotEmpty()) {
+            fputcsv($out, array_keys($rows->first()));
+            foreach ($rows as $row) {
+                fputcsv($out, array_values($row));
+            }
+        } else {
+            fputcsv($out, ['لا توجد بيانات']);
+        }
+
+        fclose($out);
+    }, $filename, [
+        'Content-Type'        => 'text/csv; charset=UTF-8',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
 }
       public function generate_reservation_invoicea2($id)
     {
@@ -1897,15 +2471,67 @@ find($id);
      * @param $id
      * @return JsonResponse
      */
+    /**
+     * المناديب التابعون للحساب الحالي، بالإضافة إليه.
+     *
+     * الفواتير كانت تُجلب بالمعرّف وحده، فيكفي تغيير الرقم في الرابط لعرض
+     * فاتورة مندوب تابع لحساب آخر بكل بياناتها. هذا الفحص يقصر العرض على
+     * فواتير مناديب الحساب الحالي.
+     */
+    private function invoiceOwnerIds(): array
+    {
+        $adminId = Auth::guard('admin')->id();
+
+        $ids = AdminSeller::where('admin_id', $adminId)
+            ->pluck('seller_id')
+            ->map(fn ($v) => (int) $v)
+            ->all();
+
+        $ids[] = (int) $adminId;
+
+        return array_values(array_unique($ids));
+    }
+
+    /** استعلام فاتورة مقصور على مناديب الحساب الحالي. */
+    private function ownedOrderQuery($id)
+    {
+        return $this->order
+            ->where('id', $id)
+            ->whereIn('owner_id', $this->invoiceOwnerIds());
+    }
+
     public function generate_invoice($id)
     {
-        $order = $this->order->where('id', $id)->with(['details'])->first();
+        $order = $this->ownedOrderQuery($id)->with(['details'])->first();
         //return $order;
         return response()->json([
             'success' => 1,
             'view' => view('admin-views.pos.order.invoice', compact('order'))->render(),
         ]);
     }
+/**
+     * The refund invoice. The refunds listing used to call generate_invoice(),
+     * which renders the *sales* invoice template, so the modal showed the wrong
+     * document (and blew up on refunds whose seller/customer it did not eager
+     * load). Refunds have their own template; render that one.
+     */
+    public function refund_generate_invoice($id)
+    {
+        $order = $this->ownedOrderQuery($id)
+            ->where('type', 7)
+            ->with(['details', 'customer', 'seller'])
+            ->first();
+
+        if (!$order) {
+            return response()->json(['success' => 0, 'view' => ''], 404);
+        }
+
+        return response()->json([
+            'success' => 1,
+            'view' => view('admin-views.pos.refund.invoice', compact('order'))->render(),
+        ]);
+    }
+
 public function generate_invoice_purchase($id)
 {
     // 1. جلب الشراء بناءً على الـ ID
@@ -1928,7 +2554,7 @@ public function generate_invoice_purchase($id)
 
      public function sample_generate_invoice($id)
     {
-        $order = $this->order->where('id', $id)->with(['details'])->first();
+        $order = $this->ownedOrderQuery($id)->with(['details'])->first();
         //return $order;
         return response()->json([
             'success' => 1,
@@ -1937,7 +2563,7 @@ public function generate_invoice_purchase($id)
     }
        public function donation_generate_invoice($id)
     {
-        $order = $this->order->where('id', $id)->with(['details'])->first();
+        $order = $this->ownedOrderQuery($id)->with(['details'])->first();
         //return $order;
         return response()->json([
             'success' => 1,
@@ -1970,7 +2596,8 @@ public function generate_invoice_purchase($id)
      */
     public function customer_balance(Request $request): JsonResponse
     {
-        $customer_balance = $this->customer->where('id', $request->customer_id)->first()->balance;
+        // optional(): an unknown customer id fataled here rather than being handled.
+        $customer_balance = optional($this->customer->where('id', $request->customer_id)->first())->balance;
         return response()->json([
             'customer_balance' => $customer_balance
         ]);
@@ -2035,7 +2662,10 @@ public function generate_invoice_purchase($id)
 
         session()->put('current_user', $request->cart_id);
 
-        return redirect()->route('admin.pos.index');
+        // admin.pos.index يتطلّب {type}؛ بدونه يفشل توليد الرابط فينهار تبديل
+        // السلة. نحافظ على النوع الحالي إن أُرسل، وإلا 4 (مبيعات) كما تفعل
+        // باقي المسارات في هذا المتحكّم.
+        return redirect()->route('admin.pos.index', ['type' => $request->input('type', 4)]);
     }
 
     /**
@@ -2074,7 +2704,9 @@ public function generate_invoice_purchase($id)
         }
         $cart = session($cart_id);
         $cart_keeper = [];
-        if (session()->has($cart_id) && count($cart) > 0) {
+        // count() على قيمة غير مصفوفة يرمي خطأً قاتلًا؛ جلسة السلة قد تكون
+        // فارغة أو تحمل قيمة أخرى قبل أول إضافة، فنتحقق من النوع أولًا.
+        if (session()->has($cart_id) && is_countable($cart) && count($cart) > 0) {
             foreach ($cart as $cartItem) {
                 $cart_keeper[] = $cartItem;
             }

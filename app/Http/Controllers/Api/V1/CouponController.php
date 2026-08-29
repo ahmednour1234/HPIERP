@@ -157,6 +157,13 @@ class CouponController extends Controller
     public function updateStatus(Request $request)
     {
         $coupon = $this->coupon->find($request->id);
+
+        // find() returns null for a missing or absent id; the original
+        // dereferenced it straight away and answered 500.
+        if (!$coupon) {
+            return response()->json(['errors' => [['code' => 'not-found', 'message' => 'Record not found.']]], 404);
+        }
+
         $coupon->status = !$coupon['status'];
         $coupon->save();
         return response()->json(['success' => 'Status updated successfully.'], 200);

@@ -8,6 +8,8 @@ use Illuminate\Database\Eloquent\Model;
 class Region extends Model
 {
     use HasFactory;
+
+    protected $fillable = ['local_id', 'name', 'name_en'];
     
     // public function seller_exist($seller_id)
     // {

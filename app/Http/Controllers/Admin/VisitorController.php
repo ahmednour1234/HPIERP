@@ -16,6 +16,7 @@ use App\Models\Visitor;
 use App\Models\Region;
 use App\Models\ResultVisitor;
 use App\Models\Customer;
+use App\Models\Category;
 use App\Models\AdminSeller;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Http\JsonResponse;
@@ -101,12 +102,40 @@ public function showResultVisitors(Request $request, $seller_id)
     $ordersQuery       = DB::table('orders')->where('orders.owner_id', $seller_id);
     $installmentsQuery = DB::table('installments')->where('installments.seller_id', $seller_id);
 
+    // مناطق الفلتر.
+    $regions = \App\Models\Region::orderBy('name')->get(['id', 'name']);
+
     // 3) Shared filters
     if ($cust = $request->customer_id) {
         $visitQuery         = $visitQuery->where('customer_id', $cust);
         $requiredQuery      = $requiredQuery->where('visitors.customer_id', $cust);
-        $ordersQuery        = $ordersQuery->where('orders.customer_id', $cust);
+        $ordersQuery        = $ordersQuery->where('orders.user_id', $cust);
         $installmentsQuery  = $installmentsQuery->where('installments.customer_id', $cust);
+    }
+
+    // بحث العميل بالكتابة بدل الاختيار من قائمة طويلة.
+    if ($name = trim((string) $request->input('customer'))) {
+        $matched = DB::table('customers')
+            ->where('name', 'like', "%{$name}%")
+            ->pluck('id');
+
+        $visitQuery        = $visitQuery->whereIn('customer_id', $matched);
+        $requiredQuery     = $requiredQuery->whereIn('visitors.customer_id', $matched);
+        $ordersQuery       = $ordersQuery->whereIn('orders.user_id', $matched);
+        $installmentsQuery = $installmentsQuery->whereIn('installments.customer_id', $matched);
+    }
+
+    // فلتر المنطقة، متعدد الاختيار. المنطقة على العميل لا على الزيارة،
+    // فنجمع عملاء المناطق المختارة ثم نقصر كل استعلام عليهم.
+    $regionIds = array_filter((array) $request->input('region_id'), fn ($v) => $v !== '' && $v !== null);
+
+    if ($regionIds) {
+        $regionCustomers = DB::table('customers')->whereIn('region_id', $regionIds)->pluck('id');
+
+        $visitQuery        = $visitQuery->whereIn('customer_id', $regionCustomers);
+        $requiredQuery     = $requiredQuery->whereIn('visitors.customer_id', $regionCustomers);
+        $ordersQuery       = $ordersQuery->whereIn('orders.user_id', $regionCustomers);
+        $installmentsQuery = $installmentsQuery->whereIn('installments.customer_id', $regionCustomers);
     }
 
     if ($spec = $request->specialist) {
@@ -187,23 +216,34 @@ public function showResultVisitors(Request $request, $seller_id)
     // 7) Monthly breakdown (current year)
     $year = \Carbon\Carbon::now()->year;
 
+    // MONTH() is MySQL-only. Pick the equivalent for the active driver so this
+    // runs on SQLite too; both yield the month number as an integer.
+    $monthOf = function (string $column) {
+        return DB::connection()->getDriverName() === 'sqlite'
+            ? "CAST(strftime('%m', {$column}) AS INTEGER)"
+            : "MONTH({$column})";
+    };
+
+    $actualMonth   = $monthOf('result_visitors.created_at');
+    $requiredMonth = $monthOf('visitors.created_at');
+
     $actualBuckets = $visitQuery
         ->whereYear('result_visitors.created_at', $year)
         ->select(
-            DB::raw('MONTH(result_visitors.created_at) AS month_num'),
+            DB::raw($actualMonth . ' AS month_num'),
             DB::raw('COUNT(*) AS total')
         )
-        ->groupBy(DB::raw('MONTH(result_visitors.created_at)'))
+        ->groupBy(DB::raw($actualMonth))
         ->pluck('total', 'month_num')
         ->toArray();
 
     $requiredBuckets = $requiredQuery
         ->whereYear('visitors.created_at', $year)
         ->select(
-            DB::raw('MONTH(visitors.created_at) AS month_num'),
+            DB::raw($requiredMonth . ' AS month_num'),
             DB::raw('COUNT(*) AS total')
         )
-        ->groupBy(DB::raw('MONTH(visitors.created_at)'))
+        ->groupBy(DB::raw($requiredMonth))
         ->pluck('total', 'month_num')
         ->toArray();
 
@@ -229,7 +269,7 @@ public function showResultVisitors(Request $request, $seller_id)
     // Top-5 Pharmacies by orders count (Query مستقل لتجنّب التعارض)
     $topPharmacies = DB::table('orders as o')
         ->join('customers as c', 'o.user_id', '=', 'c.id') // حسب بنية مشروعك
-        ->when($request->customer_id, fn($q, $cust) => $q->where('o.customer_id', $cust))
+        ->when($request->customer_id, fn($q, $cust) => $q->where('o.user_id', $cust))
         ->when($request->specialist,   fn($q, $sp)   => $q->where('c.specialist', $sp))
         ->when($request->from_date,    fn($q, $d)    => $q->whereDate('o.created_at', '>=', $d))
         ->when($request->to_date,      fn($q, $d)    => $q->whereDate('o.created_at', '<=', $d))
@@ -266,7 +306,7 @@ public function showResultVisitors(Request $request, $seller_id)
         'monthlyActualVisits', 'monthlyRequiredVisits',
         'topDoctors', 'topPharmacies', 'topMedicalCenters', 'topHospitals',
         'totalSales', 'totalCashSales', 'totalCreditSales', 'totalReturned', 'netSales',
-        'totalinstallment', 'seller'
+        'totalinstallment', 'seller', 'regions'
     ));
 }
 
@@ -274,29 +314,46 @@ public function showResultVisitors(Request $request, $seller_id)
 
 
     
-    // public function vehicles(Request $request): Factory|View|Application
-    // {
-    //     $date = $request['search'];
-    //     $sellers = $this->seller->get();
-    //     return view('admin-views.vehicle_stocks.vehicles', compact('sellers', 'date'));
-    // }
+    /**
+     * The admin.vehicles route points here. The method had been commented out,
+     * so the page answered 500 with "Method ...::vehicles does not exist";
+     * the view it renders is still present.
+     */
+    public function vehicles(Request $request): Factory|View|Application
+    {
+        $date = $request['search'];
+        $sellers = $this->seller->get();
+
+        return view('admin-views.vehicle_stocks.vehicles', compact('sellers', 'date'));
+    }
     
-    // public function vehicle_products($seller_id): Factory|View|Application
-    // {
-    //     $stocks = $this->confirm_stock->where('seller_id', $seller_id)->whereRaw('stock <= main_stock AND stock != 0')->get();
-    //     $remain_stocks = $this->confirm_stock->where('seller_id', $seller_id)->whereRaw('stock = 0')->get();
-    //     dd($stocks);
-    //     return view('admin-views.vehicle_stocks.products', compact('stocks', 'remain_stocks'));
-    // }
+    /**
+     * admin.vehicles.products routes here; the method had been commented out.
+     * The stray dd() that used to sit before the return is dropped - it would
+     * have dumped and halted the response.
+     */
+    public function vehicle_products($seller_id): Factory|View|Application
+    {
+        $stocks = \App\Models\ConfirmStock::where('seller_id', $seller_id)
+            ->whereColumn('stock', '<=', 'main_stock')->where('stock', '!=', 0)->get();
+        $remain_stocks = \App\Models\ConfirmStock::where('seller_id', $seller_id)->where('stock', 0)->get();
+        $seller = Seller::findOrFail($seller_id);
+
+        return view('admin-views.vehicle_stocks.products', compact('stocks', 'remain_stocks', 'seller'));
+    }
     
-    // public function stock_products($seller_id): Factory|View|Application
-    // {
-    //     $stocks = $this->stock->where('seller_id', $seller_id)->whereRaw('stock < main_stock AND stock != 0');
-    //     $remain_stocks = $this->stock->where('seller_id', $seller_id)->whereRaw('main_stock = stock');
-    //     $seller = Seller::find($seller_id);
-    //     $orders = \App\Models\CurrentOrder::where('owner_id', $seller_id);
-    //     return view('admin-views.vehicle_stocks.stocks', compact('stocks', 'remain_stocks', 'orders', 'seller'));
-    // }
+    /** admin.vehicles.products' sibling; also previously commented out. */
+    public function stock_products($seller_id): Factory|View|Application
+    {
+        $stocks = \App\Models\Stock::where('seller_id', $seller_id)
+            ->whereColumn('stock', '<', 'main_stock')->where('stock', '!=', 0);
+        $remain_stocks = \App\Models\Stock::where('seller_id', $seller_id)
+            ->whereColumn('main_stock', '=', 'stock');
+        $seller = Seller::find($seller_id);
+        $orders = \App\Models\CurrentOrder::where('owner_id', $seller_id);
+
+        return view('admin-views.vehicle_stocks.stocks', compact('stocks', 'remain_stocks', 'orders', 'seller'));
+    }
 
    public function create(Request $request): Factory|View|Application|JsonResponse
     {
@@ -451,7 +508,9 @@ public function store(Request $request): Factory|RedirectResponse|Application
 
     // Retrieve sellers associated with the authenticated admin
     $sellers = Seller::whereIn('id', $sellerIds)->where('role', 'seller')->get();
-    $visitor = $this->visitor->find($id);
+    // findOrFail: an unknown id returned null and was dereferenced
+    // straight away, answering 500 instead of a clean 404.
+    $visitor = $this->visitor->findOrFail($id);
         $products = [];
         if($request->has('seller')) {
             $sel = $this->seller->find($request->seller);
@@ -470,7 +529,14 @@ public function store(Request $request): Factory|RedirectResponse|Application
                 $customers[] = $this->customer->where('category_id', $id)->get();
             }
         }
-        return view('admin-views.vehicle_stocks.edit', compact('sellers', 'customers', 'visitor'));
+        // شاشة تعديل الزيارة غير مكتملة: القالب المُشار إليه هو قالب مخزون
+        // المركبات ويتوقّع $stock لا $visitor، وقالب visitors/edit نسخة منه
+        // تحمل نفس المتغيّر وتُرسل إلى مسارات المخزون. الرابط في شاشة
+        // الزيارات معطَّل بتعليق منذ الأصل. نُعيد المستخدم برسالة واضحة بدل
+        // صفحة خطأ 500 إلى أن تُبنى الشاشة بالشكل الصحيح.
+        Toastr::warning(\App\CPU\translate('شاشة تعديل الزيارة غير متاحة حاليًا'));
+
+        return redirect()->route('admin.visitor.index');
     }
 
     public function update(Request $request, $id): Factory|RedirectResponse|Application
@@ -483,7 +549,9 @@ public function store(Request $request): Factory|RedirectResponse|Application
             'note' => 'nullable',
         ]);
 
-        $visitor = $this->visitor->find($id);
+        // findOrFail: an unknown id returned null and was dereferenced
+        // straight away, answering 500 instead of a clean 404.
+        $visitor = $this->visitor->findOrFail($id);
         $visitor->seller_id = $request->seller_id;
         $visitor->customer_id = $request->customer_id;
         $visitor->date = $request->date;
@@ -545,8 +613,10 @@ $sellers = Seller::whereIn('id', $allowedSellerIds)
     ->get();
 
 
-    // العملاء (حسب احتياجك يمكنك تقليلها أو ربطها بالزيارات)
-    $customers = Customer::get(['id','name']);
+    // فلتر العميل صار كتابة لا اختيارًا، فلم تعد هناك حاجة لتحميل ~2000
+    // عميل في كل طلب. الفئات (نوع 0) هي تخصصات الأطباء، والمناطق للفلتر.
+    $categories = Category::where('type', 0)->orderBy('name')->get();
+    $regions    = Region::orderBy('name')->get();
 
     // ====== ضبط التواريخ ======
     $dateFrom = $request->filled('date_from') ? Carbon::parse($request->date_from)->startOfDay() : null;
@@ -564,8 +634,25 @@ $sellers = Seller::whereIn('id', $allowedSellerIds)
     }
 
     // ====== فلاتر المدخلات ======
-    if ($request->filled('customer_id')) {
-        $base->where('customer_id', $request->integer('customer_id'));
+    // فلتر العميل كتابة: يطابق الاسم أو الموبايل بدل الاختيار من قائمة.
+    if ($request->filled('customer')) {
+        $term = $request->input('customer');
+        $base->whereHas('customer', function ($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+              ->orWhere('mobile', 'like', "%{$term}%");
+        });
+    }
+
+    // التخصص (أطفال / نسا وتوليد / ...) وهو category_id على العميل.
+    if ($request->filled('category_id')) {
+        $categoryId = $request->integer('category_id');
+        $base->whereHas('customer', fn ($q) => $q->where('category_id', $categoryId));
+    }
+
+    // المنطقة، مع إمكانية تحديد أكثر من منطقة معًا.
+    $regionIds = array_filter((array) $request->input('region_id'), fn ($v) => $v !== '' && $v !== null);
+    if ($regionIds) {
+        $base->whereHas('customer', fn ($q) => $q->whereIn('region_id', $regionIds));
     }
 
     if ($request->filled('seller_id')) {
@@ -589,22 +676,122 @@ $sellers = Seller::whereIn('id', $allowedSellerIds)
     $customerTotal = null;
     $sellerTotal   = null;
 
-    if ($request->filled('customer_id')) {
-        $customerTotal = (clone $base)->where('customer_id', $request->integer('customer_id'))->count();
+    // $base is already filtered; re-applying the same condition would be a
+    // no-op, so just count what the filter actually selected.
+    if ($request->filled('customer')) {
+        $customerTotal = (clone $base)->count();
     }
 
     if ($request->filled('seller_id')) {
         $requestedSeller = (int) $request->seller_id;
         if (in_array($requestedSeller, $allowedSellerIds, true)) {
-            $sellerTotal = (clone $base)->where('admin_id', $requestedSeller)->count();
+            $sellerTotal = (clone $base)->count();
         } else {
             $sellerTotal = 0; // غير مُخوّل
         }
     }
 
     return view('admin-views.visitors.indexresultnew', compact(
-        'visitors', 'customerTotal', 'sellerTotal', 'sellers', 'customers'
+        'visitors', 'customerTotal', 'sellerTotal', 'sellers',
+        'categories', 'regions', 'regionIds'
     ));
+}
+
+/**
+ * الزيارات المنفَّذة كملف اكسيل، بنفس فلاتر الشاشة وعلى كامل النتيجة لا
+ * على الصفحة المعروضة. لم يكن لهذه الشاشة تصدير من قبل؛ التصدير الموجود
+ * (export) يخص الزيارات المخطَّطة وجدولًا آخر.
+ */
+public function exportResult(Request $request)
+{
+    $admin   = Auth::guard('admin')->user();
+    $adminId = $admin?->id;
+    $isSuper = $admin && in_array($admin->role, ['super_admin', 'admin'], true);
+
+    $allowedSellerIds = $isSuper
+        ? Seller::where('role', 'seller')->pluck('id')->all()
+        : AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
+
+    if ($admin && $admin->id) {
+        $allowedSellerIds[] = $admin->id;
+    }
+    $allowedSellerIds = array_unique($allowedSellerIds);
+
+    $base = ResultVisitor::query()->with(['customer.regions', 'seller']);
+
+    if (!$isSuper) {
+        $base->whereIn('admin_id', $allowedSellerIds);
+    }
+
+    if ($request->filled('customer')) {
+        $term = $request->input('customer');
+        $base->whereHas('customer', function ($q) use ($term) {
+            $q->where('name', 'like', "%{$term}%")
+              ->orWhere('mobile', 'like', "%{$term}%");
+        });
+    }
+
+    if ($request->filled('category_id')) {
+        $categoryId = $request->integer('category_id');
+        $base->whereHas('customer', fn ($q) => $q->where('category_id', $categoryId));
+    }
+
+    $regionIds = array_filter((array) $request->input('region_id'), fn ($v) => $v !== '' && $v !== null);
+    if ($regionIds) {
+        $base->whereHas('customer', fn ($q) => $q->whereIn('region_id', $regionIds));
+    }
+
+    if ($request->filled('seller_id')) {
+        $requestedSeller = (int) $request->seller_id;
+        if (in_array($requestedSeller, $allowedSellerIds, true)) {
+            $base->where('admin_id', $requestedSeller);
+        }
+    }
+
+    if ($request->filled('date_from')) {
+        $base->where('created_at', '>=', Carbon::parse($request->date_from)->startOfDay());
+    }
+    if ($request->filled('date_to')) {
+        $base->where('created_at', '<=', Carbon::parse($request->date_to)->endOfDay());
+    }
+
+    $categories = Category::where('type', 0)->pluck('name', 'id');
+
+    $rows = $base->latest()->get()->map(fn ($v) => [
+        'رقم الزيارة' => $v->id,
+        'التاريخ'     => optional($v->created_at)->format('Y-m-d H:i'),
+        'العميل'      => optional($v->customer)->name ?? '',
+        'الموبايل'    => optional($v->customer)->mobile ?? '',
+        'التخصص'      => $categories[optional($v->customer)->category_id] ?? '',
+        'المنطقة'     => optional(optional($v->customer)->regions)->name ?? '',
+        'المندوب'     => trim((optional($v->seller)->f_name ?? '') . ' ' . (optional($v->seller)->l_name ?? '')),
+        'الملاحظة'    => $v->note,
+        'خط العرض'    => $v->lat,
+        'خط الطول'    => $v->lang,
+    ]);
+
+    $filename = 'executed-visits-' . now()->format('Y-m-d') . '.csv';
+
+    // maatwebsite/excel غير مثبّت، وExcel يفتح CSV مباشرة؛ الـ BOM يبقي
+    // العربية مقروءة.
+    return response()->streamDownload(function () use ($rows) {
+        $out = fopen('php://output', 'w');
+        fwrite($out, "\xEF\xBB\xBF");
+
+        if ($rows->isNotEmpty()) {
+            fputcsv($out, array_keys($rows->first()));
+            foreach ($rows as $row) {
+                fputcsv($out, array_values($row));
+            }
+        } else {
+            fputcsv($out, ['لا توجد بيانات']);
+        }
+
+        fclose($out);
+    }, $filename, [
+        'Content-Type'        => 'text/csv; charset=UTF-8',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
 }
     
     // public function history(Request $request)

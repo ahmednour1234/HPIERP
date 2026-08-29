@@ -9,6 +9,8 @@ class ConfirmStock extends Model
 {
     use HasFactory;
 
+    protected $fillable = ['seller_id', 'product_id', 'main_stock', 'stock'];
+
     public function product()
     {
         return $this->belongsTo(Product::class);

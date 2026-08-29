@@ -26,7 +26,10 @@ class StorageController extends Controller
 
     public function create(): View|Factory|Application
     {
-        return view('admin-views.storage.create');
+        // There is no separate create view: admin-views.storage.index
+        // already carries the add/edit form. Pointing create() at the
+        // missing view answered 500.
+        return $this->index();
     }
 
     public function store(Request $request): RedirectResponse
@@ -45,9 +48,16 @@ class StorageController extends Controller
         return back();
     }
 
-    public function edit($id): View|Factory|Application
+    public function edit($id)
     {
         $storage = $this->storage->find($id);
+
+        // بدون هذا الفحص كان القالب يقرأ خصائص على null عند فتح رابط قديم.
+        if (!$storage) {
+            Toastr::error(translate('المخزن غير موجود'));
+            return redirect()->route('admin.storage.list');
+        }
+
         return view('admin-views.storage.edit', compact('storage'));
     }
 

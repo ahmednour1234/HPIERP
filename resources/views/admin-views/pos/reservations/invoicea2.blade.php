@@ -164,9 +164,9 @@
 <div class="invoice-container">
     <div class="header">
         <!-- Logo in top-center -->
-        <img src="{{ asset('storage/app/public/shop/' . \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value) }}" alt="Shop Logo" style="max-width: 180px;">
+        <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="Shop Logo" style="max-width: 180px;">
         <h2>أمر صرف</h2>
-        <p>{{ \App\Models\BusinessSetting::where(['key' => 'shop_name'])->first()->value }}</p>
+        <p>{{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_name'])->first())->value }}</p>
     </div>
 
     <hr class="separator">
@@ -181,21 +181,21 @@
         <tbody>
             <tr>
                 <td>اسم المتجر</td>
-                <td>{{ \App\Models\BusinessSetting::where(['key' => 'shop_name'])->first()->value }}</td>
+                <td>{{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_name'])->first())->value }}</td>
                 <td>العنوان</td>
-                <td>{{ \App\Models\BusinessSetting::where(['key' => 'shop_address'])->first()->value }}</td>
+                <td>{{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_address'])->first())->value }}</td>
             </tr>
             <tr>
                 <td>رقم الجوال</td>
-                <td>{{ \App\Models\BusinessSetting::where(['key' => 'shop_phone'])->first()->value }}</td>
+                <td>{{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_phone'])->first())->value }}</td>
                 <td>البريد الإلكتروني</td>
-                <td>{{ \App\Models\BusinessSetting::where(['key' => 'shop_email'])->first()->value }}</td>
+                <td>{{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_email'])->first())->value }}</td>
             </tr>
             <!--<tr>-->
             <!--    <td>رقم الضريبي</td>-->
-            <!--    <td>{{ \App\Models\BusinessSetting::where(['key' => 'number_tax'])->first()->value??'' }}</td>-->
+            <!--    <td>{{ optional(\App\Models\BusinessSetting::where(['key' => 'number_tax'])->first())->value??'' }}</td>-->
             <!--    <td>رقم السجل التجاري</td>-->
-            <!--    <td>{{ \App\Models\BusinessSetting::where(['key' => 'vat_reg_no'])->first()->value??'' }}</td>-->
+            <!--    <td>{{ optional(\App\Models\BusinessSetting::where(['key' => 'vat_reg_no'])->first())->value??'' }}</td>-->
             <!--</tr>-->
             <tr>
                 <td>رقم أمر الصرف</td>

@@ -396,7 +396,10 @@ public function getIndex(Request $request)
         $limit = $request['limit'] ?? 10;
         $offset = $request['offset'] ?? 1;
 
-        $stock_limit = Helpers::get_business_settings('stock_limit');
+        // The setting is absent on a fresh install and the null it returns made
+        // the where() throw "Illegal operator and value combination".
+        $stock_limit = (int) (Helpers::get_business_settings('stock_limit') ?? 0);
+
         $stock_limited_product = $this->product->with('unit', 'supplier')->where('quantity', '<', $stock_limit)->orderBy('quantity')->latest()->paginate($limit, ['*'], 'page', $offset);
         $stock_limited_products = StockLimitedProductsResource::collection($stock_limited_product);
 
@@ -492,19 +495,33 @@ public function getIndex(Request $request)
      */
     public function incomeRevenue(): JsonResponse
     {
-        $year_wise_expense = Transection::selectRaw("sum(`amount`) as 'total_amount', YEAR(`date`) as 'year', MONTH(`date`) as 'month'")->where(['tran_type' => 'Expense'])
-            ->groupBy('month')
-            ->orderBy('year')
-            ->get();
-
-        $year_wise_income = Transection::selectRaw("sum(`amount`) as 'total_amount', YEAR(`date`) as 'year', MONTH(`date`) as 'month'")->where(['tran_type' => 'Income'])
-            ->groupBy('month')
-            ->orderBy('year')
-            ->get();
-
         return response()->json([
-            'year_wise_expense' => $year_wise_expense,
-            'year_wise_income' => $year_wise_income
+            'year_wise_expense' => $this->monthlyTotals('Expense'),
+            'year_wise_income'  => $this->monthlyTotals('Income'),
         ], 200);
+    }
+
+    /**
+     * Monthly totals for one transaction type.
+     *
+     * The original used YEAR() and MONTH(), which exist only on MySQL, and
+     * grouped by month alone - so January 2025 and January 2026 were summed
+     * into a single row. Grouping on the 'YYYY-MM' prefix of the date fixes
+     * both: it is portable and it keeps the years apart.
+     */
+    private function monthlyTotals(string $type)
+    {
+        return Transection::query()
+            ->where('tran_type', $type)
+            ->whereNotNull('date')
+            ->get(['date', 'amount'])
+            ->groupBy(fn ($row) => substr((string) $row->date, 0, 7))
+            ->map(fn ($rows, $period) => [
+                'total_amount' => (float) $rows->sum('amount'),
+                'year'         => (int) substr($period, 0, 4),
+                'month'        => (int) substr($period, 5, 2),
+            ])
+            ->sortKeys()
+            ->values();
     }
 }

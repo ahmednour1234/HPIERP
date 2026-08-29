@@ -24,7 +24,9 @@
                     $coupon_discount = 0;
                     ?>
 
-                    @if (session()->has($cart_id) && count(session($cart_id)) > 0)
+                    {{-- session($cart_id) بمعرّف فارغ يعيد كائن الجلسة نفسه لا مصفوفة،
+                         فينهار count(). is_countable يحمي من ذلك. --}}
+                    @if ($cart_id && session()->has($cart_id) && is_countable(session($cart_id)) && count(session($cart_id)) > 0)
                         <?php
                         $cart = session()->get($cart_id);
                         if (isset($cart['tax'])) {
@@ -50,7 +52,7 @@
                                 <tr>
                                     <td class="media gap-2 align-items-center">
                                         <img class="avatar avatar-sm"
-                                            src="{{ asset('storage/app/public/product') }}/{{ $cartItem['image'] }}"
+                                            src="{{ asset('storage/product') }}/{{ $cartItem['image'] }}"
                                             onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
                                             alt="{{ $cartItem['name'] }} image">
                                         <div class="media-body">

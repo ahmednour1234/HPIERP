@@ -16,16 +16,37 @@ class Helpers
         }
         return $err_keeper;
     }
+    /**
+     * ذاكرة داخل الطلب الواحد.
+     *
+     * currency_symbol() و pagination_limit() تُستدعيان مرة لكل سطر في
+     * الجداول، وكل استدعاء كان استعلامًا مستقلًا (20-27 استعلامًا في الصفحة
+     * الواحدة). القيم ثابتة خلال الطلب، فتُحسب مرة وتُعاد بعدها.
+     */
+    private static array $memo = [];
+
     public static function currency_code()
     {
-        $currency_code = BusinessSetting::where(['key' => 'currency'])->first()->value;
-        return $currency_code;
+        if (!array_key_exists('currency_code', self::$memo)) {
+            // optional(): the row is absent on a fresh install, and reading ->value
+            // on null took the whole /config endpoint down with a 500.
+            self::$memo['currency_code'] = optional(BusinessSetting::where(['key' => 'currency'])->first())->value;
+        }
+
+        return self::$memo['currency_code'];
     }
 
     public static function currency_symbol()
     {
-        $currency_symbol = Currency::where(['currency_code' => Helpers::currency_code()])->first()->currency_symbol;
-        return $currency_symbol;
+        if (!array_key_exists('currency_symbol', self::$memo)) {
+            // optional(): no matching currency row on a fresh install, and reading
+            // ->currency_symbol on null took every page using it down with a 500.
+            self::$memo['currency_symbol'] = optional(
+                Currency::where(['currency_code' => Helpers::currency_code()])->first()
+            )->currency_symbol;
+        }
+
+        return self::$memo['currency_symbol'];
     }
     public static function upload(string $dir, string $format, $image = null)
     {
@@ -236,8 +257,15 @@ class Helpers
     }
     public static function pagination_limit()
     {
-        $pagination_limit = BusinessSetting::where('key', 'pagination_limit')->first();
-        return (int)$pagination_limit->value;
+        if (!array_key_exists('pagination_limit', self::$memo)) {
+            $pagination_limit = BusinessSetting::where('key', 'pagination_limit')->first();
+
+            // The setting is absent on a fresh install; reading ->value on null
+            // broke every list page that paginates. 25 is the app's usual default.
+            self::$memo['pagination_limit'] = (int) ($pagination_limit->value ?? 25);
+        }
+
+        return self::$memo['pagination_limit'];
     }
 
     public static function remove_invalid_charcaters($str)

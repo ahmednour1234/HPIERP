@@ -192,7 +192,7 @@
             <img
                 class="avatar-img"
                 onerror="this.src='{{asset('public/assets/admin/img/160x160/img1.jpg')}}'"
-                src="{{asset('storage/app/public/supplier/'.$supplier->image)}}"
+                src="{{asset('storage/supplier/'.$supplier->image)}}"
                 alt="{{\App\CPU\translate('image_description')}}">
         </div>
         <div class="media-body">

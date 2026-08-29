@@ -125,75 +125,74 @@ public function list(Request $request): View|Factory|Application
     $adminId = Auth::guard('admin')->id();
 
     // Fetch sellers linked to the authenticated admin through the admin_seller table
+    // كان يعيد المعرّفات فقط، فيضطر القالب إلى Seller::find() لكل خيار
+    // (استعلام لكل صف). جلب البريد معها يلغي ذلك تمامًا.
     $sellers = Seller::join('admin_sellers', 'admin_sellers.seller_id', '=', 'admins.id')
                     ->where('admin_sellers.admin_id', $adminId)
-                    ->select('admins.id') // Select only seller IDs
-                    ->get()->pluck('id')->toArray(); // Convert to an array of seller IDs
-    // Build the base query for customers
-    $customersQuery = $this->customer->query();
-
-    // Filter customers by seller_id through the seller_customers table
-  $sellerId = request()->get('seller_id'); // Assuming seller_id is passed in the request.
-// dd($sellerId);
-$customersQuery = Customer::query();
-
-if ($sellerId) {
-    $customersQuery->whereIn('id', function ($query) use ($sellerId) {
-        $query->select('customer_id')
-              ->from('seller_customers')
-              ->where('seller_id', $sellerId);
-    });
-}
-    // Apply search filter if provided
-    if ($search) {
-        $key = explode(' ', $search);
-        $customersQuery->where(function ($q) use ($key) {
-            foreach ($key as $value) {
-                $q->orWhere('name', 'like', "%{$value}%")
-                  ->orWhere('mobile', 'like', "%{$value}%");
-            }
-        });
-        $query_param['search'] = $search;
-    }
-
-    // Apply specialization filter if provided
-if ($specialization_id) {
-    if ($specialization_id == 4 || $specialization_id == 0) {
-        $customersQuery->whereIn('specialist', [4, 0]);
-    } else {
-        $customersQuery->where('specialist', $specialization_id);
-    }
-    $query_param['specialist'] = $specialization_id;
-}
-
+                    ->select('admins.id', 'admins.email')
+                    ->get();
+    // كل الفلاتر في مكان واحد يشترك فيه العرض والتصدير، حتى يصف الملف
+    // نفس الصفوف التي تصفها الشاشة.
+    $customersQuery = $this->customerFilterQuery($request);
 
     // Get additional data for the view
     $walk_customer = $this->customer->where('id', 0)->first();
-    $categories = $this->category->where('type', 0)->get();
+    // فئات العملاء من نوع 0 هي تخصصات الأطباء (أطفال، نسا وتوليد، ...).
+    $categories = $this->category->where('type', 0)->orderBy('name')->get();
+    $regions    = $this->region->orderBy('name')->get();
 
-    // Paginate the filtered customers with query parameters
-    $customers = $customersQuery->paginate(Helpers::pagination_limit())->appends($query_param);
+    $regionIds   = $this->selectedCustomerRegions($request);
+    $categoryId  = $request->input('category_id');
+
+    // كل الفلاتر تُرحَّل مع روابط الصفحات، وإلا ضاعت عند الانتقال لصفحة أخرى.
+    $customers = $customersQuery
+        ->paginate(Helpers::pagination_limit())
+        ->appends($request->query());
 
     // Return the view with the necessary data
     return view('admin-views.customer.list', compact(
-        'customers', 
-        'accounts', 
-        'search', 
-        'walk_customer', 
-        'categories', 
+        'customers',
+        'accounts',
+        'search',
+        'walk_customer',
+        'categories',
         'sellers',
+        'regions',
+        'regionIds',
+        'categoryId',
         'specialization_id'
     ));
 }
 
-public function export(Request $request)
+/** المناطق المختارة، لإعادة تحديدها في القائمة. */
+private function selectedCustomerRegions(Request $request): array
 {
-    // Get the search parameter
-    $search = $request->input('search');
+    return array_map('strval', array_filter(
+        (array) $request->input('region_id'),
+        fn ($v) => $v !== '' && $v !== null
+    ));
+}
 
-    // Query customers with search functionality
-    $query = $this->customer->query();
-    if ($search) {
+/**
+ * استعلام العملاء بعد تطبيق فلاتر الشاشة.
+ *
+ * مشترك بين العرض والتصدير: كان التصدير يطبّق البحث وحده ويتجاهل باقي
+ * الفلاتر، فيخرج ملف يصف كل العملاء لا العملاء المعروضين.
+ */
+private function customerFilterQuery(Request $request)
+{
+    $query = Customer::query()->with(['regions']);
+
+    // البائع، عبر جدول الربط seller_customers
+    if ($sellerId = $request->input('seller_id')) {
+        $query->whereIn('id', function ($q) use ($sellerId) {
+            $q->select('customer_id')
+              ->from('seller_customers')
+              ->where('seller_id', $sellerId);
+        });
+    }
+
+    if ($search = $request->input('search')) {
         $key = explode(' ', $search);
         $query->where(function ($q) use ($key) {
             foreach ($key as $value) {
@@ -203,12 +202,63 @@ public function export(Request $request)
         });
     }
 
-    // Get the customers data
-    $customers = $query->get([
-        'name', 'mobile', 'email', 'address', 'pharmacy_name', 'state', 'city', 'zip_code', 'balance'
-    ]);
+    // الفئة (كانت تسمى التخصص): صيدلية / مركز طبي / مستشفى / طبيب
+    if ($specialist = $request->input('specialist')) {
+        if ($specialist == 4 || $specialist == 0) {
+            $query->whereIn('specialist', [4, 0]);
+        } else {
+            $query->where('specialist', $specialist);
+        }
+    }
 
-    // Export the data using FastExcel
+    // التخصص الفعلي للطبيب (أطفال، نسا وتوليد، ...) مخزَّن في category_id.
+    if ($categoryId = $request->input('category_id')) {
+        $query->where('category_id', $categoryId);
+    }
+
+    // المنطقة، مع إمكانية اختيار أكثر من منطقة معًا.
+    $regions = array_filter((array) $request->input('region_id'), fn ($v) => $v !== '' && $v !== null);
+    if ($regions) {
+        $query->whereIn('region_id', $regions);
+    }
+
+    return $query;
+}
+
+/**
+ * تصدير العملاء طبقًا للفلاتر المطبَّقة على الشاشة.
+ *
+ * كان يقرأ البحث وحده، فيخرج ملفًا يصف كل العملاء بغضّ النظر عن فلاتر
+ * البائع والفئة والتخصص والمنطقة. الآن يستخدم نفس استعلام الشاشة.
+ */
+public function export(Request $request)
+{
+    $categories = $this->category->where('type', 0)->pluck('name', 'id');
+
+    $labels = [
+        1 => 'صيدلية',
+        2 => 'مركز طبي',
+        3 => 'مستشفى',
+        4 => 'طبيب',
+    ];
+
+    $customers = $this->customerFilterQuery($request)
+        ->orderBy('name')
+        ->get()
+        ->map(fn ($c) => [
+            'الاسم'        => $c->name,
+            'الموبايل'     => $c->mobile,
+            'البريد'       => $c->email,
+            'العنوان'      => $c->address,
+            'اسم الصيدلية' => $c->pharmacy_name,
+            'الفئة'        => $labels[$c->specialist] ?? '',
+            'التخصص'       => $categories[$c->category_id] ?? '',
+            'المنطقة'      => optional($c->regions)->name ?? '',
+            'المحافظة'     => $c->state,
+            'المدينة'      => $c->city,
+            'الرصيد'       => $c->balance,
+        ]);
+
     return (new FastExcel($customers))->download('customers.xlsx');
 }
 

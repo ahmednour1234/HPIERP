@@ -92,10 +92,10 @@
                                                 <h6 class="card-subtitle text-white">Seller Code: {{ $seller->mandob_code }}</h6>
                                                 
                                                 <span class="card-title text-white">
-                                                    Car Code: {{ \App\Models\Store::where('store_id', $seller->vehicle_code)->first()->store_code }}
+                                                    Car Code: {{ optional(\App\Models\Store::where('store_id', $seller->vehicle_code)->first())->store_code }}
                                                 </span>
                                                 <span class="card-title text-white">
-                                                    Car Name: {{ \App\Models\Store::where('store_id', $seller->vehicle_code)->first()->store_name1 }}
+                                                    Car Name: {{ optional(\App\Models\Store::where('store_id', $seller->vehicle_code)->first())->store_name1 }}
                                                 </span>
                                                 
                                                <span class="card-title text-white">

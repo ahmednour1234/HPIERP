@@ -106,7 +106,7 @@
                                 <td>{{$products->firstitem()+$key}}</td>
                                 <td>
                                         <img
-                                            src="{{asset('storage/app/public/product')}}/{{$product['image']}}"
+                                            src="{{asset('storage/product')}}/{{$product['image']}}"
                                             class="img-one-spl"
                                             onerror="this.src='{{asset('public/assets/admin/img/160x160/img2.jpg')}}'">
                                 </td>

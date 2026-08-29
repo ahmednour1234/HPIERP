@@ -60,27 +60,32 @@
     </div>
 
     @php
-        // Calculate summary values
-        $totalWorkedHours = $attendances->sum('worked_hours');
-        $workingDays = $attendances->pluck('date')->unique()->count();
-        $totalExpectedHours = $attendances->sum('expected_hours');
-                $totaltime_late = $attendances->sum('time_late');
+        // الإجماليات تأتي محسوبة من المتحكّم على كامل نتيجة الفلتر.
+        // إعادة حسابها هنا من $attendances كانت تقصرها على الصفحة المعروضة.
+        $totaltime_late = $totalTimeLate;
     @endphp
 
     <!-- Summary Box -->
     <div class="summary-box">
         <p>
-            <strong>{{ \App\CPU\translate('إجمالي ساعات العمل الفعلية') }}:</strong> {{ $totalWorkedHours }} ساعة
+            <strong>{{ \App\CPU\translate('إجمالي ساعات العمل الفعلية') }}:</strong> {{ number_format($totalWorkedHours, 2) }} ساعة
         </p>
         <p>
             <strong>{{ \App\CPU\translate('عدد أيام العمل') }}:</strong> {{ $workingDays }} يوم
         </p>
         <p>
-            <strong>{{ \App\CPU\translate('إجمالي ساعات العمل المتوقعة') }}:</strong> {{ $totalExpectedHours }} ساعة
+            <strong>{{ \App\CPU\translate('إجمالي ساعات العمل المتوقعة') }}:</strong> {{ number_format($totalExpectedHours, 2) }} ساعة
         </p>
           <p>
-            <strong>{{ \App\CPU\translate('إجمالي مدة التأخير ') }}:</strong> {{ $totaltime_late }} دقائق
+            <strong>{{ \App\CPU\translate('إجمالي مدة التأخير ') }}:</strong> {{ number_format($totaltime_late) }} دقيقة
         </p>
+        @if(($openShifts ?? 0) > 0)
+        {{-- سجلات بلا خروج تُحتسب ساعاتها المتوقعة وساعات عملها صفر، فتبدو
+             الفجوة بين المتوقع والفعلي أكبر من حقيقتها. --}}
+        <p class="text-muted mb-0">
+            <small>{{ $openShifts }} سجل بلا تسجيل خروج، تُحتسب ساعاته المتوقعة وساعات عمله صفر.</small>
+        </p>
+        @endif
     </div>
 
     <!-- Attendance Table -->

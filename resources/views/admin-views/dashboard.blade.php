@@ -180,166 +180,40 @@
 <div class="row row-cols-1 row-cols-md-3 g-3">
 @foreach($sellers as $seller)
     @php
-        // 1) مخزون وبديهيات العرض
-        $stocks = \App\Models\Stock::where('seller_id', $seller->id)
-                    ->whereRaw('main_stock != stock')
-                    ->get();
+        // كانت هذه الكتلة تنفّذ نحو عشرة استعلامات لكل مندوب، وتحمّل كل
+        // فواتيره وتفاصيلها إلى الذاكرة لتحديد حالة كل فاتورة. مع 13 مندوبًا
+        // صار العرض 10 ثوانٍ و151 استعلامًا.
+        //
+        // الحساب انتقل إلى DashboardController::sellerStats() حيث يتم مرة
+        // واحدة لكل المناديب. الأسماء هنا كما كانت حتى تبقى بقية القالب
+        // دون تغيير.
+        $stat = $sellerStats[$seller->id] ?? null;
 
-        if ($stocks->isEmpty() && \App\Models\Stock::where('seller_id', $seller->id)
-                ->whereRaw('main_stock = stock')->get()->isEmpty()) continue;
+        // مندوب بلا أي مخزون لم يكن يُعرض أصلًا.
+        if (!$stat || !$stat['has_stock']) continue;
 
-        $remain_stock = $stocks->sum('stock');
-        $total_stock  = $stocks->sum(fn($st) => $st->main_stock - $st->stock);
+        $remain_stock         = $stat['remain_stock'];
+        $order_count          = $stat['order_count'];
+        $total_cash           = $stat['total_cash'];
+        $total_credit         = $stat['total_credit'];
+        $refund_total         = $stat['refund_total'];
 
-        // 2) الطلبات والأموال (CurrentOrder كما في كودك)
-        $order_count  = \App\Models\CurrentOrder::where('owner_id', $seller->id)->count();
-        $total_cash   = \App\Models\CurrentOrder::where('owner_id', $seller->id)
-                            ->where('type', 4)->where('cash', 1)->sum('order_amount');
-        $total_credit = \App\Models\CurrentOrder::where('owner_id', $seller->id)
-                            ->where('type', 4)->where('cash', 2)->sum('order_amount');
-        $refund_total = \App\Models\CurrentOrder::where('owner_id', $seller->id)
-                            ->where('type', 7)->sum('order_amount');
+        $orderAmountType4     = $stat['amount_type_4'];
+        $orderAmountType7     = $stat['amount_type_7'];
+        $transactionRefType4  = $stat['paid_type_4'];
+        $amountDue            = $stat['amount_due'];
 
-        // 3) استبعاد فواتير البيع التي تم إرجاعها بالكامل + IDs المرتجعات (لعدّ الإيصالات)
-        $fullyReturnedOrderIds = \App\Models\Order::where('type', 4)
-            ->whereIn('id', function ($query) {
-                $query->select('parent_id')
-                    ->from('orders as r')
-                    ->whereNotNull('parent_id')
-                    ->where('r.type', 7)
-                    ->groupBy('parent_id')
-                    ->havingRaw("
-                        NOT EXISTS (
-                            SELECT 1
-                            FROM order_details od
-                            WHERE od.order_id = parent_id
-                            AND NOT EXISTS (
-                                SELECT 1 FROM order_details rod
-                                JOIN orders r2 ON rod.order_id = r2.id
-                                WHERE r2.parent_id = parent_id
-                                AND rod.product_id = od.product_id
-                                GROUP BY rod.product_id
-                                HAVING SUM(rod.quantity) >= od.quantity
-                            )
-                        )
-                    ");
-            })
-            ->pluck('id');
+        $productCount         = $stat['product_count'];
+        $quantitySum          = $stat['quantity_sum'];
+        $priceSum             = $stat['price_sum'];
+        $collectedUnits       = $stat['collected_units'];
+        $invoiceStatusCounts  = $stat['status_counts'];
 
-        $returnedOrders = \App\Models\Order::where('type', 7)->get();
-        $parentIds      = $returnedOrders->pluck('parent_id')->filter()->unique();
-        $returnedIds    = $returnedOrders->pluck('id')->unique();
-        $excludedOrderIds = $returnedIds->merge($fullyReturnedOrderIds)->unique();
+        $paidInvoices         = $stat['collected_receipts'];
+        $unpaidInvoices       = $stat['uncollected_receipts'];
 
-        $collectedReceipts = \App\Models\CurrentOrder::where('owner_id', $seller->id)
-            ->whereColumn('order_amount', '=', 'transaction_reference')
-            ->when($excludedOrderIds->isNotEmpty(), fn($q) => $q->whereNotIn('id', $excludedOrderIds))
-            ->count();
-
-        $uncollectedReceipts = \App\Models\CurrentOrder::where('owner_id', $seller->id)
-            ->whereColumn('order_amount', '!=', 'transaction_reference')
-            ->when($excludedOrderIds->isNotEmpty(), fn($q) => $q->whereNotIn('id', $excludedOrderIds))
-            ->count();
-
-        // 4) «باقي الإحصائيات» لكل مندوب (نعتمد Order/OrderDetail)
-        // مبالغ البيع/المرتجع/المحصّل
-        $orderAmountType4      = \App\Models\Order::where('owner_id', $seller->id)->where('type', 4)->sum('order_amount');
-        $orderAmountType7      = \App\Models\Order::where('owner_id', $seller->id)->where('type', 7)->sum('order_amount');
-        $transactionRefType4   = \App\Models\Order::where('owner_id', $seller->id)->where('type', 4)->sum('transaction_reference');
-        $amountDue             = $orderAmountType4 - $orderAmountType7 - $transactionRefType4;
-
-        // تفاصيل المنتجات المباعة (type=4)
-        $orderDetailsType4 = \App\Models\OrderDetail::whereHas('order', function($q) use ($seller){
-                $q->where('owner_id', $seller->id)->where('type', 4);
-            })->get();
-
-        $productCount = $orderDetailsType4->groupBy('product_details->id')->count();
-        $quantitySum  = $orderDetailsType4->sum('quantity');
-        $priceSum     = $orderDetailsType4->sum(fn($d) => (float)($d->price ?? 0) * (float)($d->quantity ?? 0));
-
-        // حساب الكميات المحصلة + عدادات الحالات
-        $ordersType4 = \App\Models\Order::where('owner_id', $seller->id)
-            ->where('type', 4)
-            ->with('details')
-            ->get();
-
-        $returnsByParent = \App\Models\Order::where('type', 7)
-            ->whereIn('parent_id', $ordersType4->pluck('id')->unique())
-            ->with('details')
-            ->get()
-            ->groupBy('parent_id');
-
-        $collectedUnits = 0;
-        $invoiceStatusCounts = [
-            'paid'             => 0,
-            'unpaid'           => 0,
-            'returned_fully'   => 0,
-            'partial_paid'     => 0,
-            'partial_returned' => 0,
-            'partial_both'     => 0,
-        ];
-
-        foreach ($ordersType4 as $o) {
-            $originalQty    = (int) $o->details->sum('quantity');
-            $originalAmount = (float) $o->details->sum(fn($d) => (float)($d->price ?? 0) * (float)($d->quantity ?? 0));
-            $paidAmount     = (float) $o->transaction_reference;
-            $orderamount     = (float) $o->order_amount;
-
-            $returns        = $returnsByParent->get($o->id, collect());
-            $returnedQty    = (int) $returns->flatMap->details->sum('quantity');
-            $returnedAmount = (float) $returns->flatMap->details->sum(fn($d) => (float)($d->price ?? 0) * (float)($d->quantity ?? 0));
-
-            // تحديد الحالة
-            if ($orderamount <= $paidAmount && $orderamount > 0) {
-                $status = 'paid';
-            } elseif ($paidAmount == 0 && $originalQty > 0 && $returnedQty >= $originalQty) {
-                $status = 'returned_fully';
-            } elseif ($paidAmount > 0 && ($orderamount - $paidAmount) > 0 && $returnedQty == 0) {
-                $status = 'partial_paid';
-            } elseif ($paidAmount == 0 && $returnedQty > 0 && $returnedQty < $originalQty) {
-                $status = 'partial_returned';
-            } elseif ($paidAmount > 0 && $returnedQty > 0) {
-                $status = 'partial_both';
-            } else {
-                $status = 'unpaid';
-            }
-
-            $invoiceStatusCounts[$status] = ($invoiceStatusCounts[$status] ?? 0) + 1;
-
-            // الكميات المُحصّلة (تقريب لأعلى في الجزئي)
-            if ($status === 'paid') {
-                $collectedUnits += $originalQty;
-            } elseif ($status === 'partial_paid') {
-                if ($orderamount > 0) {
-                    $fraction = min(1, $paidAmount / $orderamount);
-                    $collectedUnits += (int) ceil($fraction * $originalQty);
-                }
-            } elseif ($status === 'partial_both') {
-                $netQty    = max(0, $originalQty - $returnedQty);
-                $netAmount = max(0.0, $orderamount - $returnedAmount);
-                if ($netAmount > 0) {
-                    $fraction = min(1, $paidAmount / $netAmount);
-                    $collectedUnits += (int) ceil($fraction * $netQty);
-                }
-            }
-        }
-
-        // إجمالي فواتير "محصلة أو فيها تحصيل" = paid + partial_paid + partial_both
-        $collectedLikeCount = ($invoiceStatusCounts['paid'] ?? 0)
-                            + ($invoiceStatusCounts['partial_paid'] ?? 0)
-                            + ($invoiceStatusCounts['partial_both'] ?? 0);
-    $paidInvoices = array_sum([
-        $invoiceStatusCounts['paid'] ?? 0,
-        $invoiceStatusCounts['partial_paid'] ?? 0,
-        $invoiceStatusCounts['partial_both'] ?? 0,
-    ]);
-
-    $unpaidInvoices = array_sum([
-        $invoiceStatusCounts['unpaid'] ?? 0,
-        $invoiceStatusCounts['partial_returned'] ?? 0,
-            $invoiceStatusCounts['partial_paid'] ?? 0,
-
-    ]);
+        // القالب يعرض عدد أصناف المخزون فقط، فيكفي العدد بدل تحميل الصفوف.
+        $stocks = collect(range(1, (int) $stat['stock_line_count']));
     @endphp
 
     <div class="col">

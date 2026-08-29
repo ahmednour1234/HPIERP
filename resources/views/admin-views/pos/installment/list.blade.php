@@ -61,11 +61,11 @@
     <div class="card-header bg-primary bg-gradient text-white rounded-2 py-3 d-flex align-items-center">
                 <h5 class="mb-0 fw-bold text-white">{{ \App\CPU\translate('بحث وتصفية') }}</h5>
 
-        <i class="tio-filter_list fs-4 me-2"></i>
+        <i class="tio-filter_list fs-4 mr-2"></i>
     </div>
 
     <div class="card-body">
-        <form action="{{ url()->current() }}" method="GET" class="row g-3">
+        <form action="{{ url()->current() }}" method="GET" class="row g-3 align-items-start">
 
             {{-- حقل البحث العام --}}
             <div class="col-12 col-lg-4">
@@ -89,14 +89,16 @@
                     <span class="input-group-text bg-white border-0">
                         <i class="tio-map-making text-muted"></i>
                     </span>
-                    <select name="region_id" class="form-select border-0">
+                    <select name="region_id[]" class="custom-select border-0" multiple size="4" style="height:auto;">
                         <option value="">{{ \App\CPU\translate('اختر المنطقة') }}</option>
                         @foreach($regions as $region)
-                            <option value="{{ $region->id }}" @selected($regionId == $region->id)>
+                            <option value="{{ $region->id }}" @selected(in_array((string) $region->id, (array) $regionId))>
                                 {{ $region->name }}
                             </option>
                         @endforeach
                     </select>
+
+                    
                 </div>
             </div>
 
@@ -122,11 +124,11 @@
             <div class="col-12 d-flex align-items-end">
                 <div class="btn-group w-100">
                     <button type="submit" class="btn btn-primary w-50">
-                        <i class="tio-checkmark-circle me-1"></i>
+                        <i class="tio-checkmark-circle mr-1"></i>
                         {{ \App\CPU\translate('تطبيق') }}
                     </button>
                     <button type="button" class="btn btn-outline-secondary w-50" onclick="printTable()">
-                        <i class="tio-print me-1"></i>
+                        <i class="tio-print mr-1"></i>
                         {{ \App\CPU\translate('طباعة') }}
                     </button>
                 </div>
@@ -185,7 +187,7 @@
 </td>
                               <td class="none">
     <img 
-        src="{{ asset('storage/app/public/'.$installment['img']) }}" 
+        src="{{ asset('storage/shop/'.$installment['img']) }}" 
         alt="Image Description" 
         style="width: 50px; height: auto; cursor: pointer;" 
         data-toggle="modal" 
@@ -205,7 +207,15 @@
         <button type="submit" class="btn btn-sm btn-outline-danger">
             <i class="tio-history"></i> {{ \App\CPU\translate('عكس التحصيل') }}
         </button>
-    </form>
+    
+            <div class="col-12 d-flex justify-content-end pt-2 border-top">
+                {{-- Carries the current filters, so the download matches the screen. --}}
+                    <a href="{{ route('admin.pos.installments.export', request()->query()) }}"
+                       class="btn btn-success mt-2">
+                        <i class="tio-file-outlined"></i> {{ \App\CPU\translate('تصدير CSV') }}
+                    </a>
+            </div>
+        </form>
                                 </td>
                             </tr>
                                     <!-- Modal -->
@@ -220,7 +230,7 @@
             </div>
             <div class="modal-body text-center">
                 <img 
-                    src="{{ asset('storage/app/public/'.$installment['img']) }}" 
+                    src="{{ asset('storage/shop/'.$installment['img']) }}" 
                     alt="Image Description" 
                     style="max-width: 100%; height: auto;">
             </div>
@@ -247,7 +257,7 @@
                 </div>
                 <div class="modal-body p-4">
                     <div class="text-center mb-3">
-                        <button type="button" class="btn btn-light me-2" onclick="printDiv('printableArea')">
+                        <button type="button" class="btn btn-light mr-2" onclick="printDiv('printableArea')">
                             {{ \App\CPU\translate('إجراء الطباعة إذا كانت الطابعة الحرارية جاهزة') }}
                         </button>
                         <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">
@@ -408,17 +418,17 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
             <body>
             <div class="header-section">
                         <div class="left">
-                            <p><strong>رقم السجل التجاري:</strong> {{ \App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first()->value??'' }}</p>
-                            <p><strong>الرقم الضريبي:</strong> {{ \App\Models\BusinessSetting::where(["key" => "number_tax"])->first()->value ??''}}</p>
-                            <p><strong>البريد الإلكتروني:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_email"])->first()->value }}</p>
+                            <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value??'' }}</p>
+                            <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ??''}}</p>
+                            <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
                         </div>
                         <div class="logo">
-                            <img src="{{ asset('storage/app/public/shop/' . \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value) }}" alt="شعار المتجر">
+                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
                         </div>
                         <div class="right">
-                            <p><strong>اسم المؤسسة:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_name"])->first()->value }}</p>
-                            <p><strong>العنوان:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_address"])->first()->value }}</p>
-                            <p><strong>رقم الجوال:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_phone"])->first()->value }}</p>
+                            <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>
+                            <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value }}</p>
+                            <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value }}</p>
                         </div>
                     </div>
                     

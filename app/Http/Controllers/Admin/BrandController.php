@@ -62,7 +62,9 @@ class BrandController extends Controller
      */
     public function edit($id): Factory|View|Application
     {
-        $brand = $this->brand->find($id);
+        // findOrFail: an unknown id returned null and the view then crashed
+        // with a 500 instead of a clean 404.
+        $brand = $this->brand->findOrFail($id);
         return view('admin-views.brand.edit',compact('brand'));
     }
 

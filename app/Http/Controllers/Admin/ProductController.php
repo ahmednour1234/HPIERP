@@ -44,6 +44,8 @@ use App\Models\AdminSeller;
 use App\Models\Seller;
 class ProductController extends Controller
 {
+    use \App\Traits\ExportsCsv;
+
     public function __construct(
         private Unit $unit,
         private Brand $brand,
@@ -59,6 +61,197 @@ class ProductController extends Controller
      * @param Request $request
      * @return Application|Factory|View
      */
+/**
+ * سطور كشف المنتجات المباعة مطابقة لفلاتر الشاشة، بدون ترقيم صفحات.
+ * تُستخدم في التصدير حتى يصف الملف نفس مجموعة السطور التي تصفها الشاشة.
+ */
+/**
+ * قيم فلتر قد تصل مفردة (رابط قديم) أو مصفوفة (اختيار متعدد).
+ * توحيدها هنا يمنع تكرار الفحص في كل موضع.
+ */
+private function filterValues($value): array
+{
+    return array_values(array_filter(
+        (array) $value,
+        fn ($v) => $v !== '' && $v !== null
+    ));
+}
+
+private function soldProductsRows(Request $request): array
+{
+    $validated = $request->validate([
+        'start_date'       => 'nullable|date',
+        'end_date'         => 'nullable|date|after_or_equal:start_date',
+        'product_name'     => 'nullable|string',
+        // صارت متعددة الاختيار. الروابط القديمة تحمل قيمة مفردة، فتُقبل
+        // الحالتان ثم تُوحَّد إلى مصفوفة في filterValues().
+        'product_code'     => 'nullable',
+        'product_code.*'   => 'string',
+        'seller_id'        => 'nullable',
+        'seller_id.*'      => 'exists:admins,id',
+        'order_type'       => 'nullable',
+        'order_type.*'     => 'integer',
+        'payment_status'   => 'nullable',
+        'payment_status.*' => 'in:paid,unpaid',
+        'invoice_status'   => 'nullable|array',
+        'invoice_status.*' => 'in:paid,unpaid,returned_fully,partial_paid,partial_returned,partial_both',
+        'region_ids'       => 'nullable|array',
+        'region_ids.*'     => 'exists:regions,id',
+        'region_id'        => 'nullable|exists:regions,id',
+    ]);
+
+    $start_date = !empty($validated['start_date']) ? Carbon::parse($validated['start_date'])->startOfDay() : null;
+    $end_date   = !empty($validated['end_date'])   ? Carbon::parse($validated['end_date'])->endOfDay()   : null;
+
+    $regionIds = collect($validated['region_ids'] ?? [])
+        ->when(!empty($validated['region_id']), fn($c) => $c->push((int)$validated['region_id']))
+        ->unique()->values()->all();
+
+    $query = OrderDetail::with(['order.seller', 'order.customer.regions', 'product', 'order.details']);
+
+    if (!empty($validated['product_name'])) {
+        $query->whereJsonContains('product_details->name', $validated['product_name']);
+    }
+    if ($codes = $this->filterValues($validated['product_code'] ?? [])) {
+        // whereJsonContains لا يقبل قائمة، فنبني OR لكل كود مختار.
+        $query->where(function ($q) use ($codes) {
+            foreach ($codes as $code) {
+                $q->orWhereJsonContains('product_details->product_code', $code);
+            }
+        });
+    }
+    if ($start_date && $end_date) {
+        $query->whereBetween('updated_at', [$start_date, $end_date]);
+    }
+    if ($sellerIds = $this->filterValues($validated['seller_id'] ?? [])) {
+        $query->whereHas('order', fn($q) => $q->whereIn('owner_id', $sellerIds));
+    }
+    if ($orderTypes = $this->filterValues($validated['order_type'] ?? [])) {
+        $query->whereHas('order', fn($q) => $q->whereIn('type', $orderTypes));
+    }
+    if (!empty($regionIds)) {
+        $query->whereHas('order.customer', function ($cq) use ($regionIds) {
+            $cq->whereIn('region_id', $regionIds)
+               ->orWhereHas('regions', fn($cqq) => $cqq->whereIn('regions.id', $regionIds));
+        });
+    }
+    if ($statuses = $this->filterValues($validated['payment_status'] ?? [])) {
+        // اختيار الحالتين معًا يساوي عدم الفلترة، فنتخطاه بدل بناء شرط
+        // يستبعد كل شيء.
+        if (count(array_unique($statuses)) === 1) {
+            $paid = $statuses[0] === 'paid';
+            $query->whereHas('order', function ($q) use ($paid) {
+                $paid
+                    ? $q->whereRaw('FLOOR(order_amount) = FLOOR(transaction_reference)')
+                    : $q->whereRaw('FLOOR(order_amount) > FLOOR(transaction_reference)');
+            });
+        }
+    }
+
+    $details = $query->get();
+
+    $parentIds = $details->pluck('order_id')->unique()->filter()->values();
+    $returnsByParent = Order::whereIn('parent_id', $parentIds)->with('details')->get()->groupBy('parent_id');
+
+    $selectedStatuses = (array) ($validated['invoice_status'] ?? []);
+
+    $rows = [];
+    $serial = 0;
+
+    foreach ($details as $detail) {
+        $order = $detail->order;
+        if (!$order) {
+            continue;
+        }
+
+        $orderAmount    = (float) $order->order_amount;
+        $transactionRef = (float) $order->transaction_reference;
+        $originalQty    = (float) $order->details->sum('quantity');
+        $returnedQty    = (float) $returnsByParent->get($order->id, collect())->flatMap->details->sum('quantity');
+
+        if ($orderAmount == $transactionRef || $transactionRef > $orderAmount) {
+            $status = 'paid';
+        } elseif ($transactionRef == 0 && $returnedQty >= $originalQty && $originalQty > 0) {
+            $status = 'returned_fully';
+        } elseif (($transactionRef > 0) && ($orderAmount - $transactionRef > 0) && $returnedQty == 0) {
+            $status = 'partial_paid';
+        } elseif ($transactionRef == 0 && $returnedQty > 0 && $returnedQty < $originalQty) {
+            $status = 'partial_returned';
+        } elseif ($transactionRef > 0 && $returnedQty > 0) {
+            $status = 'partial_both';
+        } else {
+            $status = 'unpaid';
+        }
+
+        if (!empty($selectedStatuses) && !in_array($status, $selectedStatuses, true)) {
+            continue;
+        }
+
+        $labels = [
+            'paid'             => 'محصلة',
+            'unpaid'           => 'غير محصلة',
+            'returned_fully'   => 'إرجاع كامل',
+            'partial_paid'     => 'تحصيل جزئي',
+            'partial_returned' => 'إرجاع جزئي',
+            'partial_both'     => 'تحصيل وإرجاع جزئي',
+        ];
+
+        $productDetails = json_decode($detail->product_details);
+
+        $rows[] = [
+            'م'                => ++$serial,
+            'اسم المنتج'       => app()->getLocale() === 'ar'
+                                    ? (optional($detail->product)->name_ar ?? '')
+                                    : (optional($detail->product)->name ?? ''),
+            'كود المنتج'       => optional($detail->product)->product_code ?? '',
+            'الوحدة'           => $productDetails->unit_value ?? '',
+            'سعر البيع'        => optional($detail->product)->selling_price ?? '',
+            'الكمية'           => $detail->quantity ?? 0,
+            'إجمالي البيع'     => round(($detail->price ?? 0) * ($detail->quantity ?? 0), 2),
+            'المندوب'          => optional($order->seller)->email ?? '',
+            'العميل'           => optional($order->customer)->name ?? '',
+            'المنطقة'          => optional(optional($order->customer)->regions)->name ?? '',
+            'المبلغ المحصل'    => round($transactionRef, 2),
+            'رقم الفاتورة'     => $order->id,
+            'تاريخ البيع'      => optional($order->updated_at)->format('Y-m-d H:i'),
+            'الحالة'           => $labels[$status] ?? $status,
+        ];
+    }
+
+    return [$rows];
+}
+
+/**
+ * كشف المنتجات المباعة كملف اكسيل، بنفس فلاتر الشاشة تمامًا وعلى كامل
+ * النتيجة لا على الصفحة المعروضة فقط. maatwebsite/excel غير مثبّت في
+ * المشروع، وExcel يفتح CSV مباشرة؛ الـ BOM يبقي العربية مقروءة.
+ */
+public function exportReportProducts(Request $request)
+{
+    [$rows] = $this->soldProductsRows($request);
+
+    $filename = 'sold-products-' . now()->format('Y-m-d') . '.csv';
+
+    return response()->streamDownload(function () use ($rows) {
+        $out = fopen('php://output', 'w');
+        fwrite($out, "ï»¿");
+
+        if (!empty($rows)) {
+            fputcsv($out, array_keys($rows[0]));
+            foreach ($rows as $row) {
+                fputcsv($out, array_values($row));
+            }
+        } else {
+            fputcsv($out, ['لا توجد بيانات']);
+        }
+
+        fclose($out);
+    }, $filename, [
+        'Content-Type'        => 'text/csv; charset=UTF-8',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
+}
+
 public function getreportProducts(Request $request)
 {
     // 1) التحقق
@@ -66,10 +259,16 @@ public function getreportProducts(Request $request)
         'start_date'       => 'nullable|date',
         'end_date'         => 'nullable|date|after_or_equal:start_date',
         'product_name'     => 'nullable|string',
-        'product_code'     => 'nullable|string',
-        'seller_id'        => 'nullable|exists:admins,id',
-        'order_type'       => 'nullable|integer',
-        'payment_status'   => 'nullable|in:paid,unpaid',
+        // صارت متعددة الاختيار. الروابط القديمة تحمل قيمة مفردة، فتُقبل
+        // الحالتان ثم تُوحَّد إلى مصفوفة في filterValues().
+        'product_code'     => 'nullable',
+        'product_code.*'   => 'string',
+        'seller_id'        => 'nullable',
+        'seller_id.*'      => 'exists:admins,id',
+        'order_type'       => 'nullable',
+        'order_type.*'     => 'integer',
+        'payment_status'   => 'nullable',
+        'payment_status.*' => 'in:paid,unpaid',
         // ✅ تعدد حالات الفاتورة
         'invoice_status'   => 'nullable|array',
         'invoice_status.*' => 'in:paid,unpaid,returned_fully,partial_paid,partial_returned,partial_both',
@@ -105,20 +304,25 @@ $productsall=Product::all();
         $query->whereJsonContains('product_details->name', $validated['product_name']);
     }
 
-    if (!empty($validated['product_code'])) {
-        $query->whereJsonContains('product_details->product_code', $validated['product_code']);
+    if ($codes = $this->filterValues($validated['product_code'] ?? [])) {
+        // whereJsonContains لا يقبل قائمة، فنبني OR لكل كود مختار.
+        $query->where(function ($q) use ($codes) {
+            foreach ($codes as $code) {
+                $q->orWhereJsonContains('product_details->product_code', $code);
+            }
+        });
     }
 
     if ($start_date && $end_date) {
         $query->whereBetween('updated_at', [$start_date, $end_date]);
     }
 
-    if (!empty($validated['seller_id'])) {
-        $query->whereHas('order', fn($q) => $q->where('owner_id', $validated['seller_id']));
+    if ($sellerIds = $this->filterValues($validated['seller_id'] ?? [])) {
+        $query->whereHas('order', fn($q) => $q->whereIn('owner_id', $sellerIds));
     }
 
-    if (!empty($validated['order_type'])) {
-        $query->whereHas('order', fn($q) => $q->where('type', $validated['order_type']));
+    if ($orderTypes = $this->filterValues($validated['order_type'] ?? [])) {
+        $query->whereHas('order', fn($q) => $q->whereIn('type', $orderTypes));
     }
 
     // ✅ فلترة متعددة المناطق: عبر Customer فقط
@@ -131,14 +335,17 @@ $productsall=Product::all();
         });
     }
 
-    if (!empty($validated['payment_status'])) {
-        $query->whereHas('order', function ($q) use ($validated) {
-            if ($validated['payment_status'] === 'paid') {
-                $q->whereRaw('FLOOR(order_amount) = FLOOR(transaction_reference)');
-            } else {
-                $q->whereRaw('FLOOR(order_amount) > FLOOR(transaction_reference)');
-            }
-        });
+    if ($statuses = $this->filterValues($validated['payment_status'] ?? [])) {
+        // اختيار الحالتين معًا يساوي عدم الفلترة، فنتخطاه بدل بناء شرط
+        // يستبعد كل شيء.
+        if (count(array_unique($statuses)) === 1) {
+            $paid = $statuses[0] === 'paid';
+            $query->whereHas('order', function ($q) use ($paid) {
+                $paid
+                    ? $q->whereRaw('FLOOR(order_amount) = FLOOR(transaction_reference)')
+                    : $q->whereRaw('FLOOR(order_amount) > FLOOR(transaction_reference)');
+            });
+        }
     }
 
     // 3) انسخ الـ Builder قبل get() لعمل إحصائيات شاملة
@@ -155,7 +362,10 @@ $productsall=Product::all();
     // 5) الحالات المختارة من الفلتر (إن وُجدت)
     $selectedStatuses = (array) ($validated['invoice_status'] ?? []);
 
-    // 6) عدّادات الحالات
+    // 6) عدّادات الحالات.
+    // كانت تُحسب داخل map() على سطور تفاصيل الطلب وعلى الصفحة الحالية فقط،
+    // فالفاتورة ذات ٣ أصناف كانت تُعدّ ٣ مرات ويظهر عدد الإيصالات غير المحصلة
+    // أكبر من الواقع. العدّ الآن لكل فاتورة مرة واحدة وعلى كامل نتيجة الفلتر.
     $invoiceStatusCounts = [
         'paid'              => 0,
         'unpaid'            => 0,
@@ -165,11 +375,41 @@ $productsall=Product::all();
         'partial_both'      => 0,
     ];
 
+    // حالة كل فاتورة (order_id => status)، تُحسب مرة واحدة ويُعاد استخدامها
+    // في عدّادات البطاقات وفي فلترة سطور الجدول.
+    $statusByOrder = [];
+
+    foreach ($ordersAll->pluck('order')->filter()->unique('id') as $o) {
+        $orderAmount    = (float) $o->order_amount;
+        $transactionRef = (float) $o->transaction_reference;
+        $originalQty    = (float) $o->details->sum('quantity');
+
+        $returnOrders = $returnsByParent->get($o->id, collect());
+        $returnedQty  = (float) $returnOrders->flatMap->details->sum('quantity');
+
+        if ($orderAmount == $transactionRef || $transactionRef > $orderAmount) {
+            $st = 'paid';
+        } elseif ($transactionRef == 0 && $returnedQty >= $originalQty && $originalQty > 0) {
+            $st = 'returned_fully';
+        } elseif (($transactionRef > 0) && ($orderAmount - $transactionRef > 0) && $returnedQty == 0) {
+            $st = 'partial_paid';
+        } elseif ($transactionRef == 0 && $returnedQty > 0 && $returnedQty < $originalQty) {
+            $st = 'partial_returned';
+        } elseif ($transactionRef > 0 && $returnedQty > 0) {
+            $st = 'partial_both';
+        } else {
+            $st = 'unpaid';
+        }
+
+        $statusByOrder[$o->id] = $st;
+        $invoiceStatusCounts[$st]++;
+    }
+
     // 7) بناء البيانات للعرض وتحديد حالة كل سطر
     $products = $orderDetails->getCollection()
         ->groupBy('product_details->id')
-        ->map(function ($details) use ($selectedStatuses, &$invoiceStatusCounts, $returnsByParent) {
-            return $details->map(function ($detail) use ($selectedStatuses, &$invoiceStatusCounts, $returnsByParent) {
+        ->map(function ($details) use ($selectedStatuses, $returnsByParent) {
+            return $details->map(function ($detail) use ($selectedStatuses, $returnsByParent) {
                 $order = $detail->order;
                 $productDetails = json_decode($detail->product_details);
                 $orderAmount    = (float) $order->order_amount;
@@ -196,9 +436,6 @@ $productsall=Product::all();
                 } else {
                     $status = 'unpaid';
                 }
-
-                // تحديث عدّاد الحالة
-                $invoiceStatusCounts[$status] = ($invoiceStatusCounts[$status] ?? 0) + 1;
 
                 // فلترة بحسب الحالات المختارة إن وُجدت
                 if (!empty($selectedStatuses) && !in_array($status, $selectedStatuses, true)) {
@@ -231,8 +468,8 @@ $productsall=Product::all();
 
     // 8) فلتر أوامر المبالغ/الإحصائيات (مصَحَّح ليعمل عبر Customer)
     $orderFilter = function ($q) use ($validated, $start_date, $end_date, $regionIds) {
-        if (!empty($validated['seller_id'])) {
-            $q->where('owner_id', $validated['seller_id']);
+        if ($ids = $this->filterValues($validated['seller_id'] ?? [])) {
+            $q->whereIn('owner_id', $ids);
         }
         if ($start_date && $end_date) {
             $q->whereBetween('updated_at', [$start_date, $end_date]);
@@ -476,14 +713,17 @@ public function listProductsByOrderType(Request $request)
 
 
 
-public function listreportexpire(Request $request): View|Factory|Application
+/**
+ * كشف الصلاحية: استعلام واحد يشترك فيه العرض والتصدير، حتى لا يصف الملف
+ * صفوفًا غير التي تصفها الشاشة.
+ */
+private function expiryReportQuery(Request $request)
 {
-    $query_param = [];
     $search = $request['search'];
     $sort_orderQty = $request['sort_orderQty'];
     $search_quantity = $request['search_quantity'];
 
-    $query = $this->product->with('productexpire')
+    return $this->product->with('productexpire')
         ->when($request->has('search'), function ($q) use ($search) {
             $key = explode(' ', $search);
             $q->where(function ($q) use ($key) {
@@ -552,14 +792,52 @@ public function listreportexpire(Request $request): View|Factory|Application
             return $q->orderBy('id');
         });
 
-    $products = $query->latest()->paginate(Helpers::pagination_limit())
-                    ->appends([
-                        'search' => $search,
-                        'sort_orderQty' => $sort_orderQty,
-                        'search_quantity' => $search_quantity,
-                    ]);
+}
+
+public function listreportexpire(Request $request): View|Factory|Application
+{
+    $search          = $request['search'];
+    $sort_orderQty   = $request['sort_orderQty'];
+    $search_quantity = $request['search_quantity'];
+
+    $products = $this->expiryReportQuery($request)
+                    ->latest()
+                    ->paginate(Helpers::pagination_limit())
+                    ->appends($request->query());
 
     return view('admin-views.product.listreportexpire', compact('products', 'search', 'sort_orderQty', 'search_quantity'));
+}
+
+/** كشف الصلاحية كملف اكسيل، بنفس الفلاتر وعلى كامل النتيجة. */
+public function exportReportExpire(Request $request)
+{
+    $rows = $this->expiryReportQuery($request)
+        ->latest()
+        ->get()
+        ->map(function ($product) {
+            // المنتج قد يحمل أكثر من دفعة صلاحية، فنجمع الكميات ونعرض أقرب
+            // تاريخ انتهاء لأنه هو الحرج في هذا الكشف.
+            $batches = $product->productexpire ?? collect();
+
+            // تاريخ الانتهاء على المنتج نفسه (products.expiry_date)؛ جدول
+            // product_expires يحمل الكميات فقط ولا يحمل تاريخًا.
+            $expiry = $product->expiry_date
+                ? \Carbon\Carbon::parse($product->expiry_date)->format('Y-m-d')
+                : '';
+
+            return [
+                'الكود'             => $product->id,
+                'كود المنتج'        => $product->product_code,
+                'اسم المنتج'        => $product->name,
+                'تاريخ الانتهاء'    => $expiry,
+                'الكمية'            => $product->quantity,
+                'كمية قاربت الانتهاء' => (float) $batches->sum('quantity'),
+                'عدد الدفعات'       => $batches->count(),
+                'السعر'             => $product->selling_price,
+            ];
+        });
+
+    return $this->streamCsvRows($rows, $this->exportFilename('expiry-report'));
 }
 
 

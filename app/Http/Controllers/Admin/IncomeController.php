@@ -18,6 +18,8 @@ use function App\CPU\translate;
 
 class IncomeController extends Controller
 {
+    use \App\Traits\ExportsCsv;
+
     public function __construct(
         private Transection $transection,
         private Account $account,
@@ -96,5 +98,41 @@ public function store(Request $request): RedirectResponse
     return back();
 }
 
+/**
+ * دفتر الدخل كملف اكسيل، بنفس فلاتر الشاشة وعلى كامل النتيجة لا على
+ * الصفحة المعروضة وحدها.
+ */
+public function export(Request $request)
+{
+    $query = $this->transection->where('tran_type', 'Income')->with(['account', 'seller']);
+
+    if ($request->filled('search')) {
+        $key = explode(' ', $request->input('search'));
+        $query->where(function ($q) use ($key) {
+            foreach ($key as $value) {
+                $q->orWhere('description', 'like', "%{$value}%");
+            }
+        });
+    }
+
+    if ($request->filled('from')) {
+        $query->whereDate('date', '>=', $request->input('from'));
+    }
+    if ($request->filled('to')) {
+        $query->whereDate('date', '<=', $request->input('to'));
+    }
+
+    $rows = $query->orderByDesc('id')->get()->map(fn ($t) => [
+        'رقم القيد' => $t->id,
+        'التاريخ'   => $t->date,
+        'الحساب'    => $t->account->account ?? '',
+        'الكاتب'    => $t->seller->email ?? '',
+        'المبلغ'    => $t->amount,
+        'الوصف'     => $t->description,
+        'الرصيد'    => $t->balance,
+    ]);
+
+    return $this->streamCsvRows($rows, $this->exportFilename('incomes'));
+}
 
 }

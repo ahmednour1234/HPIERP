@@ -36,9 +36,151 @@ class StockController extends Controller
      */
     public function index(Request $request): Factory|View|Application
     {
-        $stocks = $this->stock;
-        $stocks = $stocks->paginate(Helpers::pagination_limit());
-        return view('admin-views.vehicle_stocks.index', compact('stocks'));
+        // The page's search form posts `search`, plus the filters below. The
+        // previous version ignored every parameter, so submitting the form
+        // changed nothing.
+        $stocks = $this->applyFilters($this->stock->newQuery(), $request)
+            ->paginate(Helpers::pagination_limit())
+            ->appends($request->query());
+
+        $sellers = \App\Models\Seller::where('role', 'seller')
+            ->orderBy('f_name')->get(['id', 'f_name', 'l_name', 'mandob_code']);
+
+        return view('admin-views.vehicle_stocks.index', compact('stocks', 'sellers'));
+    }
+
+    /**
+     * Filters shared by the listing and the export, so a downloaded report
+     * always matches what was on screen.
+     */
+    private function applyFilters($query, Request $request)
+    {
+        return $query
+            ->when($request->filled('seller_id'), fn ($q) =>
+                $q->where('seller_id', $request->input('seller_id')))
+            ->when($request->filled('product_id'), fn ($q) =>
+                $q->where('product_id', $request->input('product_id')))
+            // Only rows the seller still holds something of.
+            ->when($request->input('remaining') === 'yes', fn ($q) => $q->where('stock', '>', 0))
+            ->when($request->input('remaining') === 'no', fn ($q) => $q->where('stock', '<=', 0))
+            ->when($request->filled('from'), fn ($q) =>
+                $q->whereDate('created_at', '>=', $request->input('from')))
+            ->when($request->filled('to'), fn ($q) =>
+                $q->whereDate('created_at', '<=', $request->input('to')))
+            ->when($request->filled('search'), function ($q) use ($request) {
+                $term = $request->input('search');
+
+                // Product name/code, or the seller's name, code or vehicle.
+                $q->where(function ($inner) use ($term) {
+                    $inner->whereHas('product', fn ($p) =>
+                            $p->where('name', 'LIKE', "%{$term}%")
+                              ->orWhere('product_code', 'LIKE', "%{$term}%"))
+                          ->orWhereHas('seller', fn ($s) =>
+                            $s->where('f_name', 'LIKE', "%{$term}%")
+                              ->orWhere('l_name', 'LIKE', "%{$term}%")
+                              ->orWhere('mandob_code', 'LIKE', "%{$term}%")
+                              ->orWhere('vehicle_code', 'LIKE', "%{$term}%"));
+                });
+            })
+            ->latest('id');
+    }
+
+    /**
+     * The current filter as an .xlsx, so a report can be handed on rather than
+     * screenshotted.
+     */
+    public function export(Request $request)
+    {
+        $rows = $this->applyFilters($this->stock->newQuery(), $request)
+            ->with(['product', 'seller'])
+            ->get()
+            ->map(function ($stock) {
+                $issued    = (float) $stock->main_stock;
+                $remaining = (float) $stock->stock;
+
+                return [
+                    'المندوب'        => trim(($stock->seller->f_name ?? '') . ' ' . ($stock->seller->l_name ?? '')),
+                    'كود المندوب'    => $stock->seller->mandob_code ?? '',
+                    'كود العربية'    => $stock->seller->vehicle_code ?? '',
+                    'المنتج'         => $stock->product->name ?? '',
+                    'كود المنتج'     => $stock->product->product_code ?? '',
+                    'المصروف'        => $issued,
+                    'المتبقي'        => $remaining,
+                    'المُباع'        => $issued - $remaining,
+                    'سعر البيع'      => (float) ($stock->product->selling_price ?? 0),
+                    'قيمة المتبقي'   => round($remaining * (float) ($stock->product->selling_price ?? 0), 2),
+                    'تاريخ الصرف'    => optional($stock->created_at)->format('Y-m-d'),
+                ];
+            });
+
+        $filename = 'vehicle-stock-' . now()->format('Y-m-d') . '.csv';
+
+        return response()->streamDownload(function () use ($rows) {
+            $out = fopen('php://output', 'w');
+
+            // UTF-8 BOM: without it Excel reads the Arabic headings as
+            // mojibake.
+            fwrite($out, "\xEF\xBB\xBF");
+
+            if ($rows->isNotEmpty()) {
+                fputcsv($out, array_keys($rows->first()));
+                foreach ($rows as $row) {
+                    fputcsv($out, array_values($row));
+                }
+            } else {
+                fputcsv($out, ['لا توجد بيانات']);
+            }
+
+            fclose($out);
+        }, $filename, [
+            'Content-Type'        => 'text/csv; charset=UTF-8',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    }
+
+    /**
+     * Return part of what a seller is carrying to the warehouse.
+     *
+     * Both sides move together: the van's figures come down and the
+     * warehouse quantity goes back up. A seller can only give back what they
+     * still hold, so the cap is `stock`, not `main_stock`.
+     */
+    public function returnToWarehouse(Request $request, $id): RedirectResponse
+    {
+        $stock = $this->stock->findOrFail($id);
+
+        $request->validate([
+            'quantity' => ['required', 'numeric', 'gt:0'],
+        ], [
+            'quantity.gt' => translate('Quantity must be greater than zero'),
+        ]);
+
+        $quantity = (float) $request->input('quantity');
+
+        if ($quantity > (float) $stock->stock) {
+            Toastr::error(translate('Cannot return more than the seller is carrying') . ' (' . (float) $stock->stock . ')');
+            return back();
+        }
+
+        DB::transaction(function () use ($stock, $quantity) {
+            // Lock both rows: a concurrent sale by the seller would otherwise
+            // read the same `stock` and the two could overdraw it.
+            $locked  = $this->stock->lockForUpdate()->find($stock->id);
+            $product = $this->product->lockForUpdate()->find($locked->product_id);
+
+            $locked->stock      = (float) $locked->stock - $quantity;
+            $locked->main_stock = max((float) $locked->main_stock - $quantity, 0);
+            $locked->save();
+
+            if ($product) {
+                $product->quantity = (float) $product->quantity + $quantity;
+                $product->save();
+            }
+        });
+
+        Toastr::success(translate('Stock returned to warehouse'));
+
+        return back();
     }
   public function vehicles(Request $request): Factory|View|Application
 {
@@ -58,11 +200,142 @@ class StockController extends Controller
 }
 
     
+/**
+ * رد مخزون تم صرفه لمندوب.
+ *
+ * الصرف يفعل عكس هذا تمامًا: يزيد مخزون المندوب (main_stock و stock) وينقص
+ * كمية المخزن العام. الرد يعكس الاتجاهين معًا داخل معاملة واحدة، وإلا بقيت
+ * الكمية محسوبة مرتين أو ضاعت.
+ *
+ * القيد المهم: لا يُرد إلا ما لم يُبَع بعد. المندوب قد يكون باع جزءًا من
+ * الكمية، وعمود stock هو المتبقي معه فعلًا، فهو سقف ما يمكن رده.
+ */
+public function return_dispatch(Request $request, $id): RedirectResponse
+{
+    $request->validate([
+        'quantities'   => 'required|array|min:1',
+        'quantities.*' => 'nullable|integer|min:0',
+        'note'         => 'nullable|string|max:500',
+    ]);
+
+    $reserve = DB::table('reserve_products')->where('id', $id)->first();
+
+    if (!$reserve) {
+        Toastr::error(translate('أمر الصرف غير موجود'));
+        return back();
+    }
+
+    // ملكية السجل: لا يرد أمر صرف إلا من يملك مندوبه.
+    $adminId   = Auth::guard('admin')->id();
+    $ownedIds  = \App\Models\AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
+    $ownedIds[] = $adminId;
+
+    if (!in_array((int) $reserve->seller_id, array_map('intval', $ownedIds), true)) {
+        Toastr::error(translate('هذا الأمر لا يخص مناديبك'));
+        return back();
+    }
+
+    $items = json_decode($reserve->data, true) ?: [];
+
+    if (empty($items)) {
+        Toastr::error(translate('لا توجد أصناف في أمر الصرف'));
+        return back();
+    }
+
+    $returned = [];
+
+    try {
+        DB::transaction(function () use ($request, $reserve, $items, &$returned) {
+            foreach ($items as $index => $item) {
+                $productId = (int) ($item['product_id'] ?? 0);
+                $asked     = (int) ($request->input('quantities')[$index] ?? 0);
+
+                if ($productId <= 0 || $asked <= 0) {
+                    continue;
+                }
+
+                $dispatched = (int) ($item['stock'] ?? 0);
+
+                if ($asked > $dispatched) {
+                    throw new \InvalidArgumentException(
+                        'الكمية المطلوب ردها أكبر من المصروفة للصنف: ' . ($item['product_name'] ?? $productId)
+                    );
+                }
+
+                $stock = $this->stock
+                    ->where('product_id', $productId)
+                    ->where('seller_id', $reserve->seller_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if (!$stock) {
+                    throw new \InvalidArgumentException(
+                        'لا يوجد رصيد لهذا الصنف عند المندوب: ' . ($item['product_name'] ?? $productId)
+                    );
+                }
+
+                // لا يُرد إلا المتبقي مع المندوب؛ المباع خرج من عهدته.
+                if ($asked > (int) $stock->stock) {
+                    throw new \InvalidArgumentException(
+                        'المتبقي مع المندوب ' . (int) $stock->stock . ' فقط من الصنف: '
+                        . ($item['product_name'] ?? $productId)
+                    );
+                }
+
+                // عكس الصرف: ينقص من المندوب ويعود إلى المخزن.
+                $stock->decrement('stock', $asked);
+                $stock->decrement('main_stock', $asked);
+
+                if ($product = $this->product->find($productId)) {
+                    $product->increment('quantity', $asked);
+                }
+
+                $returned[] = [
+                    'product_id'   => $productId,
+                    'product_name' => $item['product_name'] ?? '',
+                    'quantity'     => $asked,
+                ];
+            }
+
+            if (empty($returned)) {
+                throw new \InvalidArgumentException('لم تُحدَّد أي كمية للرد');
+            }
+
+            // سجل الرد: أمر من نوع 5 يحمل ما رُدّ فعلًا، حتى يبقى للعملية أثر
+            // يمكن مراجعته لاحقًا.
+            // المعرّف يُسنَد يدويًا في هذا الجدول (نفس ما يفعله الصرف والحجز)،
+            // فالعمود ليس تلقائي الترقيم.
+            $newId = (int) (DB::table('reserve_products')->max('id') ?? 20000000) + 1;
+
+            DB::table('reserve_products')->insert([
+                'id'         => $newId,
+                'seller_id'  => $reserve->seller_id,
+                'data'       => json_encode($returned, JSON_UNESCAPED_UNICODE),
+                'type'       => 5,
+                'active'     => 2,
+                // NOT NULL بلا قيمة افتراضية في هذا الجدول.
+                'update_flag' => 0,
+                'insert_flag' => 1,
+                'notification' => 0,
+                'note'       => $request->input('note'),
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        });
+    } catch (\Throwable $e) {
+        Toastr::error(translate($e->getMessage()));
+        return back();
+    }
+
+    Toastr::success(translate('تم رد المخزون بنجاح'));
+    return back();
+}
+
     public function vehicle_products($seller_id): Factory|View|Application
     {
         $stocks = $this->confirm_stock->where('seller_id', $seller_id)->whereRaw('stock <= main_stock AND stock != 0')->get();
         $remain_stocks = $this->confirm_stock->where('seller_id', $seller_id)->whereRaw('stock = 0')->get();
-        dd($stocks);
+
         return view('admin-views.vehicle_stocks.products', compact('stocks', 'remain_stocks'));
     }
     

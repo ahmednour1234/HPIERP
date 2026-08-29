@@ -21,17 +21,12 @@
   <form method="GET" action="{{ route('admin.visitor.indexresult') }}">
     <div class="card-body">
       <div class="row g-2">
-        <!-- العميل -->
+        <!-- العميل: كتابة لا اختيار -->
         <div class="col-md-4">
-          <label for="customer_id" class="form-label">العميل</label>
-          <select name="customer_id" id="customer_id" class="form-control select2" >
-            <option value="">كل العملاء</option>
-            @foreach($customers as $c)
-              <option value="{{ $c->id }}" {{ request('customer_id') == $c->id ? 'selected' : '' }}>
-                {{ $c->name }}
-              </option>
-            @endforeach
-          </select>
+          <label for="customer" class="form-label">العميل</label>
+          <input type="text" name="customer" id="customer" class="form-control"
+                 placeholder="اكتب اسم العميل أو رقم الموبايل"
+                 value="{{ request('customer') }}">
         </div>
 
         <!-- المندوب -->
@@ -60,12 +55,44 @@
           <label for="date_to" class="form-label">إلى تاريخ</label>
           <input type="date" name="date_to" id="date_to" class="form-control" value="{{ request('date_to') }}">
         </div>
+
+        <!-- التخصص: أطفال / نسا وتوليد / ... وهو category_id على العميل -->
+        <div class="col-md-4">
+          <label for="category_id" class="form-label">التخصص</label>
+          <select name="category_id" id="category_id" class="form-select">
+            <option value="">كل التخصصات</option>
+            @foreach($categories as $category)
+              <option value="{{ $category->id }}"
+                {{ (string) request('category_id') === (string) $category->id ? 'selected' : '' }}>
+                {{ $category->name }}
+              </option>
+            @endforeach
+          </select>
+        </div>
+
+        <!-- المنطقة: يمكن تحديد أكثر من منطقة معًا -->
+        <div class="col-md-4">
+          <label for="region_id" class="form-label">المنطقة (يمكن اختيار أكثر من منطقة)</label>
+          <select name="region_id[]" id="region_id" class="form-select" multiple size="4">
+            @foreach($regions as $region)
+              <option value="{{ $region->id }}"
+                {{ in_array((string) $region->id, array_map('strval', $regionIds), true) ? 'selected' : '' }}>
+                {{ $region->name }}
+              </option>
+            @endforeach
+          </select>
+        </div>
       </div>
     </div>
 
     <div class="card-footer bg-light d-flex justify-content-end gap-2">
       <button type="submit" class="btn btn-primary px-4">بحث</button>
       <a href="{{ route('admin.visitor.indexresult') }}" class="btn btn-outline-secondary">إعادة تعيين</a>
+      {{-- التصدير يحمل فلاتر الشاشة الحالية --}}
+      <a href="{{ route('admin.visitor.indexresult.export', request()->query()) }}"
+         class="btn btn-success px-4">
+        <i class="tio-download-to me-1"></i> تصدير اكسيل
+      </a>
              <button type="button" class="btn btn-outline-secondary px-4 py-2 shadow-sm" onclick="printTable()">
                     <i class="tio-print me-1"></i> {{ \App\CPU\translate('طباعة') }}
                 </button>
@@ -290,17 +317,17 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
             <body>
             <div class="header-section">
                         <div class="left">
-                            <p><strong>رقم السجل التجاري:</strong> {{ \App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first()->value??'' }}</p>
-                            <p><strong>الرقم الضريبي:</strong> {{ \App\Models\BusinessSetting::where(["key" => "number_tax"])->first()->value ??''}}</p>
-                            <p><strong>البريد الإلكتروني:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_email"])->first()->value }}</p>
+                            <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value??'' }}</p>
+                            <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ??''}}</p>
+                            <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
                         </div>
                         <div class="logo">
-                            <img src="{{ asset('storage/app/public/shop/' . \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value) }}" alt="شعار المتجر">
+                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
                         </div>
                         <div class="right">
-                            <p><strong>اسم المؤسسة:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_name"])->first()->value }}</p>
-                            <p><strong>العنوان:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_address"])->first()->value }}</p>
-                            <p><strong>رقم الجوال:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_phone"])->first()->value }}</p>
+                            <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>
+                            <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value }}</p>
+                            <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value }}</p>
                         </div>
                     </div>
                     

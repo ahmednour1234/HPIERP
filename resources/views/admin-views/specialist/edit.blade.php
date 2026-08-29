@@ -49,7 +49,7 @@
                                         <center>
                                             <img class="img-one-catu" id="viewer"
                                             onerror="this.src='{{asset('public/assets/admin/img/400x400/img2.jpg')}}'"
-                                                src="{{asset('storage/app/public/category')}}/{{$category['image']}}" alt=""/>
+                                                src="{{asset('storage/category')}}/{{$category['image']}}" alt=""/>
                                         </center>
                                     </div>
                                 @endif

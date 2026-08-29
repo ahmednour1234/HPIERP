@@ -24,11 +24,11 @@
 <div class="card shadow-sm border-0 mb-4">
     <div class="card-header bg-white py-3 px-4">
         <h5 class="mb-0 text-primary fw-bold">
-            <i class="tio-search me-2"></i> {{ \App\CPU\translate('بحث وتصفية') }}
+            <i class="tio-search mr-2"></i> {{ \App\CPU\translate('بحث وتصفية') }}
         </h5>
     </div>
     <div class="card-body bg-light p-4">
-        <form action="{{ url()->current() }}" method="GET" class="row g-3">
+        <form action="{{ url()->current() }}" method="GET" class="row g-3 align-items-start">
             <!-- Search Input -->
             <div class="col-md-4">
                 <label class="form-label text-secondary fw-semibold">{{ \App\CPU\translate('بحث') }}</label>
@@ -47,12 +47,14 @@
                     <span class="input-group-text bg-white border-0">
                         <i class="tio-map-making text-muted"></i>
                     </span>
-                    <select name="region_id" class="form-select border-0">
+                    <select name="region_id[]" class="custom-select border-0" multiple size="4" style="height:auto;">
                         <option value="">{{ \App\CPU\translate('اختر المنطقة') }}</option>
                         @foreach($regions as $region)
-                            <option value="{{ $region->id }}" @selected($regionId == $region->id)>{{ $region->name }}</option>
+                            <option value="{{ $region->id }}" @selected(in_array((string) $region->id, (array) $regionId))>{{ $region->name }}</option>
                         @endforeach
                     </select>
+
+                    
                 </div>
             </div>
 
@@ -69,13 +71,21 @@
             </div>
 
             <!-- Action Buttons -->
-            <div class="col-md-12 text-end">
-                <button type="submit" class="btn btn-primary me-2 px-4 py-2 shadow-sm">
-                    <i class="tio-filter_list me-1"></i> {{ \App\CPU\translate('تطبيق') }}
+            <div class="col-md-12 text-right">
+                <button type="submit" class="btn btn-primary mr-2 px-4 py-2 shadow-sm">
+                    <i class="tio-filter_list mr-1"></i> {{ \App\CPU\translate('تطبيق') }}
                 </button>
                 <button type="button" class="btn btn-outline-secondary px-4 py-2 shadow-sm" onclick="printTable()">
-                    <i class="tio-print me-1"></i> {{ \App\CPU\translate('طباعة') }}
+                    <i class="tio-print mr-1"></i> {{ \App\CPU\translate('طباعة') }}
                 </button>
+            </div>
+        
+            <div class="col-12 d-flex justify-content-end pt-2 border-top">
+                {{-- Carries the current filters, so the download matches the screen. --}}
+                    <a href="{{ route('admin.pos.refunds.export', request()->query()) }}"
+                       class="btn btn-success mt-2">
+                        <i class="tio-file-outlined"></i> {{ \App\CPU\translate('تصدير CSV') }}
+                    </a>
             </div>
         </form>
     </div>
@@ -140,7 +150,18 @@
         {{ number_format($refund->collected_cash, 2) }}
     @endif
 </td>
-<td class="none">    <img src="{{ asset('storage/app/public/'.$refund['img']) }}" alt="Image Description" style="width: 50px; height: auto;">
+<td class="none">
+    {{-- بدون هذا الفحص كان الوسم يُعرض حتى مع img فارغ، فتظهر أيقونة صورة
+         مكسورة بدل خانة فاضية. --}}
+    @if (!empty($refund['img']))
+        <a href="{{ asset('storage/shop/'.$refund['img']) }}" target="_blank">
+            <img src="{{ asset('storage/shop/'.$refund['img']) }}"
+                 alt="{{ \App\CPU\translate('صورة الفاتورة') }}"
+                 style="width: 50px; height: auto;">
+        </a>
+    @else
+        <span class="text-muted">-</span>
+    @endif
 </td>  
 
                             <td class="none">
@@ -354,17 +375,17 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
             <body>
             <div class="header-section">
                         <div class="left">
-                            <p><strong>رقم السجل التجاري:</strong> {{ \App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first()->value??'' }}</p>
-                            <p><strong>الرقم الضريبي:</strong> {{ \App\Models\BusinessSetting::where(["key" => "number_tax"])->first()->value ??''}}</p>
-                            <p><strong>البريد الإلكتروني:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_email"])->first()->value }}</p>
+                            <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value??'' }}</p>
+                            <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ??''}}</p>
+                            <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
                         </div>
                         <div class="logo">
-                            <img src="{{ asset('storage/app/public/shop/' . \App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first()->value) }}" alt="شعار المتجر">
+                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
                         </div>
                         <div class="right">
-                            <p><strong>اسم المؤسسة:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_name"])->first()->value }}</p>
-                            <p><strong>العنوان:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_address"])->first()->value }}</p>
-                            <p><strong>رقم الجوال:</strong> {{ \App\Models\BusinessSetting::where(["key" => "shop_phone"])->first()->value }}</p>
+                            <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>
+                            <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value }}</p>
+                            <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value }}</p>
                         </div>
                     </div>
                     
@@ -391,7 +412,7 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
         "use strict";
         function print_invoice(order_id) {
             $.get({
-                url: '{{url('/')}}/admin/pos/invoice/' + order_id,
+                url: '{{url('/')}}/admin/pos/refund/invoice/' + order_id,
                 dataType: 'json',
                 beforeSend: function () {
                     $('#loading').show();

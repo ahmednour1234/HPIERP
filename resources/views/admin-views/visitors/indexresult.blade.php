@@ -39,12 +39,10 @@
                 <div class="row gx-3 gy-2 align-items-end">
                     <div class="col-md-3">
                         <label class="form-label">{{ \App\CPU\translate('اسم العميل') }}</label>
-                        <select name="customer_id" class="form-control select2">
-                            <option value="">{{ \App\CPU\translate('اختر عميل') }}</option>
-                            @foreach($customers as $c)
-                                <option value="{{ $c->id }}" {{ request()->customer_id == $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
-                            @endforeach
-                        </select>
+                        {{-- كتابة بدل الاختيار: قائمة العملاء بالآلاف --}}
+                        <input type="text" name="customer" class="form-control"
+                               value="{{ request('customer') }}"
+                               placeholder="{{ \App\CPU\translate('اكتب اسم العميل') }}">
                     </div>
                     <div class="col-md-3">
                         <label class="form-label">{{ \App\CPU\translate('التخصص') }}</label>
@@ -56,6 +54,21 @@
                             <option value="4" {{ request()->specialist == '4' ? 'selected' : '' }}>{{ \App\CPU\translate('طبيب') }}</option>
                         </select>
                     </div>
+                    <div class="col-md-3">
+                        <label class="form-label">{{ \App\CPU\translate('المنطقة') }}
+                            <small class="text-muted">({{ \App\CPU\translate('أكثر من منطقة') }})</small>
+                        </label>
+                        {{-- متعدد الاختيار --}}
+                        <select name="region_id[]" class="form-control" multiple size="4" style="height:auto;">
+                            @foreach(($regions ?? []) as $r)
+                                <option value="{{ $r->id }}"
+                                    @selected(in_array((string) $r->id, array_map('strval', (array) request('region_id', [])), true))>
+                                    {{ $r->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
+
                     <div class="col-md-3">
                         <label class="form-label">{{ \App\CPU\translate('من تاريخ') }}</label>
                         <input type="date" name="from_date" class="form-control" value="{{ request()->from_date }}">
@@ -380,11 +393,14 @@
 @endpush
 
 @push('script_2')
-    <script src="{{ asset('public/assets/admin/js/jquery.min.js') }}"></script>
-    <script src="{{ asset('public/assets/admin/js/select2.min.js') }}"></script>
+    {{-- إعادة تحميل jQuery هنا كانت تُنشئ نسخة جديدة تمسح ما رُبط قبلها،
+         فتفقد عناصر الفلتر تهيئة select2 ويبدو الفلتر وكأنه لا يعمل.
+         التخطيط يحمّل jQuery وselect2 بالفعل، فلا حاجة لإعادة تحميلهما. --}}
     <script>
         $(document).ready(function() {
-            $('.select2').select2();
+            // .select2 قد تكون مُهيّأة سلفًا في الكتلة الأولى؛ التهيئة مرتين
+            // تُفقد الحالة، فنتخطى ما هو مُهيّأ.
+            $('.select2').not('.select2-hidden-accessible').select2();
 
             function calculateTotal() {
                 let salary = parseFloat($('#salary').val()) || 0;

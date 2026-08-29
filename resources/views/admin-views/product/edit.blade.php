@@ -233,7 +233,7 @@
                 <center>
                     <img class="img-one-pu" id="viewer"
                         onerror="this.src='{{asset('public/assets/admin/img/400x400/img2.jpg')}}'"
-                        src="{{asset('storage/app/public/product')}}/{{$product['image']}}"
+                        src="{{asset('storage/product')}}/{{$product['image']}}"
                         alt="{{ \App\CPU\translate('image') }}" />
                 </center>
             </div>
