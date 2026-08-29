@@ -15,29 +15,72 @@ body {
 .side-logo {
       background-color: #ffffff;
   }
-  .navbar .active > .nav-link, .navbar .nav-link.active, .navbar .nav-link.show, .navbar .show > .nav-link {
-    color: #bee0ec;
+/* ===== مظهر القائمة الجانبية ===== */
+
+/* العنصر النشط: مستطيل أزرق كامل بدل تلوين النص وحده. */
+.navbar-vertical .nav-link {
+    border-radius: 8px;
+    padding: 0.55rem 0.9rem;
+    margin: 0 0.5rem;
+    transition: background-color .15s ease, color .15s ease;
 }
-.navbar-vertical .active .nav-indicator-icon, .navbar-vertical .nav-link:hover .nav-indicator-icon, .navbar-vertical .show > .nav-link > .nav-indicator-icon {
-    color: #bee0ec;
+
+.navbar-vertical .active > .nav-link,
+.navbar-vertical .nav-link.active {
+    background-color: #2563eb;
+    color: #ffffff !important;
+    font-weight: 600;
 }
-.navbar .nav-link:hover {
-    color: #bee0ec;
-    font-weight: bold;
+
+.navbar-vertical .active > .nav-link .nav-icon,
+.navbar-vertical .nav-link.active .nav-icon,
+.navbar-vertical .active > .nav-link .nav-indicator-icon,
+.navbar-vertical .nav-link.active .nav-indicator-icon {
+    color: #ffffff !important;
 }
+
+/* تمرير المؤشر: تظليل خفيف بدل تغيير سُمك الخط، فلا يقفز النص. */
+.navbar-vertical .nav-link:hover {
+    background-color: rgba(255, 255, 255, .08);
+    color: #ffffff;
+}
+
+.navbar-vertical .nav-link:hover .nav-indicator-icon {
+    color: #ffffff;
+}
+
 .badge-danger {
     color: #161853;
     background-color: #bee0ec;
 }
-/* اضف الكود هنا */
+
+/* مسافات أضيق: كانت 1.5rem بين المجموعات و1rem بين العناصر، فتطول
+   القائمة بلا داعٍ ويقل ما يظهر منها في الشاشة الواحدة. */
 .navbar-vertical-content > ul + ul {
-    margin-top: 1.5rem;
+    margin-top: 0.5rem;
 }
+
 .navbar-vertical-content > ul > li {
-    margin-bottom: 1rem;
+    margin-bottom: 0.15rem;
 }
+
 .navbar-vertical-content > ul > li:last-child {
     margin-bottom: 0;
+}
+
+/* عناوين الأقسام أصغر وأهدأ. */
+.navbar-vertical .nav-subtitle {
+    font-size: 0.72rem;
+    letter-spacing: .02em;
+    opacity: .65;
+    padding: 0.5rem 1rem 0.25rem;
+}
+
+/* الأيقونات بعرض ثابت حتى تبقى النصوص على استقامة واحدة. */
+.navbar-vertical .nav-icon {
+    width: 1.4rem;
+    text-align: center;
+    margin-left: 0.5rem;
 }
 
 </style>
@@ -489,10 +532,11 @@ body {
             </a>
         </li>
     </ul>
-@endif
+            {{-- @endif قبل وسمَي الإغلاق: كان بعدهما فيبقى عنصر القائمة
+                 مفتوحًا لمن لا يملك صلاحية العملاء. --}}
+            @endif
     </ul>
 </li>
-@endif
                       @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->accounts == 1)
 
              

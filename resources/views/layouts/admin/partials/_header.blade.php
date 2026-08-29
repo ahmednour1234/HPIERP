@@ -122,38 +122,6 @@
     </div>
 </li>
 @endif
-
-                    {{-- اللغة: زر عرض فقط في الوقت الحالي.
-                         المشروع يحمل مجلد لغة واحدًا (en) تختلط فيه العربية
-                         والإنجليزية، فلا توجد لغة ثانية يُبدَّل إليها. عند
-                         تجهيز ملف عربي منفصل يُربط الزر بمسار التبديل. --}}
-                    <li class="nav-item d-none d-sm-inline-block">
-                        <a class="btn btn-icon btn-ghost-secondary d-flex align-items-center px-2"
-                           href="javascript:;"
-                           title="{{ \App\CPU\translate('اللغة') }}">
-                            <i class="tio-globe text-white"></i>
-                            <span class="text-white ml-1 small">{{ \App\CPU\translate('العربية') }}</span>
-                        </a>
-                    </li>
-
-                    {{-- الإعدادات: نفس وجهة الرابط الموجود في قائمة الحساب --}}
-                    <li class="nav-item d-none d-sm-inline-block">
-                        <a class="btn btn-icon btn-ghost-secondary rounded-circle"
-                           href="{{ route('admin.settings') }}"
-                           title="{{ \App\CPU\translate('settings') }}">
-                            <i class="tio-settings text-white"></i>
-                        </a>
-                    </li>
-
-                    {{-- ملء الشاشة --}}
-                    <li class="nav-item d-none d-sm-inline-block">
-                        <a class="btn btn-icon btn-ghost-secondary rounded-circle" href="javascript:;"
-                           id="navbarFullscreen"
-                           title="{{ \App\CPU\translate('ملء الشاشة') }}">
-                            <i class="tio-fullscreen text-white"></i>
-                        </a>
-                    </li>
-
                     <li class="nav-item">
                         <div class="hs-unfold">
                             <a class="js-hs-unfold-invoker navbar-dropdown-account-wrapper" href="javascript:;"
@@ -224,38 +192,3 @@
 </div>
 <div id="headerFluid" class="d-none"></div>
 <div id="headerDouble" class="d-none"></div>
-
-@push('script_2')
-    <script>
-        "use strict";
-
-        document.addEventListener('DOMContentLoaded', function () {
-            var btn = document.getElementById('navbarFullscreen');
-            if (!btn) { return; }
-
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-
-                var icon = btn.querySelector('i');
-
-                if (!document.fullscreenElement) {
-                    // الطلب قد يُرفض (إعدادات المتصفح)، فنتجاهل الرفض بهدوء.
-                    var req = document.documentElement.requestFullscreen
-                           || document.documentElement.webkitRequestFullscreen;
-
-                    if (req) {
-                        var p = req.call(document.documentElement);
-                        if (p && p.catch) { p.catch(function () {}); }
-                    }
-
-                    if (icon) { icon.className = 'tio-fullscreen-exit text-white'; }
-                } else {
-                    var exit = document.exitFullscreen || document.webkitExitFullscreen;
-                    if (exit) { exit.call(document); }
-
-                    if (icon) { icon.className = 'tio-fullscreen text-white'; }
-                }
-            });
-        });
-    </script>
-@endpush
