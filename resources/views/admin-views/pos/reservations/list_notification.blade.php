@@ -13,7 +13,41 @@
         .badge-pending { background: #ffd70033; color: #c4a000; }
         .badge-approved { background: #4CAF5033; color: #388E3C; }
         .badge-rejected { background: #f4433633; color: #D32F2F; }
-        .action-btn-group .btn { padding: 6px 12px; }
+        .action-btn-group .btn { padding: 3px 8px; }
+
+        /* ===== بطاقات الطلبات ===== */
+        .resv-card {
+            border-radius: 12px;
+            transition: transform .15s ease, box-shadow .15s ease;
+        }
+        .resv-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 .5rem 1rem rgba(0,0,0,.08) !important;
+        }
+        .resv-num {
+            display: inline-block;
+            background: #eef2ff;
+            color: #4338ca;
+            font-weight: 700;
+            font-size: .75rem;
+            padding: 2px 8px;
+            border-radius: 999px;
+        }
+        /* قائمة الأصناف: ارتفاع محدود حتى تتساوى البطاقات مهما كثرت الأصناف. */
+        .resv-items {
+            max-height: 120px;
+            overflow-y: auto;
+            font-size: .85rem;
+        }
+        .resv-items li {
+            padding: 3px 0;
+            border-bottom: 1px dashed #eee;
+        }
+        .resv-items li:last-child { border-bottom: 0; }
+
+        /* صفوف أضيق: كانت الخلايا مرتفعة فتتبعثر البيانات. */
+        .table td, .table th { padding: 0.45rem 0.6rem; vertical-align: middle; }
+        .table td .badge { font-size: 0.72rem; }
         .product-badge {
             background: #f8f9fa;
             border: 1px solid #dee2e6;
@@ -115,96 +149,87 @@
         </div>
     </div>
 
-    <!-- Reservations Table -->
-    <div class="card border-0 shadow-sm">
-        <div class="card-body p-0">
-            <div class="table-responsive">
-                <table class="table table-hover table-borderless table-thead-bordered">
-                    <thead class="thead-light">
-                        <tr>
-                            <th>{{ \App\CPU\translate('#') }}</th>
-                            <th>{{ \App\CPU\translate('المندوب') }}</th>
-                            <th>{{ \App\CPU\translate('المنتجات') }}</th>
-                            <th class="text-center">{{ \App\CPU\translate('الحالة') }}</th>
-                            <th>{{ \App\CPU\translate('التاريخ') }}</th>
-                            <th class="text-center none">{{ \App\CPU\translate('الإجراءات') }}</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @forelse($reservations as $key => $item)
-                        @php
-                            $products = json_decode($item->data);
-                        @endphp
-                        <tr>
-                            <td>{{ $key + 1 }}</td>
-                            <td>
-                                <div class="d-flex align-items-center">
-                                    <div class="avatar avatar-circle mr-2">
-                                        <span class="avatar-initials">
-                                            {{ substr($item->seller->f_name, 0, 1) }}{{ substr($item->seller->l_name, 0, 1) }}
-                                        </span>
-                                    </div>
-                                    <div>
-                                        <span class="d-block font-weight-bold">{{ $item->seller->f_name }} {{ $item->seller->l_name }}</span>
-                                        <small class="text-muted">{{ $item->seller->phone }}</small>
-                                    </div>
-                                </div>
-                            </td>
-                            <td>
-                                @foreach($products as $product)
-                                @php
-                                    $p = \App\Models\Product::find($product->product_id);
-                                @endphp
-                                <div class="product-badge">
-                                    <i class="tio-shopping-basket-outlined"></i>
-                                    <div>
-                                        <span class="d-block">{{ $p->name ?? 'N/A' }}</span>
-                                        <small class="text-muted">
-                                            {{ $product->stock }} 
-                                        </small>
-                                    </div>
-                                </div>
-                                @endforeach
-                            </td>
-                            <td class="text-center">
-                                <span class="status-badge badge-{{ $item->status_class }}">
-                                    {{ $item->status_text }}
+    {{-- بطاقات بدل جدول.
+         الجدول كان يضع النوافذ المنبثقة داخل <tbody>، وهو ترميز
+         غير صالح فيخرجها المتصفح خارج الجدول ويكسر الصفحة. --}}
+    <div class="row g-3">
+        @forelse($reservations as $key => $item)
+            @php($products = json_decode($item->data))
+
+            <div class="col-12 col-lg-6 col-xl-4 mb-3">
+                <div class="card h-100 border-0 shadow-sm resv-card">
+                    <div class="card-body p-3">
+
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <div>
+                                <span class="resv-num">#{{ $reservations->firstItem() + $key }}</span>
+                                <span class="font-weight-bold d-block mt-1">
+                                    {{ $item->seller->f_name }} {{ $item->seller->l_name }}
                                 </span>
-                            </td>
-                            <td>{{ date('d M Y H:i', strtotime($item->created_at)) }}</td>
-                            <td class="text-center none">
-                                <div class="action-btn-group d-flex justify-content-center">
-                                    @if($type != 3)
-                                    <a href="{{ route('admin.pos.generate_reservation_invoice_notification', $item->id) }}" 
-                                       class="btn btn-sm btn-soft-primary mx-1"
-                                       data-toggle="tooltip" title="مراجعة الطلب">
+                                <small class="text-muted">{{ $item->seller->phone }}</small>
+                            </div>
+                            <span class="status-badge badge-{{ $item->status_class }}">
+                                {{ $item->status_text }}
+                            </span>
+                        </div>
+
+                        <ul class="list-unstyled mb-2 resv-items">
+                            @foreach($products as $product)
+                                <li class="d-flex justify-content-between align-items-center">
+                                    <span class="text-truncate">{{ $product->product_name ?? '' }}</span>
+                                    <span class="badge badge-soft-secondary">{{ $product->stock }}</span>
+                                </li>
+                            @endforeach
+                        </ul>
+
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                            <small class="text-muted">
+                                <i class="tio-date-range"></i>
+                                {{ date('d M Y H:i', strtotime($item->created_at)) }}
+                            </small>
+
+                            <div class="action-btn-group d-flex">
+                                @if($type != 3)
+                                    <a href="{{ route('admin.pos.generate_reservation_invoice_notification', $item->id) }}"
+                                       class="btn btn-sm btn-soft-primary mx-1" title="مراجعة الطلب">
                                         <i class="tio-visible-outlined"></i>
                                     </a>
-                                    <button class="btn btn-sm btn-soft-danger mx-1" 
-                                            data-toggle="modal" 
-                                            data-target="#rejectModal-{{ $item->id }}"
-                                            title="رفض الطلب">
+                                    <button class="btn btn-sm btn-soft-danger mx-1"
+                                            data-toggle="modal"
+                                            data-target="#rejectModal-{{ $item->id }}" title="رفض الطلب">
                                         <i class="tio-clear"></i>
                                     </button>
-                                    @else
+                                @else
                                     <button class="btn btn-sm btn-soft-success mx-1"
-                                            onclick="print_invoice('{{ $item->id }}')"
-                                            title="طباعة الفاتورة">
+                                            onclick="print_invoice('{{ $item->id }}')" title="طباعة الفاتورة">
                                         <i class="tio-print-outlined"></i>
                                     </button>
-
-                                    {{-- رد مخزون تم صرفه: يعكس أثر الصرف --}}
                                     <button class="btn btn-sm btn-soft-warning mx-1"
                                             data-toggle="modal"
-                                            data-target="#returnModal-{{ $item->id }}"
-                                            title="رد المخزون">
+                                            data-target="#returnModal-{{ $item->id }}" title="رد المخزون">
                                         <i class="tio-undo"></i>
                                     </button>
-                                    @endif
-                                </div>
-                            </td>
-                        </tr>
+                                @endif
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+        @empty
+            <div class="col-12">
+                                <div class="empty-state">
+                                    <img class="img-fluid mb-3" src="{{ asset('public/assets/admin/svg/illustrations/sorry.svg') }}" 
+                                         alt="لا توجد بيانات" style="max-width: 200px;">
+                                    <h4 class="text-muted">{{ \App\CPU\translate('لا توجد طلبات لعرضها') }}</h4>
+                                </div>
+            </div>
+        @endforelse
+    </div>
+
+    {{-- النوافذ خارج الشبكة: وضعها داخل <tbody> كان يخرجها المتصفح
+         من الجدول فتظهر كأقسام عادية أسفل الصفحة. --}}
+    @foreach($reservations as $item)
                         <!-- Rejection Modal -->
                         <div class="modal fade" id="rejectModal-{{ $item->id }}" tabindex="-1">
                             <div class="modal-dialog modal-dialog-centered">
@@ -294,19 +319,7 @@
                                 </div>
                             </div>
                         </div>
-                        @empty
-                        <tr>
-                            <td colspan="7" class="text-center py-5">
-                                <div class="empty-state">
-                                    <img class="img-fluid mb-3" src="{{ asset('public/assets/admin/svg/illustrations/sorry.svg') }}" 
-                                         alt="لا توجد بيانات" style="max-width: 200px;">
-                                    <h4 class="text-muted">{{ \App\CPU\translate('لا توجد طلبات لعرضها') }}</h4>
-                                </div>
-                            </td>
-                        </tr>
-                        @endforelse
-                    </tbody>
-                </table>
+    @endforeach
             </div>
 
             <!-- Pagination -->
