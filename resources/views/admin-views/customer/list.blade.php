@@ -219,7 +219,7 @@
         <form action="{{ url()->current() }}" method="GET">
             <div class="row g-3 align-items-end">
                 <!-- Search -->
-                <div class="col-md-4">
+                <div class="col-md-3">
                     <label for="datatableSearch_" class="form-label">
                         {{ \App\CPU\translate('بحث') }}
                     </label>
@@ -239,7 +239,7 @@
                 </div>
 
                 <!-- Seller Dropdown -->
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="seller" class="form-label">
                         {{ \App\CPU\translate('اختار البائع') }}
                     </label>
@@ -257,7 +257,7 @@
                 </div>
 
                 <!-- الفئة (كانت تسمى التخصص) -->
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="specialist" class="form-label">
                         {{ \App\CPU\translate('الفئة') }}
                     </label>
@@ -280,7 +280,7 @@
                 </div>
 
                 <!-- التخصص: أطفال / نسا وتوليد / ... وهو category_id من نوع 0 -->
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label for="category_id" class="form-label">
                         {{ \App\CPU\translate('التخصص') }}
                     </label>
@@ -295,24 +295,42 @@
                     </select>
                 </div>
 
-                <!-- المنطقة: يمكن تحديد أكثر من منطقة معًا -->
-                <div class="col-md-3">
-                    <label for="region_id" class="form-label">
-                        {{ \App\CPU\translate('المنطقة (يمكن اختيار أكثر من منطقة)') }}
-                    </label>
-                    <select name="region_id[]" id="region_id" class="form-select" multiple size="4">
-                        @foreach($regions as $region)
-                            <option value="{{ $region->id }}"
-                                {{ in_array((string) $region->id, $regionIds, true) ? 'selected' : '' }}>
-                                {{ $region->name }}
-                            </option>
-                        @endforeach
-                    </select>
+                {{-- المنطقة: قائمة مطوية تنفتح بالضغط.
+                     كانت select بـ size=4 فتظهر بأربعة صفوف دائمًا وتُطيل
+                     بطاقة الفلتر. الاسم region_id[] كما هو فلا يتأثر المتحكّم. --}}
+                <div class="col-md-2">
+                    <label class="form-label">{{ \App\CPU\translate('المنطقة') }}</label>
+
+                    <div class="dropdown">
+                        <button class="btn btn-white border w-100 text-start d-flex justify-content-between align-items-center"
+                                type="button" id="regionPicker" data-toggle="dropdown"
+                                aria-expanded="false">
+                            <span>
+                                @if(count($regionIds))
+                                    {{ count($regionIds) }} {{ \App\CPU\translate('منطقة') }}
+                                @else
+                                    {{ \App\CPU\translate('اختر منطقة') }}
+                                @endif
+                            </span>
+                            <i class="tio-chevron-down"></i>
+                        </button>
+
+                        <div class="dropdown-menu p-2" aria-labelledby="regionPicker"
+                             style="max-height:260px; overflow-y:auto; min-width:260px;">
+                            @foreach($regions as $region)
+                                <label class="d-block mb-1 small">
+                                    <input type="checkbox" name="region_id[]" value="{{ $region->id }}"
+                                        {{ in_array((string) $region->id, $regionIds, true) ? 'checked' : '' }}>
+                                    {{ $region->name }}
+                                </label>
+                            @endforeach
+                        </div>
+                    </div>
                 </div>
 
-
                 <!-- Search Button -->
-                <div class="col-md-2">
+                <div class="col-lg-1 col-md-2">
+                    <label class="form-label d-none d-md-block">&nbsp;</label>
                     <button type="submit" class="btn btn-primary w-100">
                         <i class="tio-search me-1"></i>
                         {{ \App\CPU\translate('بحث') }}
@@ -776,6 +794,31 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
 </script>
 
 @push('script_2')
+    <script>
+
+        // فتح قائمة المناطق يدويًا: القالب لا يحمّل bootstrap.js مستقلًا،
+        // فلا نعتمد على إضافة الـ dropdown وحدها.
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn = document.getElementById('regionPicker');
+            if (!btn) { return; }
+
+            var menu = btn.parentElement.querySelector('.dropdown-menu');
+
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                menu.classList.toggle('show');
+            });
+
+            // الإبقاء على القائمة مفتوحة أثناء تعليم أكثر من منطقة.
+            menu.addEventListener('click', function (e) { e.stopPropagation(); });
+
+            document.addEventListener('click', function () {
+                menu.classList.remove('show');
+            });
+        });
+    </script>
+
     <script src={{asset("public/assets/admin/js/global.js")}}>
     </script>
     <!-- jQuery -->
