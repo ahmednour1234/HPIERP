@@ -156,6 +156,80 @@
 <!-- JS Plugins Init. -->
 <script src="{{asset('public/assets/admin')}}/js/app-page.js"></script>
 
+
+{{-- النوافذ المنبثقة.
+     القالب يحمّل نسخة مختصرة من bootstrap بلا قواعد .modal وبلا
+     bootstrap.js، فكانت كل نافذة تُعرض داخل الصفحة كقسم عادي بدل أن تطفو
+     فوقها. القواعد والسكربت هنا تخدم كل الشاشات (31 شاشة) مرة واحدة.
+     !important لأن ملفات القالب تُحمّل بعد هذه الكتلة. --}}
+<style>
+    .modal { display: none !important; }
+    .modal.show { display: block !important; }
+    .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                      background: #000; opacity: .5; z-index: 1040; }
+    .modal.show { z-index: 1050; }
+    body.modal-open { overflow: hidden; }
+</style>
+
+<script>
+    "use strict";
+
+    document.addEventListener('DOMContentLoaded', function () {
+
+        function openModal(modal) {
+            if (!modal) { return; }
+
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+
+            if (!document.querySelector('.modal-backdrop')) {
+                var backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop';
+                document.body.appendChild(backdrop);
+            }
+        }
+
+        function closeModal(modal) {
+            if (!modal) { return; }
+
+            modal.classList.remove('show');
+            document.body.classList.remove('modal-open');
+
+            var backdrop = document.querySelector('.modal-backdrop');
+            if (backdrop) { backdrop.remove(); }
+        }
+
+        // مفوَّض على المستند: يشمل الصفوف المضافة لاحقًا عبر AJAX.
+        document.addEventListener('click', function (e) {
+            var opener = e.target.closest('[data-toggle="modal"]');
+            if (opener) {
+                e.preventDefault();
+                openModal(document.querySelector(opener.getAttribute('data-target')));
+                return;
+            }
+
+            var closer = e.target.closest('[data-dismiss="modal"]');
+            if (closer) {
+                e.preventDefault();
+                closeModal(closer.closest('.modal'));
+                return;
+            }
+
+            // الضغط على الخلفية نفسها يغلق، لا الضغط داخل المحتوى.
+            if (e.target.classList && e.target.classList.contains('modal')) {
+                closeModal(e.target);
+            }
+        });
+
+        document.addEventListener('keydown', function (e) {
+            if (e.key === 'Escape') {
+                var open = document.querySelector('.modal.show');
+                if (open) { closeModal(open); }
+            }
+        });
+    });
+</script>
+
 @stack('script_2')
 <audio id="myAudio">
     <source src="{{asset('public/assets/admin/sound/notification.mp3')}}" type="audio/mpeg">
