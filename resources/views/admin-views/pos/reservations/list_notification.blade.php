@@ -3,6 +3,16 @@
 @section('title', \App\CPU\translate('Reservations Management'))
 
 @push('css_or_js')
+    <style>
+        /* النوافذ مخفية افتراضيًا.
+           بدون هذا تُعرض داخل الصفحة كقسم عادي — وهو ما كان يحدث فعلًا —
+           لأن ملف bootstrap.css المحمّل هنا لا يحمل قواعد .modal. */
+        .modal { display: none; }
+        .modal.show { display: block; }
+        .modal-backdrop { position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+                          background: #000; opacity: .5; z-index: 1040; }
+        .modal.show { z-index: 1050; }
+    </style>
     <link rel="stylesheet" href="{{ asset('public/assets/admin/css/custom.css') }}">
     <style>
         .status-badge {
@@ -446,4 +456,62 @@
 </script>
 
 @push('script_2')
+    <script>
+        "use strict";
+
+        // فتح وإغلاق النوافذ يدويًا.
+        //
+        // القالب لا يحمّل bootstrap.js مستقلًا، فـ data-toggle="modal" لا
+        // يعمل: النافذة تُعرض داخل الصفحة كقسم عادي بدل أن تطفو فوقها.
+        // هذا يشمل نافذة رفض الطلب الأصلية ونافذة رد المخزون معًا.
+        document.addEventListener('DOMContentLoaded', function () {
+
+            function openModal(modal) {
+                if (!modal) { return; }
+
+                modal.classList.add('show');
+                modal.style.display = 'block';
+                document.body.classList.add('modal-open');
+
+                // الخلفية المعتمة؛ تُنشأ مرة واحدة.
+                if (!document.querySelector('.modal-backdrop')) {
+                    var backdrop = document.createElement('div');
+                    backdrop.className = 'modal-backdrop fade show';
+                    document.body.appendChild(backdrop);
+                }
+            }
+
+            function closeModal(modal) {
+                if (!modal) { return; }
+
+                modal.classList.remove('show');
+                modal.style.display = 'none';
+                document.body.classList.remove('modal-open');
+
+                var backdrop = document.querySelector('.modal-backdrop');
+                if (backdrop) { backdrop.remove(); }
+            }
+
+            document.querySelectorAll('[data-toggle="modal"]').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    openModal(document.querySelector(btn.getAttribute('data-target')));
+                });
+            });
+
+            document.querySelectorAll('[data-dismiss="modal"]').forEach(function (btn) {
+                btn.addEventListener('click', function (e) {
+                    e.preventDefault();
+                    closeModal(btn.closest('.modal'));
+                });
+            });
+
+            // الضغط على الخلفية يغلق النافذة، لا الضغط داخل محتواها.
+            document.querySelectorAll('.modal').forEach(function (modal) {
+                modal.addEventListener('click', function (e) {
+                    if (e.target === modal) { closeModal(modal); }
+                });
+            });
+        });
+    </script>
 @endpush
