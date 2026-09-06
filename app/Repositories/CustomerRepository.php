@@ -18,8 +18,16 @@ class CustomerRepository extends BaseRepository
      * Customers assigned to a seller, with per-customer counts computed in
      * SQL. Paginated — the legacy endpoint fetched every row.
      */
-    public function forSeller(int $sellerId, ?string $search = null, int $perPage = 25, int $page = 1): LengthAwarePaginator
-    {
+    /**
+     * @param array $filters category_id (تخصص طبي) و region_ids (مصفوفة)
+     */
+    public function forSeller(
+        int $sellerId,
+        ?string $search = null,
+        int $perPage = 25,
+        int $page = 1,
+        array $filters = []
+    ): LengthAwarePaginator {
         $query = $this->query()
             ->join('seller_customers', 'customers.id', '=', 'seller_customers.customer_id')
             ->where('seller_customers.seller_id', $sellerId)
@@ -45,6 +53,17 @@ class CustomerRepository extends BaseRepository
                   ->orWhere('customers.mobile', 'LIKE', "%{$search}%")
                   ->orWhere('customers.pharmacy_name', 'LIKE', "%{$search}%");
             });
+        }
+
+        // التخصص الطبي مخزَّن في category_id (categories.type = 0).
+        // specialist عمود مختلف يحمل نوع الجهة (صيدلية/مركز/مستشفى/طبيب).
+        if (!empty($filters['category_id'])) {
+            $query->whereIn('customers.category_id', (array) $filters['category_id']);
+        }
+
+        // المنطقة تقبل أكثر من قيمة، فتُمرَّر مصفوفة دائمًا.
+        if (!empty($filters['region_ids'])) {
+            $query->whereIn('customers.region_id', (array) $filters['region_ids']);
         }
 
         return $query->orderByDesc('customers.id')->paginate($perPage, ['*'], 'page', $page);

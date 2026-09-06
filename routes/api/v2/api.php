@@ -120,6 +120,9 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
 
 
         // Read-only pickers for the mobile app.
+        // التخصصات الطبية (categories.type=0) وفئات المنتجات (type=1).
+        Route::get('specialties', [ReferenceController::class, 'specialties']);
+        Route::get('product-categories', [ReferenceController::class, 'productCategories']);
         Route::get('regions', [ReferenceController::class, 'regions']);
         Route::get('regions/mine', [ReferenceController::class, 'myRegions']);
         Route::get('storages', [ReferenceController::class, 'storages']);

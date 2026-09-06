@@ -22,7 +22,11 @@ class CustomerService
             $sellerId,
             $filters['search'] ?? null,
             (int) ($filters['limit'] ?? 25),
-            (int) ($filters['offset'] ?? 1)
+            (int) ($filters['offset'] ?? 1),
+            [
+                'category_id' => array_filter((array) ($filters['category_id'] ?? [])),
+                'region_ids'  => array_filter((array) ($filters['region_ids'] ?? [])),
+            ]
         );
     }
 

@@ -29,6 +29,34 @@ class ReferenceController extends Controller
         );
     }
 
+    /**
+     * التخصصات الطبية (روماتيزم، جلدية، صدر أطفال ...).
+     *
+     * مخزَّنة في جدول categories وتُميَّز بـ type = 0. لا يوجد جدول
+     * specialists؛ وعمود customers.specialist شيء آخر تمامًا يحمل نوع
+     * الجهة (صيدلية / مركز طبي / مستشفى / طبيب) كرقم ثابت من 1 إلى 4.
+     */
+    public function specialties(): JsonResponse
+    {
+        return $this->ok(
+            \App\Models\Category::where('type', 0)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'Specialties retrieved'
+        );
+    }
+
+    /** فئات المنتجات (مكملات غذائية، مستلزمات طبية ...): categories.type = 1. */
+    public function productCategories(): JsonResponse
+    {
+        return $this->ok(
+            \App\Models\Category::where('type', 1)
+                ->orderBy('name')
+                ->get(['id', 'name']),
+            'Product categories retrieved'
+        );
+    }
+
     public function storages(): JsonResponse
     {
         return $this->ok(
