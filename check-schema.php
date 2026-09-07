@@ -40,6 +40,9 @@ $required = [
     'result_visitors' => [
         'img' => "VARCHAR(255) NULL                   -- صورة الزيارة",
     ],
+    'reserve_product_notifications' => [
+        'note' => "TEXT NULL                          -- ملاحظة المندوب على طلب الحجز",
+    ],
 ];
 
 echo "\n";
