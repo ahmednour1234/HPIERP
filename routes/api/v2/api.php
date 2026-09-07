@@ -97,6 +97,17 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
 
         Route::get('attendance', [AttendanceController::class, 'index']);
 
+        // واجهة المدير: مناديبه وبصماتهم وملاحظاته عليهم.
+        Route::group(['prefix' => 'manager'], function () {
+            Route::get('sellers', [\App\Http\Controllers\Api\V2\ManagerController::class, 'sellers']);
+            Route::get('sellers/{sellerId}/attendance', [\App\Http\Controllers\Api\V2\ManagerController::class, 'sellerAttendance'])->whereNumber('sellerId');
+            Route::get('sellers/{sellerId}/notes', [\App\Http\Controllers\Api\V2\ManagerController::class, 'sellerNotes'])->whereNumber('sellerId');
+            Route::post('sellers/{sellerId}/notes', [\App\Http\Controllers\Api\V2\ManagerController::class, 'storeNote'])->whereNumber('sellerId');
+        });
+
+        // ملاحظات المدير كما يقرأها المندوب نفسه.
+        Route::get('manager-notes', [\App\Http\Controllers\Api\V2\ManagerController::class, 'myManagerNotes']);
+
         // شؤون المندوب: كانت متاحة في اللوحة فقط ولا يراها المندوب.
         Route::group(['prefix' => 'hr'], function () {
             Route::get('ratings', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'ratings']);

@@ -372,3 +372,131 @@ POST /api/v2/hr/leaves       # طلب إجازة
 **التحقق:** `note` فارغ يُرفض بـ 422.
 
 > ملاحظة: `courses` و`development` رجعوا صفر لأن الجداول فاضية في بيئة الاختبار، والمسارات نفسها شغالة (200).
+
+---
+
+## 8. واجهة المدير  ✨ جديد
+
+### ⚠️ إزاي تعرف المدير
+
+`role` بيرجّع **`seller`** حتى لحسابات المديرين — فمينفعش تعتمد عليه.
+
+`GET /api/v2/profile` بقى يرجّع حقلين جداد:
+
+```json
+{ "role": "seller", "type": "manager", "is_manager": true }
+```
+
+**استخدم `is_manager`** — بيغطي `type='manager'` والأدمن الكامل وأي حساب له مناديب.
+
+### المسارات
+
+| Endpoint | الوصف |
+|---|---|
+| `GET /manager/sellers` | قائمة/خريطة المناديب |
+| `GET /manager/sellers/{id}/attendance` | بصمة مندوب |
+| `GET /manager/sellers/{id}/notes` | ملاحظات المدير على مندوب |
+| `POST /manager/sellers/{id}/notes` | كتابة ملاحظة |
+| `GET /manager-notes` | المندوب يقرأ ملاحظات مديره |
+
+### قائمة المناديب
+
+```http
+GET /api/v2/manager/sellers?search=&region_id[]=
+```
+
+```json
+{
+  "id": 124,
+  "name": "Sohag Mr",
+  "mandob_code": "Sohag",
+  "phone": null,
+  "image_url": null,
+  "last_location": { "latitude": 26.6982093, "longitude": 31.6034919, "updated_at": null },
+  "today_status": "absent",
+  "today_check_in": null,
+  "today_check_out": null
+}
+```
+
+`today_status`: `present` · `absent` · `checked_out` — لتلوين الدبوس.
+`last_location` = `null` لو مفيش إحداثيات مسجّلة.
+
+### بصمة مندوب
+
+```http
+GET /api/v2/manager/sellers/124/attendance?from=&to=&limit=&offset=
+```
+
+بترجّع `check_in`/`check_out`/`status`/`location`/`time_late`/`worked_hours`/`note`.
+
+> **ملاحظة على المواقع:** عمودا `late`/`lang` في `attendances` بيحملوا خط العرض والطول رغم تسميتهم المضللة. الـ API بيرجّعهم في كائن `location` بأسماء واضحة.
+
+### كتابة ملاحظة
+
+```http
+POST /api/v2/manager/sellers/124/notes
+{ "note": "برجاء الالتزام بمواعيد الزيارات", "date": "2026-09-07" }
+```
+
+بتتخزّن في `develop_sellers` بـ `type=0` — نفس اللي بيقراه المندوب من `GET /hr/development` أو `GET /manager-notes`.
+
+### 🔒 العزل الأمني — مُختبَر
+
+كل مسار مقصور على **مناديب المدير الحالي**. محاولة الوصول لمندوب تابع لمدير تاني بترجّع **403**:
+
+```
+attendance of seller 138 (not his) -> 403 BLOCKED
+writing a note on 138             -> 403 BLOCKED
+```
+
+### مُتحقَّق منه (المدير 139، 6 مناديب)
+
+| | النتيجة |
+|---|---|
+| `manager/sellers` | 6 (المتوقع 6) ✅ |
+| `sellers/124/attendance` | 512 (المتوقع 512) ✅ |
+| كتابة ملاحظة | 201 ✅ |
+| المندوب قرأها | ظهرت ✅ |
+
+---
+
+## 9. إصلاح باگ `POST /hr/requests` و `/hr/leaves`  🔴
+
+**كان بيفشل على السيرفر** بـ `Column 'admin_id' cannot be null`.
+
+السبب: `admin_id` معرَّف **NOT NULL** في MySQL، والكود كان بيسيبه فاضي. (محليًا على SQLite كان بينجح لأنه أقل صرامة — عشان كده المشكلة ظهرت على السيرفر بس.)
+
+**الحل:** بيجيب مدير المندوب من `admin_sellers` تلقائيًا.
+
+```
+POST /hr/leaves   -> 201, admin_id=100  ✅
+POST /hr/requests -> 201, admin_id=100  ✅
+```
+
+مفيش تغيير مطلوب في التطبيق.
+
+---
+
+## 10. عن `total: 0` في `/visits/results`
+
+**مش باگ، والتشخيص اللي وصل مش دقيق.**
+
+قيل إن السبب `INNER JOIN` مع `category`. لكن الكود بيستخدم `with()` مش `join()` — ودي بتعمل استعلام منفصل فمستحيل تخفي صفوف.
+
+**اختبرت الحالة المذكورة بالظبط:** العميل 1433 عنده `category_id = null` فعلًا، وزيارته **بترجع عادي**:
+
+```json
+{"id":1433,"name":"حضانة د/ لطفي عبدالرؤوف - بني مزار",
+ "region":{"id":14,"name":"المنيا - مركز بني مزار"},
+ "category_id":null,"category":null}
+```
+
+والإجمالي مطابق: **API = 3591، قاعدة البيانات = 3591**.
+
+**السبب الحقيقي المرجّح:** فلتر تاريخ. المندوب test90 آخر زيارة ليه **2026-07-28**، فأي `from=2026-09-01` هيرجّع صفر — وده الرد الصحيح.
+
+للتأكد، جرّب بدون فلاتر:
+```http
+GET /api/v2/visits/results?limit=1
+```

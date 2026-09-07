@@ -157,10 +157,15 @@ class SellerHrController extends Controller
             'date' => ['nullable', 'date'],
         ]);
 
+        // admin_id في MySQL معرَّف NOT NULL، فتركه فارغًا يُفشل الإنشاء على
+        // السيرفر. نأخذ مدير المندوب من admin_sellers، وإن لم يوجد نسند
+        // الطلب إلى المندوب نفسه حتى لا يضيع.
+        $sellerId  = (int) $request->user()->id;
+        $managerId = \App\Models\AdminSeller::where('seller_id', $sellerId)->value('admin_id');
+
         $row = DevelopSeller::create([
-            'seller_id' => $request->user()->id,
-            // admin_id يُملأ من اللوحة عند المراجعة؛ الطلب يبدأ بلا مراجِع.
-            'admin_id'  => null,
+            'seller_id' => $sellerId,
+            'admin_id'  => $managerId ?: $sellerId,
             'note'      => $data['note'],
             'date'      => $data['date'] ?? null,
             'type'      => $type,

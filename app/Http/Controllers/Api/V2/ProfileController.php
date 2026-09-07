@@ -25,7 +25,13 @@ class ProfileController extends Controller
             'email'        => $admin->email,
             'phone'        => $admin->phone,
             'image'        => $admin->image,
+            // role يبقى 'seller' حتى لحسابات المديرين، فالتفريق الحقيقي في
+            // عمود type. is_manager محسوب هنا ليعتمد عليه التطبيق مباشرة.
             'role'         => $admin->role,
+            'type'         => $admin->type,
+            'is_manager'   => $admin->type === 'manager'
+                || $admin->role === 'admin'
+                || \App\Models\AdminSeller::where('admin_id', $admin->id)->exists(),
             'mandob_code'  => $admin->mandob_code,
             'vehicle_code' => $admin->vehicle_code,
             'company_id'   => $admin->company_id,
