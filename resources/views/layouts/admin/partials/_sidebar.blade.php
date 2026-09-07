@@ -167,6 +167,24 @@ body {
                 <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_7_active'] }}</span>
             </a>
         </li>
+        {{-- الحجوزات ورد الحجوزات: نُقلت إلى إدارة المخزون لأنها تخص
+             المخزون المحجوز لا المبيعات. --}}
+        <li class="nav-item {{ Request::is('admin/pos/reservations') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.pos.reservations', ['type' => 4, 'active' => 'all']) }}"
+               title="{{ \App\CPU\translate('reservations') }}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{ \App\CPU\translate('الحجوزات') }}</span>
+                <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_4'] }}</span>
+            </a>
+        </li>
+        <li class="nav-item {{ Request::is('admin/pos/reservations') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.pos.reservations', ['type' => 7, 'active' => 'all']) }}"
+               title="{{ \App\CPU\translate('reservations') }}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{ \App\CPU\translate('رد الحجوزات') }}</span>
+                <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_7'] }}</span>
+            </a>
+        </li>
            <li class="nav-item {{Request::is('admin/vehicle-stock')?'active':''}}">
                                     <a class="nav-link " href="{{route('admin.stock.index')}}"
                                        title="{{\App\CPU\translate('list_stock')}}">
@@ -465,22 +483,6 @@ body {
                                     </a>
                                 </li>
                                 @endif
-                       <li class="nav-item {{Request::is('admin/pos/reservations')?'active':''}}">
-    <a class="nav-link" href="{{ route('admin.pos.reservations', ['type' => 4, 'active' => 'all']) }}" title="{{ \App\CPU\translate('reservations') }}">
-        <span class="tio-circle nav-indicator-icon"></span>
-        <span class="text-truncate">{{ \App\CPU\translate('الحجوزات') }}
-            <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_4'] }}</span>
-        </span>
-    </a>
-</li>
-<li class="nav-item {{ Request::is('admin/pos/reservations') ? 'active' : '' }}">
-    <a class="nav-link" href="{{ route('admin.pos.reservations', ['type' => 7, 'active' => 'all']) }}" title="{{ \App\CPU\translate('reservations') }}">
-        <span class="tio-circle nav-indicator-icon"></span>
-        <span class="text-truncate">{{ \App\CPU\translate('رد الحجوزات') }}
-            <span class="badge badge-success ml-2">{{ $badgeCounts['reserve_type_7'] }}</span>
-        </span>
-    </a>
-</li>
 
                             </ul>
                         </li>
