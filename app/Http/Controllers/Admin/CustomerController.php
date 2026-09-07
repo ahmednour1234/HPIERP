@@ -59,6 +59,41 @@ public function index(): View|Factory|Application
      * @param Request $request
      * @return RedirectResponse
      */
+
+    /**
+     * صيغ مكافئة لكلمة البحث.
+     *
+     * أسماء العملاء تستخدم صيغًا متعددة للمعنى الواحد: 793 اسمًا يحمل
+     * "دكتور" و256 يحمل "د." بينما "طبيب" يظهر مرة واحدة فقط. من يبحث
+     * بأي منها يقصد الفئة نفسها.
+     */
+    private static function searchSynonyms(string $term): array
+    {
+        $groups = [
+            ['طبيب', 'طبيبة', 'دكتور', 'دكتوره', 'دكتورة', 'د.', 'د/'],
+            ['صيدلية', 'صيدليه', 'صيدلي', 'فارماسي', 'pharmacy'],
+            ['مستشفى', 'مستشفي', 'hospital'],
+            ['مركز', 'سنتر', 'center'],
+        ];
+
+        $needle = trim($term);
+
+        if ($needle === '') {
+            return [];
+        }
+
+        foreach ($groups as $group) {
+            // المطابقة بالاحتواء: "دكاترة" أو "الدكتور" يجب أن تُصنَّف معها.
+            foreach ($group as $word) {
+                if (mb_stripos($needle, $word) !== false || mb_stripos($word, $needle) !== false) {
+                    return array_values(array_unique(array_merge([$needle], $group)));
+                }
+            }
+        }
+
+        return [$needle];
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $request->validate([
@@ -194,10 +229,17 @@ private function customerFilterQuery(Request $request)
 
     if ($search = $request->input('search')) {
         $key = explode(' ', $search);
+
         $query->where(function ($q) use ($key) {
             foreach ($key as $value) {
-                $q->orWhere('name', 'like', "%{$value}%")
-                  ->orWhere('mobile', 'like', "%{$value}%");
+                // البحث بمرادفات الكلمة أيضًا: الأسماء مكتوبة بصيغ مختلفة
+                // (دكتور / دكتورة / د.)، فالبحث بـ "طبيب" وحده كان يرجع
+                // نتيجة واحدة رغم وجود مئات الأطباء.
+                foreach (self::searchSynonyms($value) as $term) {
+                    $q->orWhere('name', 'like', "%{$term}%");
+                }
+
+                $q->orWhere('mobile', 'like', "%{$value}%");
             }
         });
     }

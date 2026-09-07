@@ -62,6 +62,15 @@
     <input type="hidden" name="user_id" value="{{ $reserveProduct->customer_id }}">
     <input type="hidden" name="payment_id" value="9">
 
+    {{-- ملاحظة المندوب المكتوبة من التطبيق عند الطلب. تظهر قبل الجدول
+         ليقرأها من يصرف البضاعة قبل التأكيد. --}}
+    @if (!empty($reserveProduct->note))
+        <div class="alert alert-warning mt-3 mb-0">
+            <strong>{{ \App\CPU\translate('ملاحظة المندوب') }}:</strong>
+            {{ $reserveProduct->note }}
+        </div>
+    @endif
+
     <div class="table-responsive">
         <table class="table table-bordered table-hover mt-3" id="product-table">
             <div class="mt-4 d-flex justify-content-between">

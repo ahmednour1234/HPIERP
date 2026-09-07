@@ -8,6 +8,10 @@ use Illuminate\Database\Eloquent\Model;
 class ReserveProductNotification extends Model
 {
     use HasFactory;
+
+    protected $fillable = [
+        'data', 'note', 'seller_id', 'customer_id', 'date', 'type', 'active',
+    ];
     
     public function seller()
     {
