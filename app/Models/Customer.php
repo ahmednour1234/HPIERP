@@ -20,6 +20,17 @@ class Customer extends Model
     {
         return $this->hasMany(Order::class,'user_id');
     }
+    /**
+     * التخصص الطبي للعميل (categories.type = 0).
+     *
+     * ملاحظة: عمود specialist شيء آخر تمامًا يحمل نوع الجهة
+     * (1=صيدلية، 2=مركز طبي، 3=مستشفى، 4=طبيب) كرقم ثابت.
+     */
+    public function category()
+    {
+        return $this->belongsTo(Category::class, 'category_id');
+    }
+
       public function regions()
     {
         return $this->belongsto(Region::class,'region_id');

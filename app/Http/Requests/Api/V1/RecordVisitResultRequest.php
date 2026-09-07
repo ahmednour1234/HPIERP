@@ -18,6 +18,8 @@ class RecordVisitResultRequest extends FormRequest
             'note'        => ['required', 'string', 'max:5000'],
             'lat'         => ['nullable', 'numeric', 'between:-90,90'],
             'lang'        => ['nullable', 'numeric', 'between:-180,180'],
+            // صورة الزيارة: لم تكن ضمن القواعد فكانت تُحذف قبل الحفظ.
+            'img'         => ['nullable', 'image', 'max:5120'],
         ];
     }
 

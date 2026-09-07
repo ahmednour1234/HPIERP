@@ -41,15 +41,19 @@ class StockService
         $type     = $filters['type'] ?? null;
         $search   = $filters['search'] ?? null;
 
+        $customerId = (int) ($filters['customer_id'] ?? 0);
+
         if ((int) $type === 4) {
             $stocks = $this->stocks->forSeller($sellerId, $category, $limit, $page);
             $this->applySellerPrices($sellerId, $stocks, fn ($row) => $row->product);
+            $this->applyCustomerPrices($customerId, $stocks, fn ($row) => $row->product);
 
             return ['type' => 'stocks', 'paginator' => $stocks];
         }
 
         $products = $this->stocks->catalogueForSeller($sellerId, $category, $search, $limit, $page);
         $this->applySellerPrices($sellerId, $products, fn ($row) => $row);
+        $this->applyCustomerPrices($customerId, $products, fn ($row) => $row);
 
         return ['type' => 'products', 'paginator' => $products];
     }
@@ -209,6 +213,34 @@ class StockService
     }
 
     /** Overwrite catalogue prices with the seller's negotiated ones. */
+    /**
+     * سعر العميل المحدد على كل منتج، حين يُمرَّر customer_id.
+     *
+     * يوفّر على التطبيق نداءً إضافيًا لـ products/customer-prices بعد اختيار
+     * كل عميل. يُعرض في حقل مستقل customer_price ولا يُستبدل به
+     * selling_price حتى يبقى السعر الأساسي ظاهرًا للمقارنة.
+     */
+    private function applyCustomerPrices(int $customerId, LengthAwarePaginator $rows, callable $productOf): void
+    {
+        $products = collect($rows->items())->map($productOf)->filter();
+
+        if ($customerId <= 0 || $products->isEmpty()) {
+            return;
+        }
+
+        $prices = \App\Models\CustomerPrice::where('customer_id', $customerId)
+            ->whereIn('product_id', $products->pluck('id')->all())
+            ->pluck('price', 'product_id');
+
+        foreach ($products as $product) {
+            $price = $prices[$product->id] ?? null;
+
+            $product->customer_price = ($price !== null && (float) $price > 0)
+                ? (float) $price
+                : null;
+        }
+    }
+
     private function applySellerPrices(int $sellerId, LengthAwarePaginator $rows, callable $productOf): void
     {
         $products = collect($rows->items())->map($productOf)->filter();
@@ -217,8 +249,12 @@ class StockService
         $overrides = $this->stocks->priceOverrides($sellerId, $products->pluck('id')->all());
 
         foreach ($products as $product) {
-            if (isset($overrides[$product->id])) {
-                $product->selling_price = $overrides[$product->id];
+            // سعر بديل بقيمة صفر أو فارغة لا يُعتد به: كان يدوس على السعر
+            // الصحيح فيظهر المنتج بسعر صفر في التطبيق.
+            $override = $overrides[$product->id] ?? null;
+
+            if ($override !== null && (float) $override > 0) {
+                $product->selling_price = $override;
             }
         }
     }

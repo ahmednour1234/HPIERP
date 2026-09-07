@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\CPU\Helpers;
+
 use App\Models\ResultVisitor;
 use App\Models\Visitor;
 use App\Repositories\CustomerRepository;
@@ -62,8 +64,11 @@ class VisitService
     }
 
     /** Record what happened on a visit, with the location it was logged from. */
-    public function recordResult(int $sellerId, array $data): ResultVisitor
-    {
+    public function recordResult(
+        int $sellerId,
+        array $data,
+        ?\Illuminate\Http\UploadedFile $image = null
+    ): ResultVisitor {
         $this->assertCustomerBelongsToSeller((int) $data['customer_id'], $sellerId);
 
         return $this->visits->recordResult([
@@ -73,6 +78,10 @@ class VisitService
             // The columns are named lat/lang (not lng) in this schema.
             'lat'         => (string) ($data['lat'] ?? ''),
             'lang'        => (string) ($data['lang'] ?? ''),
+            // الصورة تُحفظ في نفس مجلد صور الزيارات المستخدم في اللوحة.
+            // Helpers::upload تُرجع اسم الملف فقط بينما تحفظه داخل visit/،
+            // فنضيف المجلد ليكون المسار المخزَّن صالحًا للعرض مباشرة.
+            'img'         => $image ? 'visit/' . Helpers::upload('visit/', 'png', $image) : null,
         ])->load('customer');
     }
 

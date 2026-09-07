@@ -33,6 +33,10 @@ class StockResource extends JsonResource
                 'category_id'   => $product->category_id,
                 'purchase_price'=> (float) $product->purchase_price,
                 'selling_price' => (float) $product->selling_price,
+                // يظهر فقط حين يُمرَّر customer_id في الطلب.
+                'customer_price' => isset($product->customer_price)
+                    ? (float) $product->customer_price
+                    : null,
                 'discount_type' => $product->discount_type,
                 'discount'      => (float) $product->discount,
                 'tax'           => (float) $product->tax,

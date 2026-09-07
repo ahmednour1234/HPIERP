@@ -32,9 +32,34 @@ class VisitRepository extends BaseRepository
     /** Recorded visit outcomes for a seller. */
     public function results(int $adminId, array $filters, int $perPage = 25, int $page = 1): LengthAwarePaginator
     {
+        // المنطقة والتخصص محمَّلان مع العميل: التطبيق كان يجلب كل العملاء
+        // في طلب منفصل ليدمجهما يدويًا. category_id هو التخصص الطبي
+        // (categories.type = 0)، لا عمود specialist الذي يحمل نوع الجهة.
         return ResultVisitor::where('admin_id', $adminId)
-            ->with(['customer:id,name,mobile'])
+            ->with([
+                'customer:id,name,mobile,region_id,category_id',
+                'customer.regions:id,name',
+                'customer.category:id,name',
+            ])
             ->when($filters['customer_id'] ?? null, fn (Builder $q, $c) => $q->where('customer_id', $c))
+
+            // فلترة من السيرفر بدل الترشيح في التطبيق.
+            ->when($filters['from'] ?? null, fn (Builder $q, $d) => $q->whereDate('created_at', '>=', $d))
+            ->when($filters['to'] ?? null, fn (Builder $q, $d) => $q->whereDate('created_at', '<=', $d))
+            ->when(
+                $filters['region_id'] ?? null,
+                fn (Builder $q, $r) => $q->whereHas(
+                    'customer',
+                    fn ($c) => $c->whereIn('region_id', (array) $r)
+                )
+            )
+            ->when(
+                $filters['category_id'] ?? null,
+                fn (Builder $q, $c) => $q->whereHas(
+                    'customer',
+                    fn ($cu) => $cu->whereIn('category_id', (array) $c)
+                )
+            )
             ->latest('id')
             ->paginate($perPage, ['*'], 'page', $page);
     }

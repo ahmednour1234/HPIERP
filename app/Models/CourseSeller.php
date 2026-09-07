@@ -9,6 +9,10 @@ class CourseSeller extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'admin_id', 'seller_id', 'name', 'link', 'img',
+    ];
+
     public function admins()
     {
         return $this->belongsTo(Admin::class,'admin_id');

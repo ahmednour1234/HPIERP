@@ -28,7 +28,7 @@ class StockController extends Controller
     {
         $result = $this->stocks->listing(
             (int) $request->user()->id,
-            $request->only(['limit', 'offset', 'category_id', 'type', 'search'])
+            $request->only(['limit', 'offset', 'category_id', 'type', 'search', 'customer_id'])
         );
 
         $paginator = $result['paginator'];

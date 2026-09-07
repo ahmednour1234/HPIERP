@@ -17,10 +17,22 @@ class VisitResultResource extends JsonResource
             'latitude'    => $this->lat,
             'longitude'   => $this->lang,
             'customer'    => $this->whenLoaded('customer', fn () => [
-                'id'     => $this->customer->id,
-                'name'   => $this->customer->name,
-                'mobile' => $this->customer->mobile,
+                'id'          => $this->customer->id,
+                'name'        => $this->customer->name,
+                'mobile'      => $this->customer->mobile,
+                // المنطقة والتخصص يحتاجهما التطبيق للفلترة والعرض.
+                'region_id'   => $this->customer->region_id,
+                'region'      => $this->customer->relationLoaded('regions') && $this->customer->regions
+                    ? ['id' => $this->customer->regions->id, 'name' => $this->customer->regions->name]
+                    : null,
+                'category_id' => $this->customer->category_id,
+                'category'    => $this->customer->relationLoaded('category') && $this->customer->category
+                    ? ['id' => $this->customer->category->id, 'name' => $this->customer->category->name]
+                    : null,
             ]),
+            // رابط كامل للصورة، أو null حين لا توجد.
+            'img'         => $this->img,
+            'img_url'     => $this->img ? asset('storage/' . $this->img) : null,
             'created_at'  => optional($this->created_at)->toIso8601String(),
         ];
     }

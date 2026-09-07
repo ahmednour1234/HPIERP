@@ -9,6 +9,10 @@ class DevelopSeller extends Model
 {
     use HasFactory;
 
+    protected $fillable = [
+        'admin_id', 'seller_id', 'note', 'type', 'active', 'date',
+    ];
+
     public function admins()
     {
         return $this->belongsTo(Admin::class,'admin_id');

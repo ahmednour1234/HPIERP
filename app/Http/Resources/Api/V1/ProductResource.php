@@ -19,6 +19,10 @@ class ProductResource extends JsonResource
             'category_id'    => $this->category_id,
             'purchase_price' => (float) $this->purchase_price,
             'selling_price'  => (float) $this->selling_price,
+            // يظهر فقط حين يُمرَّر customer_id في الطلب.
+            'customer_price' => isset($this->customer_price)
+                ? (float) $this->customer_price
+                : null,
             'discount_type'  => $this->discount_type,
             'discount'       => (float) $this->discount,
             'tax'            => (float) $this->tax,

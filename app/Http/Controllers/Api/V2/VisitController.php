@@ -65,7 +65,11 @@ class VisitController extends Controller
     {
         return $this->created(
             new VisitResultResource(
-                $this->visits->recordResult((int) $request->user()->id, $request->validated())
+                $this->visits->recordResult(
+                    (int) $request->user()->id,
+                    $request->validated(),
+                    $request->file('img')
+                )
             ),
             'Visit result recorded'
         );

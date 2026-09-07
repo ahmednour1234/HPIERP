@@ -97,6 +97,19 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
 
         Route::get('attendance', [AttendanceController::class, 'index']);
 
+        // شؤون المندوب: كانت متاحة في اللوحة فقط ولا يراها المندوب.
+        Route::group(['prefix' => 'hr'], function () {
+            Route::get('ratings', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'ratings']);
+            Route::get('development', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'development']);
+            Route::get('courses', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'courses']);
+
+            Route::get('requests', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'requests']);
+            Route::post('requests', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'storeRequest']);
+
+            Route::get('leaves', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'leaves']);
+            Route::post('leaves', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'storeLeave']);
+        });
+
         // Stock requests a seller files from the app.
         Route::group(['prefix' => 'reservations'], function () {
             Route::get('/', [ReservationController::class, 'index']);

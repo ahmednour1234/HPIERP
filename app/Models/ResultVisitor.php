@@ -13,8 +13,9 @@ class ResultVisitor extends Model
         'admin_id',
         'note',
         'lang',
-        'lat'
-        // Add other fillable attributes as needed
+        'lat',
+        // صورة الزيارة المرفوعة من التطبيق.
+        'img',
     ];
     public function customer()
     {
