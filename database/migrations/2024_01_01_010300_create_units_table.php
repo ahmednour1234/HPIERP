@@ -14,19 +14,23 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('units', function (Blueprint $table) {
-            $table->id('id');
-            $table->bigInteger('local_id');
-            $table->string('unit_type', 255);
-            $table->string('symbol', 255)->nullable();
-            $table->decimal('conversion_rate', 10, 0)->default(10);
-            $table->bigInteger('base_unit_id')->nullable();
-            $table->tinyInteger('is_base')->default(0);
-            $table->tinyInteger('insert_flag')->nullable()->default(1);
-            $table->timestamps();
-            $table->tinyInteger('update_flag')->nullable()->default(0);
-            $table->bigInteger('company_id')->nullable()->default(1);
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('units')) {
+            Schema::create('units', function (Blueprint $table) {
+                $table->id('id');
+                $table->bigInteger('local_id');
+                $table->string('unit_type', 255);
+                $table->string('symbol', 255)->nullable();
+                $table->decimal('conversion_rate', 10, 0)->default(10);
+                $table->bigInteger('base_unit_id')->nullable();
+                $table->tinyInteger('is_base')->default(0);
+                $table->tinyInteger('insert_flag')->nullable()->default(1);
+                $table->timestamps();
+                $table->tinyInteger('update_flag')->nullable()->default(0);
+                $table->bigInteger('company_id')->nullable()->default(1);
+            });
+        }
     }
 
     /**

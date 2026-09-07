@@ -14,12 +14,16 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('soft_credentials', function (Blueprint $table) {
-            $table->id('id');
-            $table->string('key', 255)->nullable();
-            $table->longText('value')->nullable();
-            $table->timestamps();
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('soft_credentials')) {
+            Schema::create('soft_credentials', function (Blueprint $table) {
+                $table->id('id');
+                $table->string('key', 255)->nullable();
+                $table->longText('value')->nullable();
+                $table->timestamps();
+            });
+        }
     }
 
     /**

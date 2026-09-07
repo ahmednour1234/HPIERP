@@ -14,13 +14,17 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('business_settings', function (Blueprint $table) {
-            $table->id('id');
-            $table->string('key', 255);
-            $table->text('value')->nullable();
-            $table->timestamps();
-            $table->bigInteger('company_id')->nullable()->default(1);
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('business_settings')) {
+            Schema::create('business_settings', function (Blueprint $table) {
+                $table->id('id');
+                $table->string('key', 255);
+                $table->text('value')->nullable();
+                $table->timestamps();
+                $table->bigInteger('company_id')->nullable()->default(1);
+            });
+        }
     }
 
     /**

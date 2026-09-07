@@ -14,15 +14,19 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('regions', function (Blueprint $table) {
-            $table->id('id');
-            $table->bigInteger('local_id');
-            $table->string('name', 255)->nullable();
-            $table->string('name_en', 255)->nullable();
-            $table->tinyInteger('insert_flag')->nullable()->default(1);
-            $table->timestamps();
-            $table->tinyInteger('update_flag')->nullable()->default(0);
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('regions')) {
+            Schema::create('regions', function (Blueprint $table) {
+                $table->id('id');
+                $table->bigInteger('local_id');
+                $table->string('name', 255)->nullable();
+                $table->string('name_en', 255)->nullable();
+                $table->tinyInteger('insert_flag')->nullable()->default(1);
+                $table->timestamps();
+                $table->tinyInteger('update_flag')->nullable()->default(0);
+            });
+        }
     }
 
     /**

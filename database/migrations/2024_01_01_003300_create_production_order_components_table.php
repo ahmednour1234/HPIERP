@@ -14,14 +14,18 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('production_order_components', function (Blueprint $table) {
-            $table->id('id');
-            $table->bigInteger('production_order_product_id');
-            $table->bigInteger('supply_order_item_id');
-            $table->bigInteger('material_batch_id');
-            $table->json('details')->comment('{ "used": {"qty": 12.345, "unit_id": 3}, "wasted": {"qty": 0.500, "unit_id": 3}, "returned": {"qty": 1.000, "unit_id": 3} }');
-            $table->timestamps();
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('production_order_components')) {
+            Schema::create('production_order_components', function (Blueprint $table) {
+                $table->id('id');
+                $table->bigInteger('production_order_product_id');
+                $table->bigInteger('supply_order_item_id');
+                $table->bigInteger('material_batch_id');
+                $table->json('details')->comment('{ "used": {"qty": 12.345, "unit_id": 3}, "wasted": {"qty": 0.500, "unit_id": 3}, "returned": {"qty": 1.000, "unit_id": 3} }');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

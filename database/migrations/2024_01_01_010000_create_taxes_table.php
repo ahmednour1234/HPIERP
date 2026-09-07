@@ -14,13 +14,17 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('taxes', function (Blueprint $table) {
-            $table->id('id');
-            $table->string('name', 25);
-            $table->string('amount', 11);
-            $table->integer('active')->default(0);
-            $table->timestamps();
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('taxes')) {
+            Schema::create('taxes', function (Blueprint $table) {
+                $table->id('id');
+                $table->string('name', 25);
+                $table->string('amount', 11);
+                $table->integer('active')->default(0);
+                $table->timestamps();
+            });
+        }
     }
 
     /**

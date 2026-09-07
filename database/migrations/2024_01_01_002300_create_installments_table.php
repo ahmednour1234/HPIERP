@@ -14,23 +14,27 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('installments', function (Blueprint $table) {
-            $table->id('id');
-            $table->unsignedBigInteger('seller_id')->nullable();
-            $table->unsignedBigInteger('customer_id')->nullable();
-            $table->bigInteger('supplier_id')->nullable();
-            $table->unsignedBigInteger('order_id')->default(0);
-            $table->integer('total_price')->default(0);
-            $table->mediumText('note');
-            $table->integer('active')->default(1);
-            $table->integer('notification')->default(0);
-            $table->integer('insert_flag')->default(1);
-            $table->integer('update_flag');
-            $table->timestamps();
-            $table->mediumText('img')->nullable();
-            $table->index(['seller_id'], 'installments_seller_id_index');
-            $table->index(['customer_id'], 'installments_customer_id_index');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('installments')) {
+            Schema::create('installments', function (Blueprint $table) {
+                $table->id('id');
+                $table->unsignedBigInteger('seller_id')->nullable();
+                $table->unsignedBigInteger('customer_id')->nullable();
+                $table->bigInteger('supplier_id')->nullable();
+                $table->unsignedBigInteger('order_id')->default(0);
+                $table->integer('total_price')->default(0);
+                $table->mediumText('note');
+                $table->integer('active')->default(1);
+                $table->integer('notification')->default(0);
+                $table->integer('insert_flag')->default(1);
+                $table->integer('update_flag');
+                $table->timestamps();
+                $table->mediumText('img')->nullable();
+                $table->index(['seller_id'], 'installments_seller_id_index');
+                $table->index(['customer_id'], 'installments_customer_id_index');
+            });
+        }
     }
 
     /**

@@ -14,12 +14,16 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('password_resets', function (Blueprint $table) {
-            $table->string('email', 255);
-            $table->string('token', 255);
-            $table->timestamp('created_at')->nullable();
-            $table->index(['email'], 'password_resets_email_index');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('password_resets')) {
+            Schema::create('password_resets', function (Blueprint $table) {
+                $table->string('email', 255);
+                $table->string('token', 255);
+                $table->timestamp('created_at')->nullable();
+                $table->index(['email'], 'password_resets_email_index');
+            });
+        }
     }
 
     /**

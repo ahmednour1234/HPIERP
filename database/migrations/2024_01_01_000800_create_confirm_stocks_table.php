@@ -14,16 +14,20 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('confirm_stocks', function (Blueprint $table) {
-            $table->id('id');
-            $table->unsignedBigInteger('product_id');
-            $table->unsignedBigInteger('seller_id');
-            $table->integer('stock');
-            $table->integer('main_stock');
-            $table->timestamps();
-            $table->index(['product_id'], 'confirm_stocks_stock_id_index');
-            $table->index(['seller_id'], 'confirm_stocks_ibfk_1_index');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('confirm_stocks')) {
+            Schema::create('confirm_stocks', function (Blueprint $table) {
+                $table->id('id');
+                $table->unsignedBigInteger('product_id');
+                $table->unsignedBigInteger('seller_id');
+                $table->integer('stock');
+                $table->integer('main_stock');
+                $table->timestamps();
+                $table->index(['product_id'], 'confirm_stocks_stock_id_index');
+                $table->index(['seller_id'], 'confirm_stocks_ibfk_1_index');
+            });
+        }
     }
 
     /**

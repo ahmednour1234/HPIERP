@@ -14,15 +14,19 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('supply_item_batches', function (Blueprint $table) {
-            $table->id('id');
-            $table->bigInteger('material_id');
-            $table->bigInteger('supply_order_item_id')->comment('FK إلى supply_order_items.id');
-            $table->bigInteger('material_batch_id')->comment('الدفعة المستخدمة من material_batches');
-            $table->bigInteger('unit_id')->comment('وحدة القياس المستخدمة في هذا السحب');
-            $table->decimal('quantity', 15, 3)->comment('كمية الخام المسحوبة من الدفعة');
-            $table->timestamps();
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('supply_item_batches')) {
+            Schema::create('supply_item_batches', function (Blueprint $table) {
+                $table->id('id');
+                $table->bigInteger('material_id');
+                $table->bigInteger('supply_order_item_id')->comment('FK إلى supply_order_items.id');
+                $table->bigInteger('material_batch_id')->comment('الدفعة المستخدمة من material_batches');
+                $table->bigInteger('unit_id')->comment('وحدة القياس المستخدمة في هذا السحب');
+                $table->decimal('quantity', 15, 3)->comment('كمية الخام المسحوبة من الدفعة');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

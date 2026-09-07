@@ -14,16 +14,20 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('seller_customers', function (Blueprint $table) {
-            $table->integer('id');
-            $table->bigInteger('local_id');
-            $table->unsignedBigInteger('customer_id');
-            $table->unsignedBigInteger('seller_id');
-            $table->timestamps();
-            $table->primary(['id']);
-            $table->index(['customer_id'], 'seller_customers_customer_id_index');
-            $table->index(['seller_id'], 'seller_customers_seller_id_index');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('seller_customers')) {
+            Schema::create('seller_customers', function (Blueprint $table) {
+                $table->integer('id');
+                $table->bigInteger('local_id');
+                $table->unsignedBigInteger('customer_id');
+                $table->unsignedBigInteger('seller_id');
+                $table->timestamps();
+                $table->primary(['id']);
+                $table->index(['customer_id'], 'seller_customers_customer_id_index');
+                $table->index(['seller_id'], 'seller_customers_seller_id_index');
+            });
+        }
     }
 
     /**

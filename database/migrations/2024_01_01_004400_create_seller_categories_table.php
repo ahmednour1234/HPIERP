@@ -14,14 +14,18 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('seller_categories', function (Blueprint $table) {
-            $table->integer('id');
-            $table->unsignedBigInteger('cat_id');
-            $table->unsignedBigInteger('seller_id');
-            $table->primary(['id']);
-            $table->index(['cat_id'], 'seller_categories_cat_id_index');
-            $table->index(['seller_id'], 'seller_categories_ibfk_2_index');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('seller_categories')) {
+            Schema::create('seller_categories', function (Blueprint $table) {
+                $table->integer('id');
+                $table->unsignedBigInteger('cat_id');
+                $table->unsignedBigInteger('seller_id');
+                $table->primary(['id']);
+                $table->index(['cat_id'], 'seller_categories_cat_id_index');
+                $table->index(['seller_id'], 'seller_categories_ibfk_2_index');
+            });
+        }
     }
 
     /**

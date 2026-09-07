@@ -14,21 +14,25 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('order_detail_notifications', function (Blueprint $table) {
-            $table->id('id');
-            $table->bigInteger('product_id')->nullable();
-            $table->bigInteger('order_id')->nullable();
-            $table->double('price')->default(0);
-            $table->text('product_details')->nullable();
-            $table->double('discount_on_product')->nullable();
-            $table->string('discount_type', 20)->default('amount');
-            $table->integer('quantity')->default(1);
-            $table->double('tax_amount')->default(1);
-            $table->integer('insert_flag')->default(1);
-            $table->integer('update_flag');
-            $table->timestamps();
-            $table->bigInteger('company_id')->nullable()->default(1);
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('order_detail_notifications')) {
+            Schema::create('order_detail_notifications', function (Blueprint $table) {
+                $table->id('id');
+                $table->bigInteger('product_id')->nullable();
+                $table->bigInteger('order_id')->nullable();
+                $table->double('price')->default(0);
+                $table->text('product_details')->nullable();
+                $table->double('discount_on_product')->nullable();
+                $table->string('discount_type', 20)->default('amount');
+                $table->integer('quantity')->default(1);
+                $table->double('tax_amount')->default(1);
+                $table->integer('insert_flag')->default(1);
+                $table->integer('update_flag');
+                $table->timestamps();
+                $table->bigInteger('company_id')->nullable()->default(1);
+            });
+        }
     }
 
     /**

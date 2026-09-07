@@ -14,12 +14,16 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('documents', function (Blueprint $table) {
-            $table->id('id');
-            $table->string('name', 255)->comment('اسم المستند');
-            $table->text('description')->nullable()->comment('وصف المستند');
-            $table->timestamps();
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('documents')) {
+            Schema::create('documents', function (Blueprint $table) {
+                $table->id('id');
+                $table->string('name', 255)->comment('اسم المستند');
+                $table->text('description')->nullable()->comment('وصف المستند');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

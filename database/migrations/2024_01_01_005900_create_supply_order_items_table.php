@@ -14,14 +14,18 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('supply_order_items', function (Blueprint $table) {
-            $table->id('id');
-            $table->bigInteger('supply_order_id')->comment('FK إلى supply_orders.id');
-            $table->bigInteger('product_id')->comment('المنتَج المراد انتاجه');
-            $table->decimal('product_quantity', 15, 3)->comment('كمية المنتج المراد انتاجه');
-            $table->decimal('expected_cost_per_unit', 15, 2)->comment('التكلفة المتوقعة لإنتاج وحدة واحدة');
-            $table->timestamps();
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('supply_order_items')) {
+            Schema::create('supply_order_items', function (Blueprint $table) {
+                $table->id('id');
+                $table->bigInteger('supply_order_id')->comment('FK إلى supply_orders.id');
+                $table->bigInteger('product_id')->comment('المنتَج المراد انتاجه');
+                $table->decimal('product_quantity', 15, 3)->comment('كمية المنتج المراد انتاجه');
+                $table->decimal('expected_cost_per_unit', 15, 2)->comment('التكلفة المتوقعة لإنتاج وحدة واحدة');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

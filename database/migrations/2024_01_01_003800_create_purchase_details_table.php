@@ -14,22 +14,26 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('purchase_details', function (Blueprint $table) {
-            $table->id('id');
-            $table->unsignedBigInteger('purchase_id');
-            $table->unsignedBigInteger('material_id');
-            $table->decimal('quantity', 15, 3);
-            $table->string('unit', 50);
-            $table->decimal('unit_price', 15, 2);
-            $table->decimal('discount', 15, 2)->default(0.00);
-            $table->decimal('tax_amount', 15, 2)->default(0.00);
-            $table->decimal('total', 15, 2);
-            $table->date('expiration_date')->nullable();
-            $table->string('unique_code', 50)->nullable();
-            $table->timestamps();
-            $table->index(['purchase_id'], 'purchase_details_purchase_id_index');
-            $table->index(['material_id'], 'purchase_details_material_id_index');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('purchase_details')) {
+            Schema::create('purchase_details', function (Blueprint $table) {
+                $table->id('id');
+                $table->unsignedBigInteger('purchase_id');
+                $table->unsignedBigInteger('material_id');
+                $table->decimal('quantity', 15, 3);
+                $table->string('unit', 50);
+                $table->decimal('unit_price', 15, 2);
+                $table->decimal('discount', 15, 2)->default(0.00);
+                $table->decimal('tax_amount', 15, 2)->default(0.00);
+                $table->decimal('total', 15, 2);
+                $table->date('expiration_date')->nullable();
+                $table->string('unique_code', 50)->nullable();
+                $table->timestamps();
+                $table->index(['purchase_id'], 'purchase_details_purchase_id_index');
+                $table->index(['material_id'], 'purchase_details_material_id_index');
+            });
+        }
     }
 
     /**

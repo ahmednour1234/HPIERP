@@ -14,18 +14,22 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('reserve_product_notifications', function (Blueprint $table) {
-            $table->id('id');
-            $table->text('data');
-            $table->unsignedBigInteger('seller_id');
-            $table->unsignedBigInteger('customer_id');
-            $table->string('date', 200)->nullable();
-            $table->string('type', 255)->nullable();
-            $table->integer('active')->default(0);
-            $table->timestamps();
-            $table->integer('insert_flag')->default(1);
-            $table->integer('update_flag');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('reserve_product_notifications')) {
+            Schema::create('reserve_product_notifications', function (Blueprint $table) {
+                $table->id('id');
+                $table->text('data');
+                $table->unsignedBigInteger('seller_id');
+                $table->unsignedBigInteger('customer_id');
+                $table->string('date', 200)->nullable();
+                $table->string('type', 255)->nullable();
+                $table->integer('active')->default(0);
+                $table->timestamps();
+                $table->integer('insert_flag')->default(1);
+                $table->integer('update_flag');
+            });
+        }
     }
 
     /**

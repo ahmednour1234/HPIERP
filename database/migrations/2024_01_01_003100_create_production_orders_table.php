@@ -14,16 +14,20 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('production_orders', function (Blueprint $table) {
-            $table->id('id');
-            $table->bigInteger('admin_id');
-            $table->bigInteger('supply_order_id');
-            $table->bigInteger('factory_id');
-            $table->decimal('total_cash', 15, 2)->default(0.00)->comment('إجمالي التكلفة النقدية');
-            $table->decimal('paid', 15, 2)->default(0.00)->comment('المبلغ المدفوع');
-            $table->enum('status', ['cash', 'agel'])->default('cash')->comment('نقدي أو آجل');
-            $table->timestamps();
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('production_orders')) {
+            Schema::create('production_orders', function (Blueprint $table) {
+                $table->id('id');
+                $table->bigInteger('admin_id');
+                $table->bigInteger('supply_order_id');
+                $table->bigInteger('factory_id');
+                $table->decimal('total_cash', 15, 2)->default(0.00)->comment('إجمالي التكلفة النقدية');
+                $table->decimal('paid', 15, 2)->default(0.00)->comment('المبلغ المدفوع');
+                $table->enum('status', ['cash', 'agel'])->default('cash')->comment('نقدي أو آجل');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

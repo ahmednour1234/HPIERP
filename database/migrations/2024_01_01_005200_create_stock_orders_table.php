@@ -14,14 +14,18 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('stock_orders', function (Blueprint $table) {
-            $table->id('id');
-            $table->unsignedBigInteger('seller_id')->nullable();
-            $table->text('statistcs')->nullable();
-            $table->timestamps();
-            $table->integer('insert_flag')->default(1);
-            $table->integer('update_flag');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('stock_orders')) {
+            Schema::create('stock_orders', function (Blueprint $table) {
+                $table->id('id');
+                $table->unsignedBigInteger('seller_id')->nullable();
+                $table->text('statistcs')->nullable();
+                $table->timestamps();
+                $table->integer('insert_flag')->default(1);
+                $table->integer('update_flag');
+            });
+        }
     }
 
     /**

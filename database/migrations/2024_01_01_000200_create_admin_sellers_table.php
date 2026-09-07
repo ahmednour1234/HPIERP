@@ -14,12 +14,16 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('admin_sellers', function (Blueprint $table) {
-            $table->id('id');
-            $table->unsignedBigInteger('admin_id');
-            $table->unsignedBigInteger('seller_id');
-            $table->timestamps();
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('admin_sellers')) {
+            Schema::create('admin_sellers', function (Blueprint $table) {
+                $table->id('id');
+                $table->unsignedBigInteger('admin_id');
+                $table->unsignedBigInteger('seller_id');
+                $table->timestamps();
+            });
+        }
     }
 
     /**

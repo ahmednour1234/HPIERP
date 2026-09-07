@@ -14,14 +14,18 @@ return new class extends Migration
      */
     public function up()
     {
-        Schema::create('document_attachments', function (Blueprint $table) {
-            $table->id('id');
-            $table->unsignedBigInteger('document_id')->comment('معرّف المستند');
-            $table->enum('type', ['pdf', 'image', 'link'])->comment('نوع المرفق');
-            $table->string('url', 2048)->comment('مسار الملف أو الرابط');
-            $table->timestamps();
-            $table->index(['document_id'], 'document_attachments_idx_doc_attach_document_index');
-        });
+        // قاعدة الإنتاج تحمل الجداول بينما سجل migrations لا يطابقها،
+        // فبدون هذا الفحص يفشل الأمر على أول جدول موجود.
+        if (!Schema::hasTable('document_attachments')) {
+            Schema::create('document_attachments', function (Blueprint $table) {
+                $table->id('id');
+                $table->unsignedBigInteger('document_id')->comment('معرّف المستند');
+                $table->enum('type', ['pdf', 'image', 'link'])->comment('نوع المرفق');
+                $table->string('url', 2048)->comment('مسار الملف أو الرابط');
+                $table->timestamps();
+                $table->index(['document_id'], 'document_attachments_idx_doc_attach_document_index');
+            });
+        }
     }
 
     /**

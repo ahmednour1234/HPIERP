@@ -31,9 +31,21 @@ return new class extends Migration
             }
         });
 
-        Schema::table('orders', function (Blueprint $table) {
-            $table->index(['type', 'archived_at'], 'orders_type_archived_idx');
-        });
+        // الفهرس قد يكون موجودًا من تشغيل سابق أو من قاعدة أُنشئت يدويًا،
+        // وإعادة إنشائه تُفشل الهجرة. نفحص وجوده أولًا.
+        // يُقرأ عبر مدير المخطط بدل information_schema حتى يعمل على MySQL
+        // وSQLite معًا.
+        $indexExists = collect(
+            Schema::getConnection()
+                ->getDoctrineSchemaManager()
+                ->listTableIndexes('orders')
+        )->keys()->contains('orders_type_archived_idx');
+
+        if (!$indexExists) {
+            Schema::table('orders', function (Blueprint $table) {
+                $table->index(['type', 'archived_at'], 'orders_type_archived_idx');
+            });
+        }
     }
 
     public function down(): void
