@@ -241,6 +241,47 @@ GET /visits/results?from=&to=&region_id=&category_id=&customer_id=&limit=&offset
 
 ---
 
+## 6.1 المرتب
+
+```http
+GET /salary?month=2025-01
+GET /salary/history?limit=12
+```
+
+```json
+{
+  "id": 7, "month": "2025-01",
+  "basic": 9500,
+  "transport": 0,
+  "visits_pay": 680,
+  "collection_incentive": 250,
+  "other": 150,
+  "deductions": 0,
+  "net": 10580,
+  "commission": 2000,
+  "visits": { "target": 52, "achieved": 191 },
+  "working_days": 26,
+  "score": 8,
+  "note": "...", "manager_note": "...",
+  "status": "approved", "status_text": "معتمد",
+  "details": [
+    { "label": "الراتب الأساسي", "amount": 9500, "type": "add" },
+    { "label": "حافز الزيارات",  "amount": 680,  "type": "add" },
+    { "label": "حافز التحصيل",   "amount": 250,  "type": "add" },
+    { "label": "أخرى",           "amount": 150,  "type": "add" }
+  ]
+}
+```
+
+- **حافز التحصيل** موجود في `details` وكحقل مستقل `collection_incentive`
+- البنود الصفرية **مستبعدة** من `details` — اعرض اللي راجع بس
+- `net` مأخوذ من العمود المخزَّن؛ لو فاضي بيتحسب: `basic + transport + visits_pay + collection_incentive + other - deductions`
+- لو الشهر مالوش كشف: `{ "month": "...", "salary": null }` بـ **200** مش 404
+
+> ⚠️ **حافز التحصيل صفر في كل الصفوف حاليًا** — العمود اتضاف حديثًا ولسه ماتملاش من لوحة الإدارة. الـ API جاهز؛ أول ما يتسجّل رقم هيظهر تلقائيًا.
+
+---
+
 ## 7. البصمة
 
 ```http
@@ -324,6 +365,25 @@ GET  /manager-notes                  المندوب يقرأ ملاحظات مد
 | الإيداعات | `/deposits` · `/deposits/summary` · `/deposits/{id}` |
 | المعاملات | `/transactions` · `/transactions/types` · `/transactions/totals` · `/expense` · `/income` · `/transfer` |
 | لوحة المعلومات | `/dashboard/summary` · `/low-stock` · `/top-products` · `/monthly-revenue` |
+
+### `/dashboard/summary`
+
+```json
+{
+  "period": { "from": "2025-01-01", "to": "2025-01-31" },
+  "sales":   { "count": 12, "amount": 5400 },
+  "returns": { "count": 1,  "amount": 200 },
+  "net_sales": 5200,
+  "collected": 4800,
+  "visits": 52,
+  "visits_target": 52,
+  "stock_value": 1106,
+  "low_stock_products": 3
+}
+```
+
+- **`visits_target`** مأخوذ من كشف راتب نفس الشهر (`number_of_visitors`) — نفس مصدر `visits.target` في `/salary`
+- **`0`** يعني مفيش مستهدف محدَّد للشهر ده (الكشف لسه ماتدخلش) — اعرض العدد وحده بلا نسبة
 | الحساب | `POST /profile/change-password` |
 
 ---

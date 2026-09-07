@@ -19,12 +19,14 @@ class SalaryResource extends JsonResource
         $visits    = (float) $this->salary_of_visitors;
         $other     = (float) $this->other;
         $discount  = (float) $this->discount;
+        // حافز التحصيل: عمود أُضيف لاحقًا، فالصفوف القديمة تحمل 0 أو null.
+        $collection = (float) $this->collection_incentive;
 
         // The admin form's formula. `total` is stored, so it is the authority;
         // this only stands in when an older row was saved without one.
         $net = $this->total !== null && $this->total !== ''
             ? (float) $this->total
-            : $basic + $transport + $visits + $other - $discount;
+            : $basic + $transport + $visits + $collection + $other - $discount;
 
         return [
             'id'    => $this->id,
@@ -33,6 +35,7 @@ class SalaryResource extends JsonResource
             'basic'      => $basic,
             'transport'  => $transport,
             'visits_pay' => $visits,
+            'collection_incentive' => $collection,
             'other'      => $other,
             'deductions' => $discount,
             'net'        => round($net, 2),
@@ -61,6 +64,7 @@ class SalaryResource extends JsonResource
                 ['label' => 'الراتب الأساسي', 'amount' => $basic,     'type' => 'add'],
                 $transport ? ['label' => 'بدل انتقال',   'amount' => $transport, 'type' => 'add'] : null,
                 $visits    ? ['label' => 'حافز الزيارات', 'amount' => $visits,    'type' => 'add'] : null,
+                $collection ? ['label' => 'حافز التحصيل', 'amount' => $collection, 'type' => 'add'] : null,
                 $other     ? ['label' => 'أخرى',          'amount' => $other,     'type' => 'add'] : null,
                 $discount  ? ['label' => 'خصومات',        'amount' => $discount,  'type' => 'deduct'] : null,
             ])),

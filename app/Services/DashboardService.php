@@ -44,9 +44,26 @@ class DashboardService
                 ->whereBetween('created_at', [$from, $to])->sum('amount'),
             'visits'     => Visitor::where('seller_id', $sellerId)
                 ->whereBetween('created_at', [$from, $to])->count(),
+            // المستهدف مأخوذ من كشف راتب الشهر (number_of_visitors)، وهو نفس
+            // المصدر الذي يقرأ منه /salary. صفر يعني لا مستهدف محدَّد لهذا
+            // الشهر، فيعرض التطبيق العدد وحده بلا نسبة.
+            'visits_target' => $this->visitsTarget($sellerId, $from),
             'stock_value' => $this->stockValue($sellerId),
             'low_stock_products' => $this->lowStockCount($sellerId),
         ];
+    }
+
+    /**
+     * المستهدف الشهري للزيارات من كشف الراتب.
+     *
+     * كشف الراتب يُدخل شهريًا، فقد لا يكون موجودًا بعد للشهر الجاري؛ في تلك
+     * الحالة نرجع صفرًا بدل تخمين رقم.
+     */
+    private function visitsTarget(int $sellerId, Carbon $from): int
+    {
+        return (int) \App\Models\Salary::where('seller_id', $sellerId)
+            ->where('month', $from->format('Y-m'))
+            ->value('number_of_visitors');
     }
 
     /**
