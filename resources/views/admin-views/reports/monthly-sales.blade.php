@@ -42,6 +42,12 @@
         font-weight: 700;
         width: 34px;
     }
+    /* عمود الإجمالي العام: مميّز بصريًا ليقرأ بسرعة. */
+    .ms-table .ms-grand {
+        background: #1F3864;
+        color: #fff;
+        font-weight: 700;
+    }
     .ms-block { margin-bottom: 40px; }
     /* الجداول عريضة بطبيعتها؛ التمرير داخل الحاوية يمنع تمدد الصفحة. */
     .ms-scroll { overflow-x: auto; }
@@ -130,6 +136,8 @@
                             @foreach($products as $product)
                                 <th>{{ $product->name }}</th>
                             @endforeach
+                            {{-- الإجمالي العام: مجموع كل المنتجات في الصف --}}
+                            <th class="ms-grand">الإجمالي العام</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -137,9 +145,12 @@
                             <tr>
                                 <td class="ms-serial">{{ $loop->iteration }}</td>
                                 <td class="ms-label">{{ $label }}</td>
+                                @php($rowTotal = 0)
                                 @foreach($products as $product)
+                                    @php($rowTotal += $block['stock'][$key][$product->id] ?? 0)
                                     <td>{{ number_format($block['stock'][$key][$product->id] ?? 0) }}</td>
                                 @endforeach
+                                <td class="ms-grand">{{ number_format($rowTotal) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -161,12 +172,16 @@
                             @foreach($products as $product)
                                 <th colspan="2">{{ $product->name }}</th>
                             @endforeach
+                            {{-- الإجمالي العام: مجموع كل المنتجات في الصف --}}
+                            <th colspan="2" class="ms-grand">الإجمالي العام</th>
                         </tr>
                         <tr>
                             @foreach($products as $product)
                                 <th>عدد عبوات</th>
                                 <th>المبلغ</th>
                             @endforeach
+                            <th class="ms-grand">عدد عبوات</th>
+                            <th class="ms-grand">المبلغ</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -174,10 +189,16 @@
                             <tr>
                                 <td class="ms-serial">{{ $loop->iteration }}</td>
                                 <td class="ms-label">{{ $label }}</td>
+                                @php($rowQty = 0)
+                                @php($rowAmount = 0)
                                 @foreach($products as $product)
+                                    @php($rowQty += $block['sales'][$key][$product->id]['qty'] ?? 0)
+                                    @php($rowAmount += $block['sales'][$key][$product->id]['amount'] ?? 0)
                                     <td>{{ number_format($block['sales'][$key][$product->id]['qty'] ?? 0) }}</td>
                                     <td>{{ number_format($block['sales'][$key][$product->id]['amount'] ?? 0, 2) }}</td>
                                 @endforeach
+                                <td class="ms-grand">{{ number_format($rowQty) }}</td>
+                                <td class="ms-grand">{{ number_format($rowAmount, 2) }}</td>
                             </tr>
                         @endforeach
                     </tbody>
@@ -269,6 +290,8 @@
                         @foreach($products as $product)
                             <th>{{ $product->name }}</th>
                         @endforeach
+                        {{-- الإجمالي العام: مجموع كل المنتجات في الصف --}}
+                        <th class="ms-grand">الإجمالي العام</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -276,9 +299,12 @@
                         <tr>
                             <td class="ms-serial">{{ $loop->iteration }}</td>
                             <td class="ms-label">{{ $label }}</td>
+                            @php($rowTotal = 0)
                             @foreach($products as $product)
+                                @php($rowTotal += $totals['stock'][$key][$product->id] ?? 0)
                                 <td>{{ number_format($totals['stock'][$key][$product->id] ?? 0) }}</td>
                             @endforeach
+                            <td class="ms-grand">{{ number_format($rowTotal) }}</td>
                         </tr>
                     @endforeach
                 </tbody>
@@ -299,12 +325,16 @@
                         @foreach($products as $product)
                             <th colspan="2">{{ $product->name }}</th>
                         @endforeach
+                        {{-- الإجمالي العام: مجموع كل المنتجات في الصف --}}
+                        <th colspan="2" class="ms-grand">الإجمالي العام</th>
                     </tr>
                     <tr>
                         @foreach($products as $product)
                             <th>عدد عبوات</th>
                             <th>المبلغ</th>
                         @endforeach
+                        <th class="ms-grand">عدد عبوات</th>
+                        <th class="ms-grand">المبلغ</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -312,10 +342,16 @@
                         <tr>
                             <td class="ms-serial">{{ $loop->iteration }}</td>
                             <td class="ms-label">{{ $label }}</td>
+                            @php($rowQty = 0)
+                            @php($rowAmount = 0)
                             @foreach($products as $product)
+                                @php($rowQty += $totals['sales'][$key][$product->id]['qty'] ?? 0)
+                                @php($rowAmount += $totals['sales'][$key][$product->id]['amount'] ?? 0)
                                 <td>{{ number_format($totals['sales'][$key][$product->id]['qty'] ?? 0) }}</td>
                                 <td>{{ number_format($totals['sales'][$key][$product->id]['amount'] ?? 0, 2) }}</td>
                             @endforeach
+                            <td class="ms-grand">{{ number_format($rowQty) }}</td>
+                            <td class="ms-grand">{{ number_format($rowAmount, 2) }}</td>
                         </tr>
                     @endforeach
                 </tbody>

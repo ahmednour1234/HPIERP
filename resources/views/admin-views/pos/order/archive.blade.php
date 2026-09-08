@@ -138,7 +138,7 @@
                                   onsubmit="return confirm('إعادة الفاتورة {{ $order->id }} إلى قائمة الفواتير؟');">
                                 @csrf
                                 <button type="submit" class="btn btn-sm btn-white">
-                                    <i class="tio-undo"></i> {{ \App\CPU\translate('إعادة') }}
+                                    <i class="tio-undo"></i> {{ \App\CPU\translate('رد الأرشفة') }}
                                 </button>
                             </form>
                         </td>

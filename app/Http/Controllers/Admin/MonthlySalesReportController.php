@@ -479,18 +479,23 @@ class MonthlySalesReportController extends Controller
             fwrite($out, "\xEF\xBB\xBF");
 
             $names = $data['products']->map(fn ($p) => $p->name)->all();
-            fputcsv($out, array_merge(['القسم', 'المنطقة', 'المقارنة'], $names));
+            // عمود الإجمالي العام في آخر كل صف، مطابقًا لما تعرضه الشاشة.
+            fputcsv($out, array_merge(['القسم', 'المنطقة', 'المقارنة'], $names, ['الإجمالي العام']));
 
             $emit = function ($section, $regionName, $labels, $source, $isMoney) use ($out, $data) {
                 foreach ($labels as $key => $label) {
                     if ($isMoney) {
+                        $qty = $data['products']->map(fn ($p) => round($source[$key][$p->id]['qty'] ?? 0, 2))->all();
                         fputcsv($out, array_merge([$section, $regionName, $label . ' - عدد عبوات'],
-                            $data['products']->map(fn ($p) => round($source[$key][$p->id]['qty'] ?? 0, 2))->all()));
+                            $qty, [round(array_sum($qty), 2)]));
+
+                        $amount = $data['products']->map(fn ($p) => round($source[$key][$p->id]['amount'] ?? 0, 2))->all();
                         fputcsv($out, array_merge([$section, $regionName, $label . ' - المبلغ'],
-                            $data['products']->map(fn ($p) => round($source[$key][$p->id]['amount'] ?? 0, 2))->all()));
+                            $amount, [round(array_sum($amount), 2)]));
                     } else {
+                        $row = $data['products']->map(fn ($p) => $source[$key][$p->id] ?? 0)->all();
                         fputcsv($out, array_merge([$section, $regionName, $label],
-                            $data['products']->map(fn ($p) => $source[$key][$p->id] ?? 0)->all()));
+                            $row, [array_sum($row)]));
                     }
                 }
             };
