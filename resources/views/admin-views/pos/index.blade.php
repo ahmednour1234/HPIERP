@@ -21,7 +21,7 @@
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/pos.css"/>
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/toastr.css">
 </head>
-<body class="footer-offset">
+<body class="footer-offset pos-modern-body">
     <!-- Toggler -->
     <div class="direction-toggle">
         <i class="tio-settings"></i>
@@ -154,14 +154,19 @@
 
     <main id="content" role="main" class="main pointer-event">
         <!-- Content -->
-        <section class="section-content pt-5">
-            <div class="container-fluid">
-                <div class="d-flex flex-wrap">
+        <section class="section-content pt-5 pos-modern-section">
+            <div class="container-fluid pos-modern-container">
+                <div class="d-flex flex-wrap pos-modern-grid">
                     <div class="order--pos-left">
-                        <div class="card">
-                            <h5 class="p-3 m-0 bg-light">{{\App\CPU\translate('قسم المنتجات')}}</h5>
-                            <div class="px-3 py-4">
-                                <div class="row gy-1">
+                        <div class="card pos-panel pos-products-panel">
+                            <div class="pos-panel-header">
+                                <h5 class="pos-panel-title">
+                                    <span><i class="tio-shopping-basket"></i></span>
+                                    {{\App\CPU\translate('قسم المنتجات')}}
+                                </h5>
+                            </div>
+                            <div class="px-3 py-4 pos-products-toolbar">
+                                <div class="row gy-1 align-items-center">
                                     <div class="col-sm-6">
                                         <div class="input-group d-flex justify-content-end">
                                             <select name="category" id="category" class="form-control js-select2-custom w-100"
@@ -186,9 +191,9 @@
                                                     class="form-control search-bar-input"
                                                     placeholder="{{\App\CPU\translate('search_by_code_or_name')}}"
                                                     aria-label="Search here" >
-                                                <diV class="pos-search-card w-4 position-absolute z-index-1 w-100">
+                                                <div class="pos-search-card w-4 position-absolute z-index-1 w-100">
                                                     <div id="search-box" class="card card-body search-result-box d--none"></div>
-                                                </diV>
+                                                </div>
                                             </div>
                                             <!-- End Search -->
                                         </form>
@@ -223,8 +228,13 @@
                     </div>
                     @php($customers = \App\Models\Customer::get())
                     <div class="order--pos-right">
-                        <div class="card billing-section-wrap">
-                            <h5 class="p-3 m-0 bg-light">{{\App\CPU\translate('الفاتورة')}}</h5>
+                        <div class="card billing-section-wrap pos-panel pos-bill-panel">
+                            <div class="pos-panel-header">
+                                <h5 class="pos-panel-title">
+                                    <span><i class="tio-receipt-outlined"></i></span>
+                                    {{\App\CPU\translate('الفاتورة')}}
+                                </h5>
+                            </div>
                             <div class="">
                                 <div class="card-body pb-0">
                                     <div class="d-flex align-items-center gap-2 mb-3">
@@ -702,6 +712,7 @@
 function addToCart(form_id, type) {
     let productId = form_id;
     let productQty = $('#product_qty').val();
+    type = type || '{{ request()->route('type') }}';
     
 console.log(type);
     

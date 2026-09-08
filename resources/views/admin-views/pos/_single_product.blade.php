@@ -1,4 +1,4 @@
-<div id="{{ $product->id }}" class="">
+<div id="{{ $product->id }}" class="pos-product-shell">
     <input type="hidden" id="product_id" name="id" value="{{ $product->id }}">
     <input type="hidden" id="product_qty" name="quantity" value=1>
 <a onclick="addToCart({{ $product->id }}, '{{ $type }}')" class="pos-product-item card">
@@ -9,7 +9,9 @@
         </div>
         <div class="pos-product-item_content">
             <div class="pos-product-item_title">{{ $product['name'] }}</div>
-            {{-- <div class="fz-12 mb-1">{{\App\CPU\translate('code')}}: {{ $product['product_code'] }}</div> --}}
+            @if(!empty($product['product_code']))
+                <div class="pos-product-item_code">{{ \App\CPU\translate('code') }}: {{ $product['product_code'] }}</div>
+            @endif
             <div class="pos-product-item_price">
                 {{ ($product['selling_price']- \App\CPU\Helpers::discount_calculate($product, $product['selling_price'])) . ' ' . \App\CPU\Helpers::currency_symbol() }}
 

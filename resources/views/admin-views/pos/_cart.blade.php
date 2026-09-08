@@ -3,7 +3,7 @@
 @endpush
 
     <div class="card-body pt-0">
-        <div class="table-responsive pos-cart-table border">
+        <div class="table-responsive pos-cart-table border pos-cart-table-modern">
             <table class="table table-align-middle mb-0">
                 <thead class="text-muted">
                     <tr>
@@ -50,8 +50,8 @@
 
                                 ?>
                                 <tr>
-                                    <td class="media gap-2 align-items-center">
-                                        <img class="avatar avatar-sm"
+                                    <td class="media gap-2 align-items-center pos-cart-product">
+                                        <img class="avatar avatar-sm pos-cart-product-img"
                                             src="{{ asset('storage/product') }}/{{ $cartItem['image'] }}"
                                             onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
                                             alt="{{ $cartItem['name'] }} image">
@@ -89,8 +89,8 @@ $total -= $discount_amount;
 //$total_tax_amount= ($tax > 0)?(($total * $tax)/100):0;
 $total_tax_amount = $product_tax;
 @endphp
-<div class="box p-3">
-    <dl class="row">
+<div class="box p-3 pos-cart-summary">
+    <dl class="row mb-0">
         <dt class="col-6">{{ \App\CPU\translate('اجمالي الفاتورة') }} :</dt>
         <dd class="col-6 text-right">{{ $subtotal . ' ' . \App\CPU\Helpers::currency_symbol() }}</dd>
 
@@ -101,13 +101,13 @@ $total_tax_amount = $product_tax;
 
         <dt class="col-6">{{ \App\CPU\translate('الخصم الاضافي') }} :</dt>
         <dd class="col-6 text-right">
-            <button id="extra_discount" class="btn btn-sm" type="button" data-toggle="modal"
+            <button id="extra_discount" class="btn btn-sm pos-mini-edit" type="button" data-toggle="modal"
                 data-target="#add-discount"><i
                     class="tio-edit"></i></button>{{ number_format($discount_amount, 2)}} {{ \App\CPU\Helpers::currency_symbol()  }}
         </dd>
         <dt class="col-6">{{ \App\CPU\translate('كود خصم') }} :</dt>
         <dd class="col-6 text-right">
-            <button id="coupon_discount" class="btn btn-sm" type="button" data-toggle="modal"
+            <button id="coupon_discount" class="btn btn-sm pos-mini-edit" type="button" data-toggle="modal"
                 data-target="#add-coupon-discount"><i
                     class="tio-edit"></i></button>{{ $coupon_discount . ' ' . \App\CPU\Helpers::currency_symbol() }}
         </dd>
@@ -123,13 +123,13 @@ $total_tax_amount = $product_tax;
     </dl>
     <div class="row g-2">
         <div class="col-6 mt-2">
-            <a href="#" class="btn btn-danger btn-block" onclick="emptyCart()">
+            <a href="#" class="btn btn-danger btn-block pos-cart-action pos-cart-action-danger" onclick="emptyCart()">
                 <i class="fa fa-times-circle "></i>
                 {{ \App\CPU\translate('الغاء الفاتورة') }}
             </a>
         </div>
         <div class="col-6 mt-2">
-            <button onclick="submit_order();" type="button" class="btn btn-success btn-block">
+            <button onclick="submit_order();" type="button" class="btn btn-success btn-block pos-cart-action pos-cart-action-success">
                 <i class="fa fa-shopping-bag"></i>
                 {{ \App\CPU\translate('تنفيذ الفاتورة') }}
             </button>
