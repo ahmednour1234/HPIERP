@@ -716,274 +716,148 @@
 @endsection
 
 @push('script_2')
-    <script>
-        "use strict";
-
-        function printTable() {
-            var tableContent = document.getElementById('product-table').innerHTML;
-            var printWindow = window.open('', '_blank', 'width=900,height=700');
-
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html lang="ar" dir="rtl">
-                <head>
-                    <meta charset="UTF-8">
-                    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                    <title>تقرير مبيعات المنتجات</title>
-                    <style>
-                        body {
-                            font-family: Tahoma, Arial, sans-serif;
-                            margin: 0;
-                            padding: 24px;
-                            background: #fff;
-                            color: #102a43;
-                            direction: rtl;
-                        }
-                        .header-section {
-                            display: grid;
-                            grid-template-columns: 1fr auto 1fr;
-                            gap: 16px;
-                            align-items: center;
-                            border: 1px solid #dbe7f2;
-                            border-radius: 8px;
-                            padding: 16px;
-                            margin-bottom: 18px;
-                        }
-                        .header-section p {
-                            margin: 4px 0;
-                            line-height: 1.7;
-                            font-size: 13px;
-                        }
-                        .logo img {
-                            max-width: 120px;
-                            height: auto;
-                        }
-                        h2 {
-                            margin: 0 0 16px;
-                            text-align: center;
-                            color: #11245a;
-                            font-size: 22px;
-                        }
-                        .product-report-summary,
-                        .product-report-status-grid {
-                            display: grid;
-                            grid-template-columns: repeat(4, 1fr);
-                            gap: 10px;
-                            margin-bottom: 16px;
-                        }
-                        .product-report-summary-card,
-                        .product-report-status-card {
-                            border: 1px solid #dbe7f2;
-                            border-radius: 8px;
-                            padding: 10px;
-                        }
-                        .product-report-label {
-                            display: block;
-                            color: #60758b;
-                            font-size: 12px;
-                            margin-bottom: 6px;
-                        }
-                        .product-report-value {
-                            font-size: 18px;
-                            font-weight: 800;
-                        }
-                        .card-header,
-                        .product-report-pagination,
-                        .admin-table-scroll-proxy,
-                        .none {
-                            display: none !important;
-                        }
-                        table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            margin-top: 12px;
-                        }
-                        th,
-                        td {
-                            border: 1px solid #dbe7f2;
-                            padding: 7px;
-                            text-align: right;
-                            vertical-align: top;
-                            font-size: 11px;
-                        }
-                        th {
-                            background: #11245a;
-                            color: #fff;
-                        }
-                    </style>
-                </head>
-                <body>
-                    <div class="header-section">
-                        <div>
-                            <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value ?? '' }}</p>
-                            <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ?? '' }}</p>
-                            <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value ?? '' }}</p>
-                        </div>
-                        <div class="logo">
-                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
-                        </div>
-                        <div>
-                            <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value ?? '' }}</p>
-                            <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value ?? '' }}</p>
-                            <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value ?? '' }}</p>
-                        </div>
-                    </div>
-                    <h2>تقرير مبيعات المنتجات</h2>
-                    ${tableContent}
-                    <script>
-                        window.onload = function() {
-                            window.print();
-                            window.close();
-                        };
-                    <\/script>
-                </body>
-                </html>
-            `);
-
-            printWindow.document.close();
-        }
-
-        function openProductReportImage(src) {
-            var image = document.getElementById('product-report-image');
-            if (!image) return;
-
-            image.src = src;
-            if (window.jQuery && $.fn.modal) {
-                $('#product-report-image-modal').modal('show');
-            }
-        }
-
-        function print_invoice(order_id) {
-            $.get({
-                url: '{{ url('/') }}/admin/pos/invoice/' + order_id,
-                dataType: 'json',
-                beforeSend: function () {
-                    $('#loading').show();
-                },
-                success: function (data) {
-                    $('#print-invoice').modal('show');
-                    $('#printableArea').empty().html(data.view);
-                },
-                complete: function () {
-                    $('#loading').hide();
-                },
-                error: function (error) {
-                    console.log(error);
-                }
-            });
-        }
-
-        $(function () {
-            if (window.jQuery && $.fn.selectpicker) {
-                $('.selectpicker').selectpicker('refresh');
-            }
-        });
-    </script>
-
     <script src="{{ asset('public/assets/admin/js/global.js') }}"></script>
     <script>
         "use strict";
 
-        function productReportPrintAssets() {
-            return Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
-                .map(function (node) {
-                    return node.outerHTML;
-                })
-                .join('\n');
-        }
+        (function () {
+            function appendPrintStyle(doc, mode) {
+                var style = doc.createElement('style');
+                style.textContent = [
+                    'body{font-family:Tahoma,Arial,sans-serif;margin:0;padding:20px;background:#fff;color:#102a43;direction:rtl;}',
+                    '.non-printable,.admin-table-scroll-proxy,.product-report-pagination,.none,.modal-backdrop{display:none!important;}',
+                    '.content,.container-fluid,.product-report-page{padding:0!important;margin:0!important;background:#fff!important;}',
+                    '.product-report-summary,.product-report-status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}',
+                    '.product-report-summary-card,.product-report-status-card{border:1px solid #dbe7f2!important;border-radius:8px!important;padding:8px!important;box-shadow:none!important;min-height:auto!important;}',
+                    '.product-report-label{display:block;font-size:11px;color:#60758b;margin-bottom:4px;}',
+                    '.product-report-value{font-size:16px;font-weight:800;color:#102a43;}',
+                    '.card,.product-report-card{border:0!important;box-shadow:none!important;}',
+                    '.card-header{display:none!important;}',
+                    '.table-responsive,.product-report-table-wrap{overflow:visible!important;border-radius:0!important;}',
+                    'table{width:100%!important;min-width:0!important;border-collapse:collapse!important;margin-top:10px!important;}',
+                    'th,td{border:1px solid #dbe7f2!important;padding:6px!important;text-align:right!important;vertical-align:top!important;font-size:10px!important;white-space:normal!important;color:#102a43!important;}',
+                    'th{background:#11245a!important;color:#fff!important;font-weight:800!important;}',
+                    '.product-report-pill,.product-report-index,.product-report-invoice{border-radius:999px!important;padding:3px 7px!important;text-decoration:none!important;}',
+                    mode === 'invoice' ? '@page{size:auto;margin:4mm;}' : '@page{size:A4 landscape;margin:8mm;}',
+                    '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}'
+                ].join('');
+                doc.head.appendChild(style);
+            }
 
-        function productReportPrintHtml(markup, title, extraCss) {
-            var frame = document.createElement('iframe');
-            frame.setAttribute('title', title || 'print');
-            frame.style.position = 'fixed';
-            frame.style.left = '0';
-            frame.style.bottom = '0';
-            frame.style.width = '1px';
-            frame.style.height = '1px';
-            frame.style.border = '0';
-            frame.style.opacity = '0';
-            document.body.appendChild(frame);
+            function createPrintFrame(title, mode) {
+                var frame = document.createElement('iframe');
+                frame.setAttribute('title', title || 'print');
+                frame.style.position = 'fixed';
+                frame.style.left = '-10000px';
+                frame.style.bottom = '0';
+                frame.style.width = '1px';
+                frame.style.height = '1px';
+                frame.style.border = '0';
+                document.body.appendChild(frame);
 
-            var printWindow = frame.contentWindow;
-            var printDocument = printWindow.document;
+                var printWindow = frame.contentWindow;
+                var printDocument = printWindow.document;
+                printDocument.open();
+                printDocument.close();
+                printDocument.documentElement.lang = 'ar';
+                printDocument.documentElement.dir = 'rtl';
+                printDocument.title = title || 'Print';
+                appendPrintStyle(printDocument, mode);
 
-            printDocument.open();
-            printDocument.write(
-                '<!doctype html>' +
-                '<html lang="ar" dir="rtl">' +
-                '<head>' +
-                '<meta charset="UTF-8">' +
-                '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
-                '<title>' + (title || 'Print') + '</title>' +
-                productReportPrintAssets() +
-                '<style>' +
-                'body{font-family:Tahoma,Arial,sans-serif;margin:0;padding:20px;background:#fff;color:#102a43;direction:rtl;}' +
-                '.non-printable,.admin-table-scroll-proxy,.product-report-pagination,.none,.modal-backdrop{display:none!important;}' +
-                '.content,.container-fluid,.product-report-page{padding:0!important;margin:0!important;background:#fff!important;}' +
-                '.product-report-summary,.product-report-status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}' +
-                '.product-report-summary-card,.product-report-status-card{border:1px solid #dbe7f2!important;border-radius:8px!important;padding:8px!important;box-shadow:none!important;min-height:auto!important;}' +
-                '.product-report-label{display:block;font-size:11px;color:#60758b;margin-bottom:4px;}' +
-                '.product-report-value{font-size:16px;font-weight:800;color:#102a43;}' +
-                '.card,.product-report-card{border:0!important;box-shadow:none!important;}' +
-                '.card-header{display:none!important;}' +
-                '.table-responsive,.product-report-table-wrap{overflow:visible!important;border-radius:0!important;}' +
-                'table{width:100%!important;min-width:0!important;border-collapse:collapse!important;margin-top:10px!important;}' +
-                'th,td{border:1px solid #dbe7f2!important;padding:6px!important;text-align:right!important;vertical-align:top!important;font-size:10px!important;white-space:normal!important;color:#102a43!important;}' +
-                'th{background:#11245a!important;color:#fff!important;font-weight:800!important;}' +
-                '.product-report-pill,.product-report-index,.product-report-invoice{border-radius:999px!important;padding:3px 7px!important;text-decoration:none!important;}' +
-                '@page{size:A4 landscape;margin:8mm;}' +
-                '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}' +
-                (extraCss || '') +
-                '</style>' +
-                '</head>' +
-                '<body>' + markup + '</body>' +
-                '</html>'
-            );
-            printDocument.close();
+                return { frame: frame, win: printWindow, doc: printDocument };
+            }
 
-            setTimeout(function () {
-                printWindow.focus();
-                printWindow.print();
-
+            function runPrint(frameData) {
                 setTimeout(function () {
-                    if (frame.parentNode) {
-                        frame.parentNode.removeChild(frame);
+                    frameData.win.focus();
+                    frameData.win.print();
+
+                    setTimeout(function () {
+                        if (frameData.frame.parentNode) {
+                            frameData.frame.parentNode.removeChild(frameData.frame);
+                        }
+                    }, 1500);
+                }, 300);
+            }
+
+            window.printTable = function () {
+                var source = document.getElementById('product-table');
+                if (!source) {
+                    return;
+                }
+
+                var frameData = createPrintFrame('Product Sales Report', 'report');
+                var header = frameData.doc.createElement('div');
+                header.style.cssText = 'border:1px solid #dbe7f2;border-radius:8px;padding:12px;margin-bottom:14px;text-align:center;';
+
+                var title = frameData.doc.createElement('h2');
+                title.textContent = 'Product Sales Report';
+                title.style.cssText = 'margin:0;color:#11245a;font-size:20px;';
+
+                var date = frameData.doc.createElement('p');
+                date.textContent = '{{ now()->format('Y-m-d H:i') }}';
+                date.style.cssText = 'margin:6px 0 0;color:#60758b;font-weight:700;';
+
+                var cloned = source.cloneNode(true);
+                cloned.querySelectorAll('.none, .product-report-pagination, .admin-table-scroll-proxy').forEach(function (node) {
+                    node.remove();
+                });
+
+                header.appendChild(title);
+                header.appendChild(date);
+                frameData.doc.body.appendChild(header);
+                frameData.doc.body.appendChild(frameData.doc.importNode(cloned, true));
+                runPrint(frameData);
+            };
+
+            window.printDiv = function (divName) {
+                var source = document.getElementById(divName);
+                if (!source) {
+                    return;
+                }
+
+                var frameData = createPrintFrame('Invoice', 'invoice');
+                frameData.doc.body.appendChild(frameData.doc.importNode(source.cloneNode(true), true));
+                runPrint(frameData);
+            };
+
+            window.openProductReportImage = function (src) {
+                var image = document.getElementById('product-report-image');
+                if (!image) {
+                    return;
+                }
+
+                image.src = src;
+                if (window.jQuery && $.fn.modal) {
+                    $('#product-report-image-modal').modal('show');
+                }
+            };
+
+            window.print_invoice = function (orderId) {
+                $.get({
+                    url: '{{ url('/') }}/admin/pos/invoice/' + orderId,
+                    dataType: 'json',
+                    beforeSend: function () {
+                        $('#loading').show();
+                    },
+                    success: function (data) {
+                        $('#print-invoice').modal('show');
+                        $('#printableArea').empty().html(data.view);
+                    },
+                    complete: function () {
+                        $('#loading').hide();
+                    },
+                    error: function (error) {
+                        console.log(error);
                     }
-                }, 1500);
-            }, 400);
-        }
+                });
+            };
 
-        window.printTable = function () {
-            var tableNode = document.getElementById('product-table');
-            if (!tableNode) {
-                return;
-            }
-
-            var cloned = tableNode.cloneNode(true);
-            cloned.querySelectorAll('.none, .product-report-pagination, .admin-table-scroll-proxy').forEach(function (node) {
-                node.remove();
+            $(function () {
+                if (window.jQuery && $.fn.selectpicker) {
+                    $('.selectpicker').selectpicker('refresh');
+                }
             });
-
-            var header =
-                '<div style="border:1px solid #dbe7f2;border-radius:8px;padding:12px;margin-bottom:14px;text-align:center;">' +
-                '<h2 style="margin:0;color:#11245a;font-size:20px;">تقرير مبيعات المنتجات</h2>' +
-                '<p style="margin:6px 0 0;color:#60758b;font-weight:700;">{{ now()->format('Y-m-d H:i') }}</p>' +
-                '</div>';
-
-            productReportPrintHtml(header + cloned.innerHTML, 'تقرير مبيعات المنتجات');
-        };
-
-        window.printDiv = function (divName) {
-            var printNode = document.getElementById(divName);
-            if (!printNode) {
-                return;
-            }
-
-            productReportPrintHtml(
-                printNode.innerHTML,
-                'طباعة الفاتورة',
-                '.width-inone{direction:rtl!important;}@page{size:auto;margin:4mm;}'
-            );
-        };
+        })();
     </script>
 @endpush
