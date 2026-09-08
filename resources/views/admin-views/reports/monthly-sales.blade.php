@@ -205,10 +205,142 @@
         }
     }
     @media print {
-        .monthly-sales-page { background: #fff; padding-top: 0; }
-        .non-printable { display: none !important; }
-        .ms-scroll { overflow: visible; max-height: none; }
-        .ms-panel { box-shadow: none; }
+        @page {
+            size: A4 landscape;
+            margin: 7mm;
+        }
+        html,
+        body {
+            background: #fff !important;
+            height: auto !important;
+            margin: 0 !important;
+            overflow: visible !important;
+            width: auto !important;
+        }
+        body * {
+            visibility: hidden !important;
+        }
+        #headerMain,
+        #headerFluid,
+        #headerDouble,
+        #sidebarMain,
+        .navbar,
+        .navbar-vertical-aside,
+        .direction-toggle,
+        .footer,
+        footer,
+        #loading,
+        .modal,
+        .modal-backdrop,
+        .non-printable {
+            display: none !important;
+        }
+        #content,
+        main#content,
+        .main {
+            background: #fff !important;
+            display: block !important;
+            margin: 0 !important;
+            max-width: none !important;
+            min-height: 0 !important;
+            padding: 0 !important;
+            position: static !important;
+            transform: none !important;
+            width: 100% !important;
+        }
+        .monthly-sales-page,
+        .monthly-sales-page * {
+            visibility: visible !important;
+        }
+        .monthly-sales-page {
+            background: #fff !important;
+            display: block !important;
+            margin: 0 !important;
+            max-width: none !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        .ms-title {
+            box-shadow: none;
+            color: #17365f !important;
+            background: #fff !important;
+            border: 1px solid #17365f;
+            padding: 6px 18px;
+        }
+        .ms-filter-card,
+        .ms-chart-col {
+            display: none !important;
+        }
+        .ms-block {
+            margin-bottom: 10px;
+            page-break-inside: auto;
+        }
+        .ms-panel,
+        .ms-filter-card {
+            border: 0;
+            box-shadow: none;
+        }
+        .ms-panel-header {
+            background: #fff !important;
+            border-bottom: 1px solid #a9bdd2;
+            padding: 6px 0;
+        }
+        .ms-panel-kicker,
+        .badge {
+            display: none !important;
+        }
+        .ms-collection-row {
+            display: block !important;
+            margin: 0 !important;
+            padding: 0 !important;
+        }
+        .ms-collection-col {
+            display: block !important;
+            flex: 0 0 100% !important;
+            max-width: 100% !important;
+            padding: 0 !important;
+            width: 100% !important;
+        }
+        .ms-scroll {
+            max-height: none !important;
+            overflow: visible !important;
+        }
+        .ms-table {
+            border-collapse: collapse !important;
+            font-size: 8px;
+            page-break-inside: auto;
+            width: 100% !important;
+        }
+        .ms-table thead {
+            display: table-header-group;
+        }
+        .ms-table tr {
+            page-break-inside: avoid;
+            page-break-after: auto;
+        }
+        .ms-table th,
+        .ms-table td {
+            border: 1px solid #8ea8c1 !important;
+            padding: 3px 4px;
+        }
+        .ms-table thead th,
+        .ms-table td.ms-label,
+        .ms-table td.ms-serial {
+            position: static !important;
+        }
+        .ms-table thead th {
+            background: #cfe2f3 !important;
+            color: #111 !important;
+        }
+        .ms-table .ms-grand,
+        .ms-table td.ms-serial {
+            background: #d9eaf7 !important;
+            color: #111 !important;
+        }
+        * {
+            -webkit-print-color-adjust: exact !important;
+            print-color-adjust: exact !important;
+        }
     }
 </style>
 
