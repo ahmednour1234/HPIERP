@@ -998,6 +998,42 @@ body {
     font-weight: 800;
 }
 
+.admin-table-scroll-proxy {
+    position: fixed;
+    bottom: 12px;
+    height: 18px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    display: none;
+    z-index: 1035;
+    padding: 3px 0;
+    border: 1px solid #cfe0f1;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, .94);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, .16);
+    backdrop-filter: blur(8px);
+    scrollbar-width: thin;
+    scrollbar-color: #11245a #edf3f9;
+}
+
+.admin-table-scroll-proxy::-webkit-scrollbar {
+    height: 10px;
+}
+
+.admin-table-scroll-proxy::-webkit-scrollbar-track {
+    background: #edf3f9;
+    border-radius: 999px;
+}
+
+.admin-table-scroll-proxy::-webkit-scrollbar-thumb {
+    background: #11245a;
+    border-radius: 999px;
+}
+
+.admin-table-scroll-proxy__spacer {
+    height: 1px;
+}
+
 .page-area,
 .card-footer {
     border-top-color: #e7eef6;
@@ -1023,10 +1059,12 @@ body {
     }
 
     .table-responsive,
-    .datatable-custom {
+    .datatable-custom,
+    .admin-table-scroll-proxy {
         overflow: visible !important;
         border: 0;
         border-radius: 0;
         box-shadow: none;
+        display: none !important;
     }
 }

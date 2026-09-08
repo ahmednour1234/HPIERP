@@ -213,6 +213,118 @@
         alignAdminTablesToRight();
         setTimeout(alignAdminTablesToRight, 300);
         $(document).on('draw.dt shown.bs.tab shown.bs.modal', alignAdminTablesToRight);
+
+        function initAdminTableScrollProxy() {
+            var proxy = document.getElementById('admin-table-scroll-proxy');
+            if (!proxy) {
+                proxy = document.createElement('div');
+                proxy.id = 'admin-table-scroll-proxy';
+                proxy.className = 'admin-table-scroll-proxy';
+                proxy.innerHTML = '<div class="admin-table-scroll-proxy__spacer"></div>';
+                document.body.appendChild(proxy);
+            }
+
+            var spacer = proxy.firstElementChild;
+            var activeScroller = null;
+            var syncing = false;
+
+            function getScrollers() {
+                return Array.prototype.slice.call(document.querySelectorAll('.table-responsive, .datatable-custom'))
+                    .filter(function (el) {
+                        return el.offsetParent !== null && el.scrollWidth > el.clientWidth + 6;
+                    });
+            }
+
+            function pickScroller() {
+                var scrollers = getScrollers();
+                var targetLine = window.innerHeight * .58;
+                var best = null;
+                var bestScore = Infinity;
+
+                scrollers.forEach(function (el) {
+                    var rect = el.getBoundingClientRect();
+                    if (rect.bottom < 0 || rect.top > window.innerHeight) {
+                        return;
+                    }
+
+                    var score = Math.abs(((rect.top + rect.bottom) / 2) - targetLine);
+                    if (score < bestScore) {
+                        best = el;
+                        bestScore = score;
+                    }
+                });
+
+                return best || scrollers[0] || null;
+            }
+
+            function onActiveScroll() {
+                if (!activeScroller || syncing) {
+                    return;
+                }
+
+                syncing = true;
+                proxy.scrollLeft = activeScroller.scrollLeft;
+                syncing = false;
+            }
+
+            function bindScroller(scroller) {
+                if (activeScroller === scroller) {
+                    return;
+                }
+
+                if (activeScroller) {
+                    activeScroller.removeEventListener('scroll', onActiveScroll);
+                }
+
+                activeScroller = scroller;
+
+                if (activeScroller) {
+                    activeScroller.addEventListener('scroll', onActiveScroll, { passive: true });
+                }
+            }
+
+            function updateProxy() {
+                var scroller = pickScroller();
+                bindScroller(scroller);
+
+                if (!activeScroller) {
+                    proxy.style.display = 'none';
+                    return;
+                }
+
+                var rect = activeScroller.getBoundingClientRect();
+                var left = Math.max(8, rect.left);
+                var width = Math.max(160, Math.min(rect.width, window.innerWidth - left - 8));
+
+                proxy.style.display = 'block';
+                proxy.style.left = left + 'px';
+                proxy.style.width = width + 'px';
+                spacer.style.width = activeScroller.scrollWidth + 'px';
+
+                syncing = true;
+                proxy.scrollLeft = activeScroller.scrollLeft;
+                syncing = false;
+            }
+
+            proxy.addEventListener('scroll', function () {
+                if (!activeScroller || syncing) {
+                    return;
+                }
+
+                syncing = true;
+                activeScroller.scrollLeft = proxy.scrollLeft;
+                syncing = false;
+            }, { passive: true });
+
+            window.addEventListener('scroll', updateProxy, { passive: true });
+            window.addEventListener('resize', updateProxy);
+            $(document).on('draw.dt shown.bs.tab shown.bs.modal hidden.bs.modal', updateProxy);
+
+            setTimeout(updateProxy, 150);
+            setTimeout(updateProxy, 700);
+        }
+
+        initAdminTableScrollProxy();
     });
 </script>
 <!-- JS Plugins Init. -->

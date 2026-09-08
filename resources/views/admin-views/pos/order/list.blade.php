@@ -213,12 +213,14 @@
         .pos-orders-table-wrap {
             border: 1px solid #e0e9f3;
             border-radius: 8px;
-            overflow: hidden;
+            overflow-x: auto !important;
+            overflow-y: hidden;
             background: #fff;
         }
 
         .pos-orders-table {
             margin: 0;
+            min-width: 92rem;
             color: #506882;
         }
 
@@ -686,12 +688,13 @@
                                 @if ($remaining > 0)
                                     <button type="button"
                                             class="btn btn-sm btn-outline-success btn-block pos-orders-collect-btn"
-                                            data-toggle="modal"
-                                            data-target="#collectModal-{{ $order->id }}"
+                                            onclick="openCollectModal('{{ route('admin.pos.orders.collect', [$order->id]) }}', '{{ $order->id }}', '{{ number_format($remaining, 2, '.', '') }}')"
                                             title="{{ \App\CPU\translate('تحصيل مبلغ على هذه الفاتورة') }}">
                                         <i class="tio-dollar"></i> {{ \App\CPU\translate('تحصيل') }}
                                     </button>
 
+                                    {{-- Per-row collect modal disabled; one shared modal is rendered after the table. --}}
+                                    {{--
                                     <div class="modal fade" id="collectModal-{{ $order->id }}" tabindex="-1">
                                         <div class="modal-dialog modal-dialog-centered">
                                             <div class="modal-content">
@@ -756,6 +759,7 @@
                                             </div>
                                         </div>
                                     </div>
+                                    --}}
                                 @endif
 
                                 @if ($collected > 0)
@@ -781,13 +785,14 @@
         src="{{ asset('storage/shop/'.$order['img']) }}" 
         alt="Image Description" 
         class="pos-orders-image"
-        data-toggle="modal" 
-        data-target="#imageModal{{ $order['id'] }}">
+        onclick="openOrderImage(this.src)">
     @else
         <span class="text-muted">-</span>
     @endif
 </td>
 
+{{-- Per-row image modal disabled; one shared modal is rendered after the table. --}}
+{{--
 <!-- Modal -->
 <div class="modal fade none" id="imageModal{{ $order['id'] }}" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel{{ $order['id'] }}" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered" role="document">
@@ -811,6 +816,7 @@
         </div>
     </div>
 </div>
+--}}
 
                             <td class="none">
                                 <button class="btn btn-sm btn-white" target="_blank" type="button"
@@ -847,6 +853,75 @@
         <!-- End Footer -->
         </div>
         <!-- End Card -->
+        </div>
+    </div>
+
+    <div class="modal fade" id="shared-collect-modal" tabindex="-1">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <form id="shared-collect-form" action="#" method="post" enctype="multipart/form-data">
+                    @csrf
+                    <div class="modal-header bg-light">
+                        <h5 class="modal-title">تحصيل فاتورة <span id="shared-collect-order"></span></h5>
+                        <button type="button" class="close" data-dismiss="modal">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <div class="modal-body text-right">
+                        <p class="mb-3">المتبقي: <strong id="shared-collect-remaining">0.00</strong></p>
+
+                        <div class="form-group">
+                            <label class="small">المبلغ</label>
+                            <input id="shared-collect-amount" type="number" step="0.01" min="0.01"
+                                   name="amount" class="form-control" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="small">الحساب</label>
+                            <select name="account_id" class="form-control" required>
+                                @foreach (($accounts ?? []) as $acc)
+                                    <option value="{{ $acc->id }}">{{ $acc->account }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="small">التاريخ</label>
+                            <input type="date" name="date" class="form-control" value="{{ now()->toDateString() }}">
+                        </div>
+
+                        <div class="form-group">
+                            <label class="small">ملاحظة</label>
+                            <input type="text" name="note" class="form-control" maxlength="255">
+                        </div>
+
+                        <div class="form-group mb-0">
+                            <label class="small">صورة الإيصال</label>
+                            <input type="file" name="img" class="form-control" accept="image/*">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-dismiss="modal">إلغاء</button>
+                        <button type="submit" class="btn btn-success">تأكيد التحصيل</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <div class="modal fade" id="shared-image-modal" tabindex="-1" role="dialog" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">معاينة الصورة</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body text-center">
+                    <img id="shared-order-image" src="" alt="Image Preview" style="max-width: 100%; height: auto;">
+                </div>
+            </div>
         </div>
     </div>
 
@@ -1093,6 +1168,54 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
 @endpush
 @push('script')
     <script>
+        function showAdminModal(selector) {
+            if (window.jQuery && $.fn.modal) {
+                $(selector).modal('show');
+                return;
+            }
+
+            var modal = document.querySelector(selector);
+            if (!modal) return;
+
+            modal.classList.add('show');
+            document.body.classList.add('modal-open');
+
+            if (!document.querySelector('.modal-backdrop')) {
+                var backdrop = document.createElement('div');
+                backdrop.className = 'modal-backdrop';
+                document.body.appendChild(backdrop);
+            }
+        }
+
+        function openCollectModal(action, orderId, remaining) {
+            var form = document.getElementById('shared-collect-form');
+            var amountInput = document.getElementById('shared-collect-amount');
+            var remainingLabel = document.getElementById('shared-collect-remaining');
+            var orderLabel = document.getElementById('shared-collect-order');
+
+            if (!form || !amountInput || !remainingLabel || !orderLabel) return;
+
+            form.action = action;
+            form.reset();
+            amountInput.max = remaining;
+            amountInput.value = remaining;
+            remainingLabel.textContent = Number(remaining).toLocaleString('en-US', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
+            orderLabel.textContent = '#' + orderId;
+
+            showAdminModal('#shared-collect-modal');
+        }
+
+        function openOrderImage(src) {
+            var image = document.getElementById('shared-order-image');
+            if (!image) return;
+
+            image.src = src;
+            showAdminModal('#shared-image-modal');
+        }
+
         // Ask how much to reverse, cap it at what was collected, then submit
         // that row's hidden form.
         function reverseCollection(id, collected) {
