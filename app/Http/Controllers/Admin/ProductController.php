@@ -115,7 +115,7 @@ private function soldProductsRows(Request $request): array
     $query = OrderDetail::query()
         ->select('id', 'order_id', 'product_id', 'product_details', 'quantity', 'price', 'updated_at')
         ->with([
-            'product:id,name,name_ar,product_code,selling_price',
+            'product:id,name,product_code,selling_price',
             'order:id,owner_id,user_id,type,order_amount,transaction_reference,updated_at,img',
             'order.seller:id,email,f_name,l_name',
             'order.customer:id,name,region_id',
@@ -214,7 +214,7 @@ private function soldProductsRows(Request $request): array
         $rows[] = [
             'م'                => ++$serial,
             'اسم المنتج'       => app()->getLocale() === 'ar'
-                                    ? (optional($detail->product)->name_ar ?? '')
+                                    ? (optional($detail->product)->name ?? '')
                                     : (optional($detail->product)->name ?? ''),
             'كود المنتج'       => optional($detail->product)->product_code ?? '',
             'الوحدة'           => $productDetails->unit_value ?? '',
@@ -293,7 +293,7 @@ public function getreportProducts(Request $request)
     ]);
 
     $adminId = Auth::guard('admin')->id();
-    $productsall = Product::select('id', 'name', 'name_ar', 'product_code')
+    $productsall = Product::select('id', 'name', 'product_code')
         ->orderBy('name')
         ->get();
     // بيانات المساعدين للفلاتر
@@ -469,9 +469,7 @@ public function getreportProducts(Request $request)
 
                 return [
                     'product_id'            => optional($detail->product)->id ?? '',
-                    'product_name'          => app()->getLocale() === 'ar'
-                                                ? (optional($detail->product)->name_ar ?? '')
-                                                : (optional($detail->product)->name ?? ''),
+                    'product_name'          => optional($detail->product)->name ?? '',
                     'product_code'          => optional($detail->product)->product_code ?? '',
                     'unit_value'            => $productDetails->unit_value ?? '',
                     'selling_price'         => optional($detail->product)->selling_price ?? '',
@@ -622,7 +620,7 @@ private function renderFastProductReport(
     $query = OrderDetail::query()
         ->select('id', 'order_id', 'product_id', 'product_details', 'quantity', 'price', 'updated_at')
         ->with([
-            'product:id,name,name_ar,product_code,selling_price',
+            'product:id,name,product_code,selling_price',
             'order:id,owner_id,user_id,type,order_amount,transaction_reference,updated_at,img',
             'order.seller:id,email,f_name,l_name',
             'order.customer:id,name,region_id',
@@ -760,9 +758,7 @@ private function renderFastProductReport(
 
             return [
                 'product_id' => optional($detail->product)->id ?? '',
-                'product_name' => app()->getLocale() === 'ar'
-                    ? (optional($detail->product)->name_ar ?? optional($detail->product)->name ?? '')
-                    : (optional($detail->product)->name ?? ''),
+                'product_name' => optional($detail->product)->name ?? '',
                 'product_code' => optional($detail->product)->product_code ?? '',
                 'unit_value' => $productDetails->unit_value ?? '',
                 'selling_price' => optional($detail->product)->selling_price ?? '',
