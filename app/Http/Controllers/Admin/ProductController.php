@@ -313,6 +313,16 @@ public function getreportProducts(Request $request)
         ->unique()->values()->all();
 
     // 2) الاستعلام الأساسي على تفاصيل الطلبات
+    return $this->renderFastProductReport(
+        $validated,
+        $productsall,
+        $sellers,
+        $regions,
+        $start_date,
+        $end_date,
+        $regionIds
+    );
+
     $query = OrderDetail::with(['order.seller', 'order.customer.regions', 'product', 'order.details']);
 
     if (!empty($validated['product_name'])) {
@@ -575,6 +585,284 @@ public function getreportProducts(Request $request)
     $priceSum     = $ordersAll->sum(fn($item) => ($item->price ?? 0) * ($item->quantity ?? 0));
 
     // 12) عرض النتيجة
+    return view('admin-views.product.indexreport', compact(
+        'products',
+        'sellers',
+        'regions',
+        'productCount',
+        'quantitySum',
+        'priceSum',
+        'orderDetails',
+        'orderAmountType4',
+        'orderAmountType7',
+        'transactionRefType4',
+        'amountDue',
+        'invoiceStatusCounts',
+        'pricePerUnit',
+        'collectedUnits',
+        'productsall'
+    ));
+}
+
+
+private function renderFastProductReport(
+    array $validated,
+    $productsall,
+    $sellers,
+    $regions,
+    ?Carbon $start_date,
+    ?Carbon $end_date,
+    array $regionIds
+) {
+    $productCodes = $this->filterValues($validated['product_code'] ?? []);
+    $sellerIds = $this->filterValues($validated['seller_id'] ?? []);
+    $orderTypes = $this->filterValues($validated['order_type'] ?? []);
+    $selectedStatuses = $this->filterValues($validated['invoice_status'] ?? []);
+
+    $query = OrderDetail::query()
+        ->select('id', 'order_id', 'product_id', 'product_details', 'quantity', 'price', 'updated_at')
+        ->with([
+            'product:id,name,name_ar,product_code,selling_price',
+            'order:id,owner_id,user_id,type,order_amount,transaction_reference,updated_at,img',
+            'order.seller:id,email,f_name,l_name',
+            'order.customer:id,name,region_id',
+            'order.customer.regions:id,name',
+        ]);
+
+    if (!empty($validated['product_name'])) {
+        $query->whereJsonContains('product_details->name', $validated['product_name']);
+    }
+
+    if ($productCodes) {
+        $query->where(function ($q) use ($productCodes) {
+            foreach ($productCodes as $code) {
+                $q->orWhereJsonContains('product_details->product_code', $code);
+            }
+        });
+    }
+
+    if ($start_date && $end_date) {
+        $query->whereBetween('updated_at', [$start_date, $end_date]);
+    }
+
+    if ($sellerIds) {
+        $query->whereHas('order', fn($q) => $q->whereIn('owner_id', $sellerIds));
+    }
+
+    if ($orderTypes) {
+        $query->whereHas('order', fn($q) => $q->whereIn('type', $orderTypes));
+    }
+
+    if (!empty($regionIds)) {
+        $query->whereHas('order.customer', function ($cq) use ($regionIds) {
+            $cq->whereIn('region_id', $regionIds)
+               ->orWhereHas('regions', fn($cqq) => $cqq->whereIn('regions.id', $regionIds));
+        });
+    }
+
+    if ($statuses = $this->filterValues($validated['payment_status'] ?? [])) {
+        if (count(array_unique($statuses)) === 1) {
+            $paid = $statuses[0] === 'paid';
+            $query->whereHas('order', function ($q) use ($paid) {
+                $paid
+                    ? $q->whereRaw('FLOOR(order_amount) = FLOOR(transaction_reference)')
+                    : $q->whereRaw('FLOOR(order_amount) > FLOOR(transaction_reference)');
+            });
+        }
+    }
+
+    $summaryQuery = (clone $query)->setEagerLoads([]);
+    $orderIds = (clone $summaryQuery)->distinct()->pluck('order_id')->filter()->values();
+
+    $invoiceStatusCounts = [
+        'paid' => 0,
+        'unpaid' => 0,
+        'returned_fully' => 0,
+        'partial_paid' => 0,
+        'partial_returned' => 0,
+        'partial_both' => 0,
+    ];
+    $statusByOrder = [];
+
+    if ($orderIds->isNotEmpty()) {
+        $originalQtyByOrder = DB::table('order_details')
+            ->whereIn('order_id', $orderIds)
+            ->groupBy('order_id')
+            ->selectRaw('order_id, COALESCE(SUM(quantity), 0) as original_qty')
+            ->get()
+            ->pluck('original_qty', 'order_id');
+
+        $returnsByParent = DB::table('orders')
+            ->join('order_details', 'orders.id', '=', 'order_details.order_id')
+            ->whereIn('orders.parent_id', $orderIds)
+            ->groupBy('orders.parent_id')
+            ->selectRaw('orders.parent_id, COALESCE(SUM(order_details.quantity), 0) as returned_qty, COALESCE(SUM(order_details.price * order_details.quantity), 0) as returned_amount')
+            ->get()
+            ->keyBy('parent_id');
+
+        Order::whereIn('id', $orderIds)
+            ->select('id', 'order_amount', 'transaction_reference')
+            ->chunkById(500, function ($orders) use (&$statusByOrder, &$invoiceStatusCounts, $originalQtyByOrder, $returnsByParent) {
+                foreach ($orders as $order) {
+                    $orderAmount = (float) $order->order_amount;
+                    $transactionRef = (float) $order->transaction_reference;
+                    $originalQty = (float) ($originalQtyByOrder[$order->id] ?? 0);
+                    $returnedQty = (float) optional($returnsByParent->get($order->id))->returned_qty;
+
+                    if ($orderAmount == $transactionRef || $transactionRef > $orderAmount) {
+                        $status = 'paid';
+                    } elseif ($transactionRef == 0 && $returnedQty >= $originalQty && $originalQty > 0) {
+                        $status = 'returned_fully';
+                    } elseif (($transactionRef > 0) && ($orderAmount - $transactionRef > 0) && $returnedQty == 0) {
+                        $status = 'partial_paid';
+                    } elseif ($transactionRef == 0 && $returnedQty > 0 && $returnedQty < $originalQty) {
+                        $status = 'partial_returned';
+                    } elseif ($transactionRef > 0 && $returnedQty > 0) {
+                        $status = 'partial_both';
+                    } else {
+                        $status = 'unpaid';
+                    }
+
+                    $statusByOrder[$order->id] = $status;
+                    $invoiceStatusCounts[$status]++;
+                }
+            });
+    }
+
+    if ($selectedStatuses) {
+        $allowedOrderIds = collect($statusByOrder)
+            ->filter(fn ($status) => in_array($status, $selectedStatuses, true))
+            ->keys()
+            ->values();
+
+        $allowedOrderIds->isEmpty()
+            ? $query->whereRaw('1 = 0')
+            : $query->whereIn('order_id', $allowedOrderIds);
+    }
+
+    $summaryQuery = (clone $query)->setEagerLoads([]);
+    $productCount = (clone $summaryQuery)->whereNotNull('product_id')->distinct()->count('product_id');
+    $quantitySum = (float) (clone $summaryQuery)->sum('quantity');
+    $priceSum = (float) (clone $summaryQuery)
+        ->selectRaw('COALESCE(SUM(price * quantity), 0) as total')
+        ->value('total');
+
+    $orderDetails = $query->latest('updated_at')->paginate(25)->withQueryString();
+
+    $products = $orderDetails->getCollection()
+        ->map(function ($detail) use ($statusByOrder) {
+            $order = $detail->order;
+            if (!$order) {
+                return null;
+            }
+
+            $productDetails = json_decode($detail->product_details ?: '{}') ?: (object) [];
+
+            return [
+                'product_id' => optional($detail->product)->id ?? '',
+                'product_name' => app()->getLocale() === 'ar'
+                    ? (optional($detail->product)->name_ar ?? optional($detail->product)->name ?? '')
+                    : (optional($detail->product)->name ?? ''),
+                'product_code' => optional($detail->product)->product_code ?? '',
+                'unit_value' => $productDetails->unit_value ?? '',
+                'selling_price' => optional($detail->product)->selling_price ?? '',
+                'quantity' => $detail->quantity ?? '',
+                'order_type' => $order->type,
+                'order_id' => $order->id ?? '',
+                'img' => $order->img ?? '',
+                'transaction_reference' => (float) $order->transaction_reference,
+                'created_at' => $order->updated_at ?? '',
+                'total_selling_price' => ($detail->price ?? 0) * ($detail->quantity ?? 0),
+                'seller' => optional($order->seller)->email ?? '',
+                'customer' => optional($order->customer)->name ?? '',
+                'region' => optional(optional($order->customer)->regions)->name ?? '',
+                'invoice_status' => $statusByOrder[$order->id] ?? 'unpaid',
+            ];
+        })
+        ->filter()
+        ->values();
+
+    $orderFilter = function ($q) use ($validated, $start_date, $end_date, $regionIds) {
+        if ($ids = $this->filterValues($validated['seller_id'] ?? [])) {
+            $q->whereIn('owner_id', $ids);
+        }
+        if ($start_date && $end_date) {
+            $q->whereBetween('updated_at', [$start_date, $end_date]);
+        }
+        if (!empty($regionIds)) {
+            $q->whereHas('customer', function ($cq) use ($regionIds) {
+                $cq->whereIn('region_id', $regionIds)
+                   ->orWhereHas('regions', function ($cqq) use ($regionIds) {
+                       $cqq->whereIn('regions.id', $regionIds);
+                   });
+            });
+        }
+    };
+
+    $orderAmountType4 = Order::where('type', 4)->where($orderFilter)->sum('order_amount');
+    $orderAmountType7 = Order::where('type', 7)->where($orderFilter)->sum('order_amount');
+    $transactionRefType4 = Order::where('type', 4)->where($orderFilter)->sum('transaction_reference');
+    $amountDue = $orderAmountType4 - $orderAmountType7 - $transactionRefType4;
+
+    $ordersType4 = Order::where('type', 4)
+        ->where($orderFilter)
+        ->select('id', 'order_amount', 'transaction_reference')
+        ->get();
+
+    $type4Ids = $ordersType4->pluck('id')->unique()->values();
+    $type4Quantities = DB::table('order_details')
+        ->whereIn('order_id', $type4Ids)
+        ->groupBy('order_id')
+        ->selectRaw('order_id, COALESCE(SUM(quantity), 0) as quantity')
+        ->get()
+        ->pluck('quantity', 'order_id');
+
+    $returnsForType4 = DB::table('orders')
+        ->join('order_details', 'orders.id', '=', 'order_details.order_id')
+        ->whereIn('orders.parent_id', $type4Ids)
+        ->groupBy('orders.parent_id')
+        ->selectRaw('orders.parent_id, COALESCE(SUM(order_details.quantity), 0) as returned_qty, COALESCE(SUM(order_details.price * order_details.quantity), 0) as returned_amount')
+        ->get()
+        ->keyBy('parent_id');
+
+    $quantityType4 = (float) $type4Quantities->sum();
+    $pricePerUnit = $quantityType4 > 0 ? $orderAmountType4 / $quantityType4 : 0;
+    $collectedUnits = 0;
+
+    foreach ($ordersType4 as $o) {
+        $originalQty = (int) ($type4Quantities[$o->id] ?? 0);
+        $paidAmount = (float) $o->transaction_reference;
+        $orderamount = (float) $o->order_amount;
+        $orderReturns = $returnsForType4->get($o->id);
+        $returnedQty = (int) ($orderReturns->returned_qty ?? 0);
+        $returnedAmount = (float) ($orderReturns->returned_amount ?? 0);
+
+        $status = 'unpaid';
+        if ($orderamount == $paidAmount || $paidAmount > $orderamount) {
+            $status = 'paid';
+        } elseif ($paidAmount == 0 && $returnedQty >= $originalQty && $originalQty > 0) {
+            $status = 'returned_fully';
+        } elseif (($paidAmount > 0) && ($orderamount - $paidAmount > 0) && $returnedQty == 0) {
+            $status = 'partial_paid';
+        } elseif ($paidAmount == 0 && $returnedQty > 0 && $returnedQty < $originalQty) {
+            $status = 'partial_returned';
+        } elseif ($paidAmount > 0 && $returnedQty > 0) {
+            $status = 'partial_both';
+        }
+
+        if ($status === 'paid') {
+            $collectedUnits += $originalQty;
+        } elseif ($status === 'partial_paid' && $orderamount > 0) {
+            $collectedUnits += (int) ceil(min(1, $paidAmount / $orderamount) * $originalQty);
+        } elseif ($status === 'partial_both') {
+            $netQty = max(0, $originalQty - $returnedQty);
+            $netAmount = max(0.0, $orderamount - $returnedAmount);
+            if ($netAmount > 0) {
+                $collectedUnits += (int) ceil(min(1, $paidAmount / $netAmount) * $netQty);
+            }
+        }
+    }
+
     return view('admin-views.product.indexreport', compact(
         'products',
         'sellers',
