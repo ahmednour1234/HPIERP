@@ -881,4 +881,109 @@
     </script>
 
     <script src="{{ asset('public/assets/admin/js/global.js') }}"></script>
+    <script>
+        "use strict";
+
+        function productReportPrintAssets() {
+            return Array.from(document.querySelectorAll('link[rel="stylesheet"], style'))
+                .map(function (node) {
+                    return node.outerHTML;
+                })
+                .join('\n');
+        }
+
+        function productReportPrintHtml(markup, title, extraCss) {
+            var frame = document.createElement('iframe');
+            frame.setAttribute('title', title || 'print');
+            frame.style.position = 'fixed';
+            frame.style.left = '0';
+            frame.style.bottom = '0';
+            frame.style.width = '1px';
+            frame.style.height = '1px';
+            frame.style.border = '0';
+            frame.style.opacity = '0';
+            document.body.appendChild(frame);
+
+            var printWindow = frame.contentWindow;
+            var printDocument = printWindow.document;
+
+            printDocument.open();
+            printDocument.write(
+                '<!doctype html>' +
+                '<html lang="ar" dir="rtl">' +
+                '<head>' +
+                '<meta charset="UTF-8">' +
+                '<meta name="viewport" content="width=device-width, initial-scale=1.0">' +
+                '<title>' + (title || 'Print') + '</title>' +
+                productReportPrintAssets() +
+                '<style>' +
+                'body{font-family:Tahoma,Arial,sans-serif;margin:0;padding:20px;background:#fff;color:#102a43;direction:rtl;}' +
+                '.non-printable,.admin-table-scroll-proxy,.product-report-pagination,.none,.modal-backdrop{display:none!important;}' +
+                '.content,.container-fluid,.product-report-page{padding:0!important;margin:0!important;background:#fff!important;}' +
+                '.product-report-summary,.product-report-status-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}' +
+                '.product-report-summary-card,.product-report-status-card{border:1px solid #dbe7f2!important;border-radius:8px!important;padding:8px!important;box-shadow:none!important;min-height:auto!important;}' +
+                '.product-report-label{display:block;font-size:11px;color:#60758b;margin-bottom:4px;}' +
+                '.product-report-value{font-size:16px;font-weight:800;color:#102a43;}' +
+                '.card,.product-report-card{border:0!important;box-shadow:none!important;}' +
+                '.card-header{display:none!important;}' +
+                '.table-responsive,.product-report-table-wrap{overflow:visible!important;border-radius:0!important;}' +
+                'table{width:100%!important;min-width:0!important;border-collapse:collapse!important;margin-top:10px!important;}' +
+                'th,td{border:1px solid #dbe7f2!important;padding:6px!important;text-align:right!important;vertical-align:top!important;font-size:10px!important;white-space:normal!important;color:#102a43!important;}' +
+                'th{background:#11245a!important;color:#fff!important;font-weight:800!important;}' +
+                '.product-report-pill,.product-report-index,.product-report-invoice{border-radius:999px!important;padding:3px 7px!important;text-decoration:none!important;}' +
+                '@page{size:A4 landscape;margin:8mm;}' +
+                '@media print{body{-webkit-print-color-adjust:exact;print-color-adjust:exact;}}' +
+                (extraCss || '') +
+                '</style>' +
+                '</head>' +
+                '<body>' + markup + '</body>' +
+                '</html>'
+            );
+            printDocument.close();
+
+            setTimeout(function () {
+                printWindow.focus();
+                printWindow.print();
+
+                setTimeout(function () {
+                    if (frame.parentNode) {
+                        frame.parentNode.removeChild(frame);
+                    }
+                }, 1500);
+            }, 400);
+        }
+
+        window.printTable = function () {
+            var tableNode = document.getElementById('product-table');
+            if (!tableNode) {
+                return;
+            }
+
+            var cloned = tableNode.cloneNode(true);
+            cloned.querySelectorAll('.none, .product-report-pagination, .admin-table-scroll-proxy').forEach(function (node) {
+                node.remove();
+            });
+
+            var header =
+                '<div style="border:1px solid #dbe7f2;border-radius:8px;padding:12px;margin-bottom:14px;text-align:center;">' +
+                '<h2 style="margin:0;color:#11245a;font-size:20px;">تقرير مبيعات المنتجات</h2>' +
+                '<p style="margin:6px 0 0;color:#60758b;font-weight:700;">{{ now()->format('Y-m-d H:i') }}</p>' +
+                '</div>';
+
+            productReportPrintHtml(header + cloned.innerHTML, 'تقرير مبيعات المنتجات');
+        };
+
+        window.printDiv = function (divName) {
+            var printNode = document.getElementById(divName);
+            if (!printNode) {
+                return;
+            }
+
+            productReportPrintHtml(
+                printNode.innerHTML,
+                'طباعة الفاتورة',
+                '.width-inone{direction:rtl!important;}@page{size:auto;margin:4mm;}'
+            );
+        };
+    </script>
 @endpush
