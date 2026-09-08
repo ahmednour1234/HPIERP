@@ -8,6 +8,7 @@ use App\Models\Installment;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Region;
+use App\Models\Stock;
 use App\Models\StockHistory;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -25,6 +26,9 @@ use Illuminate\Support\Facades\DB;
  */
 class MonthlySalesReportController extends Controller
 {
+    private const TYPE_RETURN = 7;
+    private const STOCK_SALE_TYPES = [4, 12, 24];
+
     public function index(Request $request)
     {
         $data = $this->build($request);
@@ -143,7 +147,7 @@ class MonthlySalesReportController extends Controller
 
         $movedIds = DB::table('order_details')
             ->join('orders', 'orders.id', '=', 'order_details.order_id')
-            ->whereIn('orders.type', [4, 7])
+            ->whereIn('orders.type', array_merge(self::STOCK_SALE_TYPES, [self::TYPE_RETURN]))
             ->whereIn('orders.owner_id', $sellerIds)
             ->whereBetween('orders.created_at', [$start, $end])
             ->distinct()
@@ -186,7 +190,8 @@ class MonthlySalesReportController extends Controller
      *
      * المخزون يُسجَّل على المندوب لا على العميل، فلا منطقة له مباشرة؛ عند
      * تحديد منطقة نقصر الحساب على مناديب تلك المنطقة عبر seller_regions.
-     * تسوية stock_histories تحمل main_stock (ما كان بحوزته) وstock (المباع).
+     * Sales are counted from invoices, because returns can put units back on
+     * the van after an invoice has already reduced the live stock.
      */
     private function stockRows($products, array $sellerIds, Carbon $start, Carbon $end, ?int $regionId): array
     {
@@ -217,11 +222,13 @@ class MonthlySalesReportController extends Controller
             $opening  = (int) ($stockTotals['opening'][$product->id] ?? 0);
             $issued   = (int) ($stockTotals['issued'][$product->id] ?? 0);
             $supplied = (int) ($stockTotals['supplied'][$product->id] ?? 0);
+            $returned = (int) ($stockTotals['returned'][$product->id] ?? 0);
+            $available = max($opening, $issued);
 
             $rows['opening'][$product->id]  = $opening;
-            $rows['sent'][$product->id]     = max(0, $issued - $opening);
+            $rows['sent'][$product->id]     = max(0, $available - $opening);
             $rows['supplied'][$product->id] = $supplied;
-            $rows['closing'][$product->id]  = max(0, $issued - $supplied);
+            $rows['closing'][$product->id]  = max(0, $available - $supplied + $returned);
         }
 
         return $rows;
@@ -234,7 +241,7 @@ class MonthlySalesReportController extends Controller
      */
     private function stockTotals(array $productIds, array $sellerIds, Carbon $start, Carbon $end): array
     {
-        $empty = ['opening' => [], 'issued' => [], 'supplied' => []];
+        $empty = ['opening' => [], 'issued' => [], 'supplied' => [], 'returned' => []];
 
         if (empty($productIds) || empty($sellerIds)) {
             return $empty;
@@ -250,20 +257,53 @@ class MonthlySalesReportController extends Controller
             ->pluck('total', 'product_id')
             ->toArray();
 
-        // تسويات الشهر نفسه: ما كان بحوزته وما بِيع منه.
+        // Settled stock plus the live van stock for sellers that have not been
+        // closed yet. This keeps current sellers visible in the month report.
         $current = StockHistory::query()
             ->whereIn('product_id', $productIds)
             ->whereIn('seller_id', $sellerIds)
             ->whereBetween('created_at', [$start, $end])
             ->groupBy('product_id')
-            ->selectRaw('product_id, SUM(main_stock) as issued, SUM(stock) as supplied')
+            ->selectRaw('product_id, SUM(main_stock) as issued')
             ->get();
+
+        $issued = $current->pluck('issued', 'product_id')->toArray();
+
+        $live = Stock::query()
+            ->whereIn('product_id', $productIds)
+            ->whereIn('seller_id', $sellerIds)
+            ->groupBy('product_id')
+            ->selectRaw('product_id, SUM(main_stock) as issued')
+            ->get();
+
+        foreach ($live as $row) {
+            $issued[$row->product_id] = (float) ($issued[$row->product_id] ?? 0) + (float) $row->issued;
+        }
 
         return [
             'opening'  => $opening,
-            'issued'   => $current->pluck('issued', 'product_id')->toArray(),
-            'supplied' => $current->pluck('supplied', 'product_id')->toArray(),
+            'issued'   => $issued,
+            'supplied' => $this->invoiceQuantityTotals($productIds, $sellerIds, self::STOCK_SALE_TYPES, $start, $end),
+            'returned' => $this->invoiceQuantityTotals($productIds, $sellerIds, [self::TYPE_RETURN], $start, $end),
         ];
+    }
+
+    private function invoiceQuantityTotals(array $productIds, array $sellerIds, array $types, Carbon $start, Carbon $end): array
+    {
+        if (empty($productIds) || empty($sellerIds) || empty($types)) {
+            return [];
+        }
+
+        return DB::table('order_details')
+            ->join('orders', 'orders.id', '=', 'order_details.order_id')
+            ->whereIn('order_details.product_id', $productIds)
+            ->whereIn('orders.owner_id', $sellerIds)
+            ->whereIn('orders.type', $types)
+            ->whereBetween('orders.created_at', [$start, $end])
+            ->groupBy('order_details.product_id')
+            ->selectRaw('order_details.product_id, SUM(ABS(order_details.quantity)) as total')
+            ->pluck('total', 'product_id')
+            ->toArray();
     }
 
     /**
