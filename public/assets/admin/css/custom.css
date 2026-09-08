@@ -894,17 +894,31 @@ body {
 
 .table-responsive,
 .datatable-custom {
+    display: block;
     width: 100%;
     max-width: 100%;
-    overflow-x: auto !important;
-    overflow-y: visible;
+    overflow-x: scroll !important;
+    overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
     border: 1px solid #e0e9f3;
     border-radius: 8px;
     background: #fff;
     box-shadow: 0 12px 28px rgba(15, 23, 42, .06);
     scrollbar-width: thin;
     scrollbar-color: #aebed0 #edf3f9;
+    padding-bottom: 4px;
+}
+
+.table-responsive::-webkit-scrollbar,
+.datatable-custom::-webkit-scrollbar {
+    height: 12px;
+}
+
+.table-responsive::-webkit-scrollbar-track,
+.datatable-custom::-webkit-scrollbar-track {
+    background: #edf3f9;
+    border-radius: 999px;
 }
 
 .table-responsive > .table,
@@ -912,6 +926,7 @@ body {
 .datatable-custom > .table,
 .datatable-custom > table {
     margin-bottom: 0;
+    min-width: 100%;
 }
 
 .table-responsive > .table-nowrap,
@@ -920,6 +935,11 @@ body {
 .datatable-custom > table.table-nowrap,
 .table-responsive > .card-table,
 .datatable-custom > .card-table {
+    width: max-content;
+    min-width: 100%;
+}
+
+.datatable-custom .dataTables_wrapper {
     min-width: max-content;
 }
 
@@ -985,7 +1005,7 @@ body {
 
 [dir=rtl] .table-responsive,
 [dir=rtl] .datatable-custom {
-    direction: rtl;
+    direction: ltr;
 }
 
 [dir=rtl] .table-responsive > .table,

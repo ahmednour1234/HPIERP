@@ -199,6 +199,20 @@
                 scrollTop: $(".navbar-vertical-content li.active").offset().top - 150
             }, 10);
         }
+
+        function alignAdminTablesToRight() {
+            if ($('html').attr('dir') !== 'rtl') {
+                return;
+            }
+
+            $('.table-responsive, .datatable-custom').each(function () {
+                this.scrollLeft = this.scrollWidth;
+            });
+        }
+
+        alignAdminTablesToRight();
+        setTimeout(alignAdminTablesToRight, 300);
+        $(document).on('draw.dt shown.bs.tab shown.bs.modal', alignAdminTablesToRight);
     });
 </script>
 <!-- JS Plugins Init. -->
