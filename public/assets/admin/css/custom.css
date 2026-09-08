@@ -863,3 +863,150 @@ body > .width-inone {
     background: #e7f0ff;
     color: #1f3b57;
 }
+
+/* Global admin tables */
+html,
+body {
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.main,
+.main .content,
+.content.container-fluid {
+    max-width: 100%;
+    min-width: 0;
+}
+
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #aebed0;
+    border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #161853;
+}
+
+.table-responsive,
+.datatable-custom {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto !important;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
+    border: 1px solid #e0e9f3;
+    border-radius: 8px;
+    background: #fff;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, .06);
+    scrollbar-width: thin;
+    scrollbar-color: #aebed0 #edf3f9;
+}
+
+.table-responsive > .table,
+.table-responsive > table,
+.datatable-custom > .table,
+.datatable-custom > table {
+    margin-bottom: 0;
+}
+
+.table-responsive > .table-nowrap,
+.table-responsive > table.table-nowrap,
+.datatable-custom > .table-nowrap,
+.datatable-custom > table.table-nowrap,
+.table-responsive > .card-table,
+.datatable-custom > .card-table {
+    min-width: max-content;
+}
+
+.table:not(.table-bordered) {
+    border-collapse: separate;
+    border-spacing: 0;
+}
+
+.table thead th,
+.table .thead-light th {
+    border-top: 0;
+    border-bottom: 1px solid #dbe7f2;
+    background: #f6f9fd;
+    color: #52677f;
+    font-size: .82rem;
+    font-weight: 900;
+    letter-spacing: 0;
+    vertical-align: middle;
+    white-space: nowrap;
+}
+
+.table td,
+.table th {
+    padding: .9rem 1rem;
+    vertical-align: middle;
+}
+
+.table tbody td {
+    border-top: 1px solid #e7eef6;
+    color: #506882;
+    font-weight: 700;
+}
+
+.table tbody tr {
+    transition: background .16s ease, box-shadow .16s ease;
+}
+
+.table-hover tbody tr:hover,
+.table tbody tr:hover {
+    background: #f8fbff;
+}
+
+.card-table td:first-child,
+.card-table th:first-child {
+    padding-inline-start: 1rem;
+}
+
+.card-table td:last-child,
+.card-table th:last-child {
+    padding-inline-end: 1rem;
+}
+
+.table .btn,
+.card-table .btn {
+    border-radius: 8px;
+    font-weight: 800;
+}
+
+.page-area,
+.card-footer {
+    border-top-color: #e7eef6;
+}
+
+[dir=rtl] .table-responsive,
+[dir=rtl] .datatable-custom {
+    direction: rtl;
+}
+
+[dir=rtl] .table-responsive > .table,
+[dir=rtl] .table-responsive > table,
+[dir=rtl] .datatable-custom > .table,
+[dir=rtl] .datatable-custom > table {
+    direction: rtl;
+}
+
+@media print {
+    html,
+    body {
+        overflow: visible !important;
+        max-width: none;
+    }
+
+    .table-responsive,
+    .datatable-custom {
+        overflow: visible !important;
+        border: 0;
+        border-radius: 0;
+        box-shadow: none;
+    }
+}

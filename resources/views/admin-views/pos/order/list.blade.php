@@ -459,7 +459,7 @@
                     </label>
                     {{-- region_id[] posts an array; applyRegionFilter() also accepts
                          a single value, so older links keep working. --}}
-                    <select name="region_id[]" class="selectpicker form-control" multiple
+                    <select name="region_id[]" class="selectpicker searchable-multiple-picker form-control" multiple
                             data-live-search="true"
                             data-actions-box="true"
                             data-selected-text-format="count > 2"
