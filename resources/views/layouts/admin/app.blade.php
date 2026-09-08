@@ -227,6 +227,7 @@
             var spacer = proxy.firstElementChild;
             var activeScroller = null;
             var syncing = false;
+            var frameRequested = false;
 
             function getScrollers() {
                 return Array.prototype.slice.call(document.querySelectorAll('.table-responsive, .datatable-custom'))
@@ -306,6 +307,18 @@
                 syncing = false;
             }
 
+            function scheduleUpdate() {
+                if (frameRequested) {
+                    return;
+                }
+
+                frameRequested = true;
+                window.requestAnimationFrame(function () {
+                    frameRequested = false;
+                    updateProxy();
+                });
+            }
+
             proxy.addEventListener('scroll', function () {
                 if (!activeScroller || syncing) {
                     return;
@@ -316,9 +329,9 @@
                 syncing = false;
             }, { passive: true });
 
-            window.addEventListener('scroll', updateProxy, { passive: true });
-            window.addEventListener('resize', updateProxy);
-            $(document).on('draw.dt shown.bs.tab shown.bs.modal hidden.bs.modal', updateProxy);
+            document.addEventListener('scroll', scheduleUpdate, true);
+            window.addEventListener('resize', scheduleUpdate);
+            $(document).on('draw.dt shown.bs.tab shown.bs.modal hidden.bs.modal', scheduleUpdate);
 
             setTimeout(updateProxy, 150);
             setTimeout(updateProxy, 700);
