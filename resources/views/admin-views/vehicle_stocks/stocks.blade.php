@@ -38,6 +38,9 @@
             font-size: 13px;
             margin: 6px 0 0;
         }
+        .vs-print-meta {
+            display: none;
+        }
         .vs-actions {
             display: flex;
             gap: 8px;
@@ -237,18 +240,16 @@
         @media print {
             @page {
                 size: A4 landscape;
-                margin: 7mm;
+                margin: 8mm;
             }
             html,
             body {
                 background: #fff !important;
+                color: #111827 !important;
                 height: auto !important;
                 margin: 0 !important;
                 overflow: visible !important;
                 width: auto !important;
-            }
-            body * {
-                visibility: hidden !important;
             }
             #headerMain,
             #headerFluid,
@@ -265,6 +266,10 @@
             .non-printable {
                 display: none !important;
             }
+            body,
+            #content {
+                direction: rtl !important;
+            }
             #content,
             main#content,
             .main {
@@ -278,10 +283,6 @@
                 transform: none !important;
                 width: 100% !important;
             }
-            .vehicle-stock-report,
-            .vehicle-stock-report * {
-                visibility: visible !important;
-            }
             .vehicle-stock-report {
                 background: #fff !important;
                 display: block !important;
@@ -290,42 +291,114 @@
                 padding: 0 !important;
                 width: 100% !important;
             }
-            .vs-hero,
-            .vs-card,
-            .vs-panel,
-            .vs-info-item {
-                border: 1px solid #a9bdd2 !important;
-                box-shadow: none !important;
+            .vs-report-shell {
+                max-width: none !important;
+                width: 100% !important;
             }
             .vs-hero,
             .vs-panel {
-                margin-bottom: 8px !important;
-                margin-top: 0 !important;
+                border: 1px solid #9fb5cb !important;
+                border-radius: 4px !important;
+                box-shadow: none !important;
+                break-inside: avoid;
+                margin: 0 0 5mm !important;
+                overflow: visible !important;
             }
-            .vs-card {
-                min-height: 0;
-                padding: 8px;
+            .vs-hero {
+                background: #17365f !important;
+                color: #fff !important;
+                padding: 5mm 6mm !important;
             }
             .vs-card::before,
-            .vs-subtitle,
             .vs-panel-kicker,
             .non-printable {
                 display: none !important;
             }
+            .vs-title {
+                color: #fff !important;
+                font-size: 18px !important;
+                line-height: 1.4 !important;
+                margin: 0 !important;
+            }
+            .vs-subtitle,
+            .vs-print-meta {
+                color: #e5eef8 !important;
+                display: block !important;
+                font-size: 10px !important;
+                margin: 2px 0 0 !important;
+            }
+            .vs-print-meta span {
+                display: inline-block;
+                margin-left: 12px;
+            }
+            .vs-panel-header {
+                background: #eef5fb !important;
+                border-bottom: 1px solid #9fb5cb !important;
+                padding: 5px 7px !important;
+            }
+            .vs-panel-title {
+                color: #17365f !important;
+                font-size: 12px !important;
+                margin: 0 !important;
+            }
+            .vs-info-grid {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 0 !important;
+            }
+            .vs-info-item {
+                background: #fff !important;
+                border: 0 !important;
+                border-left: 1px solid #cad8e6 !important;
+                border-bottom: 1px solid #cad8e6 !important;
+                border-radius: 0 !important;
+                padding: 5px 7px !important;
+            }
+            .vehicle-stock-report .p-3 {
+                padding: 0 !important;
+            }
+            .vehicle-stock-report > .vs-report-shell > .row {
+                display: grid !important;
+                grid-template-columns: repeat(4, 1fr) !important;
+                gap: 3mm !important;
+                margin: 0 0 3mm !important;
+            }
+            .vehicle-stock-report > .vs-report-shell > .row > [class*="col-"] {
+                display: block !important;
+                max-width: none !important;
+                padding: 0 !important;
+                width: auto !important;
+            }
+            .vs-card {
+                border: 1px solid #b4c7da !important;
+                border-radius: 4px !important;
+                box-shadow: none !important;
+                min-height: 0 !important;
+                padding: 6px 7px !important;
+            }
             .vs-card-label,
             .vs-info-label {
-                font-size: 9px;
+                color: #64748b !important;
+                font-size: 8px !important;
+                margin-bottom: 2px !important;
             }
             .vs-card-value,
             .vs-info-value {
-                font-size: 12px;
+                color: #0f2d4f !important;
+                font-size: 10px !important;
+                line-height: 1.25 !important;
+            }
+            .vs-card-note {
+                color: #6f849b !important;
+                font-size: 8px !important;
+                margin-top: 3px !important;
             }
             .vs-table-wrap {
                 overflow: visible !important;
             }
             .vs-table {
                 border-collapse: collapse !important;
-                font-size: 8px;
+                font-size: 7.2px;
                 min-width: 0;
                 width: 100% !important;
             }
@@ -337,13 +410,35 @@
             }
             .vs-table th,
             .vs-table td {
-                border: 1px solid #8ea8c1 !important;
-                padding: 3px 4px;
+                border: 1px solid #9fb5cb !important;
+                padding: 2.4px 3px;
+                white-space: normal !important;
             }
             .vs-table thead th {
-                background: #cfe2f3 !important;
+                background: #dcebf7 !important;
                 color: #111 !important;
                 position: static !important;
+            }
+            .vs-product-name {
+                color: #111827 !important;
+                font-weight: 700 !important;
+                min-width: 95px;
+            }
+            .vs-muted,
+            .vs-progress {
+                display: none !important;
+            }
+            .vs-status {
+                border-radius: 3px !important;
+                min-width: 0 !important;
+                padding: 1px 4px !important;
+                font-size: 7px !important;
+            }
+            .vs-empty {
+                padding: 10px !important;
+            }
+            .vs-empty img {
+                display: none !important;
             }
             * {
                 -webkit-print-color-adjust: exact !important;
@@ -369,6 +464,11 @@
                         <p class="vs-subtitle">
                             ملخص حركة المخزون مع المندوب حتى {{ now()->format('Y-m-d H:i') }}
                         </p>
+                        <div class="vs-print-meta">
+                            <span>المندوب: {{ $summary['seller_name'] ?: '-' }}</span>
+                            <span>كود المندوب: {{ $summary['seller_code'] ?: '-' }}</span>
+                            <span>السيارة: {{ $summary['vehicle_code'] ?: '-' }}</span>
+                        </div>
                     </div>
                     <div class="col-lg-4 non-printable">
                         <div class="vs-actions">
