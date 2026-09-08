@@ -43,14 +43,27 @@ class StockController extends Controller
         // The page's search form posts `search`, plus the filters below. The
         // previous version ignored every parameter, so submitting the form
         // changed nothing.
-        $stocks = $this->applyFilters($this->stock->newQuery(), $request)
+        $stockQuery = $this->applyFilters($this->stock->newQuery()->with(['product', 'seller']), $request);
+        $summaryRows = (clone $stockQuery)->get();
+
+        $stocks = $stockQuery
             ->paginate(Helpers::pagination_limit())
             ->appends($request->query());
 
         $sellers = \App\Models\Seller::where('role', 'seller')
             ->orderBy('f_name')->get(['id', 'f_name', 'l_name', 'mandob_code']);
 
-        return view('admin-views.vehicle_stocks.index', compact('stocks', 'sellers'));
+        $stockSummary = [
+            'rows' => $summaryRows->count(),
+            'sellers' => $summaryRows->pluck('seller_id')->unique()->count(),
+            'products' => $summaryRows->pluck('product_id')->unique()->count(),
+            'issued' => (float) $summaryRows->sum('main_stock'),
+            'remaining' => (float) $summaryRows->sum('stock'),
+            'sold' => (float) $summaryRows->sum(fn ($stock) => max((float) $stock->main_stock - (float) $stock->stock, 0)),
+            'remaining_value' => (float) $summaryRows->sum(fn ($stock) => (float) $stock->stock * (float) optional($stock->product)->selling_price),
+        ];
+
+        return view('admin-views.vehicle_stocks.index', compact('stocks', 'sellers', 'stockSummary'));
     }
 
     /**
