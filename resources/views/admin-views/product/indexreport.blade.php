@@ -86,7 +86,7 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-box-seam me-1"></i> المنتجات
                 </label>
-                <select name="product_code[]" class="form-control select2-multiple w-100" multiple 
+                <select name="product_code[]" class="form-control selectpicker filter-multiple w-100" multiple
                         data-placeholder="اختر منتج أو أكثر">
                     @isset($productsall)
                         @foreach($productsall as $product)
@@ -122,7 +122,7 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-person-badge me-1"></i> البائع
                 </label>
-                <select name="seller_id[]" class="form-control select2-multiple w-100" multiple
+                <select name="seller_id[]" class="form-control selectpicker filter-multiple w-100" multiple
                         data-placeholder="كل البائعين">
                     @foreach ($sellers as $seller)
                         <option value="{{ $seller->id }}"
@@ -139,7 +139,7 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-geo-alt me-1"></i> المنطقة
                 </label>
-                <select name="region_ids[]" class="form-control select2-multiple w-100" multiple
+                <select name="region_ids[]" class="form-control selectpicker filter-multiple w-100" multiple
                         data-placeholder="كل المناطق">
                     @foreach ($regions as $region)
                         <option value="{{ $region->id }}"
@@ -156,7 +156,7 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-receipt-cutoff me-1"></i> نوع الطلب
                 </label>
-                <select name="order_type[]" class="form-control select2-multiple w-100" multiple
+                <select name="order_type[]" class="form-control selectpicker filter-multiple w-100" multiple
                         data-placeholder="كل الأنواع">
                     @foreach ([4 => 'مبيعات', 7 => 'مرتجع مبيعات', 12 => 'عينات', 24 => 'تبرعات'] as $key => $label)
                         <option value="{{ $key }}"
@@ -173,7 +173,7 @@
                 <label class="form-label filter-label">
                     <i class="bi bi-cash-coin me-1"></i> حالة الدفع
                 </label>
-                <select name="payment_status[]" class="form-control select2-multiple w-100" multiple
+                <select name="payment_status[]" class="form-control selectpicker filter-multiple w-100" multiple
                         data-placeholder="كل الحالات">
                     @foreach (['paid' => 'تم التحصيل', 'unpaid' => 'لم يتم التحصيل'] as $key => $label)
                         <option value="{{ $key }}"
@@ -193,7 +193,7 @@
                 @php
                     $selectedStatuses = (array) request()->input('invoice_status', []);
                 @endphp
-                <select name="invoice_status[]" class="form-control select2-multiple w-100" multiple
+                <select name="invoice_status[]" class="form-control selectpicker filter-multiple w-100" multiple
                         data-placeholder="كل حالات الفواتير">
                     <option value="paid"             {{ in_array('paid', $selectedStatuses) ? 'selected' : '' }}>
                         محصلة بالكامل
@@ -215,7 +215,7 @@
                     </option>
                 </select>
                 <small class="text-muted d-block mt-1">
-                    يمكنك اختيار أكثر من حالة بالضغط مع Ctrl/⌘.
+                    يمكنك اختيار أكثر من حالة بالضغط العادي والبحث من القائمة.
                 </small>
             </div>
         </div>
@@ -756,28 +756,6 @@
             });
         }
 
-        // تفعيل Select2 لكل الـ selects الخاصة بالفلترة
-        $(document).ready(function () {
-            if ($.fn.select2) {
-                $('.select2').select2({
-                    width: '100%',
-                    dir: 'rtl',
-                    allowClear: true,
-                    placeholder: function(){
-                        return $(this).data('placeholder') || '';
-                    }
-                });
-
-                $('.select2-multiple').select2({
-                    width: '100%',
-                    dir: 'rtl',
-                    closeOnSelect: false,
-                    placeholder: function(){
-                        return $(this).data('placeholder') || '';
-                    }
-                });
-            }
-        });
     </script>
 
     <script src={{asset("public/assets/admin/js/global.js")}}></script>

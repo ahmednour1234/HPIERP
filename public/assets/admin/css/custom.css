@@ -811,3 +811,55 @@ body > .width-inone {
 .avatar-img {
     width: 100%;
 }
+
+.bootstrap-select.searchable-multiple-picker {
+    width: 100% !important;
+}
+
+.bootstrap-select.searchable-multiple-picker > .dropdown-toggle {
+    min-height: 44px;
+    border: 1px solid #d8e2ef;
+    background: #fff;
+    color: #1f2937;
+    border-radius: 8px;
+    padding: 9px 12px;
+    box-shadow: none;
+}
+
+.bootstrap-select.searchable-multiple-picker > .dropdown-toggle:focus,
+.bootstrap-select.searchable-multiple-picker.show > .dropdown-toggle {
+    border-color: #377dff;
+    box-shadow: 0 0 0 3px rgba(55, 125, 255, .12);
+    outline: 0 !important;
+}
+
+[dir=rtl] .bootstrap-select.searchable-multiple-picker .filter-option-inner-inner,
+[dir=rtl] .bootstrap-select.searchable-multiple-picker .dropdown-item,
+[dir=rtl] .bootstrap-select.searchable-multiple-picker .bs-searchbox .form-control {
+    text-align: right;
+}
+
+.bootstrap-select.searchable-multiple-picker .dropdown-menu {
+    border: 1px solid #d8e2ef;
+    border-radius: 8px;
+    box-shadow: 0 14px 32px rgba(15, 23, 42, .16);
+}
+
+.bootstrap-select.searchable-multiple-picker .bs-searchbox {
+    padding: 8px;
+}
+
+.bootstrap-select.searchable-multiple-picker .bs-searchbox .form-control {
+    height: 38px;
+    border-radius: 7px;
+}
+
+.bootstrap-select.searchable-multiple-picker .dropdown-item {
+    padding: 8px 14px;
+}
+
+.bootstrap-select.searchable-multiple-picker .dropdown-item.selected,
+.bootstrap-select.searchable-multiple-picker .dropdown-item.active {
+    background: #e7f0ff;
+    color: #1f3b57;
+}

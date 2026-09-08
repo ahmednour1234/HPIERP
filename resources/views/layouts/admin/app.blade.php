@@ -99,6 +99,54 @@
 <script src="{{asset('public/assets/admin')}}/js/toastr.js"></script>
 <!-- select picker -->
 <script src="{{asset('public/assets/admin')}}/js/bootstrap-select.min.js"></script>
+<script>
+    $(document).ready(function () {
+        if (!$.fn.selectpicker) {
+            return;
+        }
+
+        $('select[multiple]')
+            .not('.select2-multiple, .select2-hidden-accessible, .js-select2-custom, .selectpicker-ignore')
+            .each(function () {
+                var $select = $(this);
+
+                if ($select.data('selectpicker')) {
+                    $select.selectpicker('refresh');
+                    $select.closest('.bootstrap-select').addClass('searchable-multiple-picker');
+                    return;
+                }
+
+                var id = $select.attr('id');
+                var label = id ? $('label[for="' + id + '"]').first().text().trim() : '';
+                if (!label) {
+                    label = $select.closest('.form-group, .col-md-6, .col-lg-3, .col-lg-4, .col-12').find('label').first().text().trim();
+                }
+
+                var placeholder = $select.data('placeholder') || $select.attr('title') || label || 'اختر';
+
+                $select
+                    .addClass('selectpicker searchable-multiple-picker')
+                    .attr('title', placeholder)
+                    .attr('data-live-search', 'true')
+                    .attr('data-actions-box', 'true')
+                    .attr('data-width', '100%')
+                    .attr('data-size', '8')
+                    .attr('data-selected-text-format', 'count > 2')
+                    .attr('data-count-selected-text', '{0} محدد')
+                    .attr('data-select-all-text', 'تحديد الكل')
+                    .attr('data-deselect-all-text', 'إلغاء الكل')
+                    .attr('data-none-results-text', 'لا توجد نتائج مطابقة {0}');
+
+                $select.selectpicker({
+                    liveSearch: true,
+                    actionsBox: true,
+                    style: '',
+                    styleBase: 'form-control'
+                });
+                $select.closest('.bootstrap-select').addClass('searchable-multiple-picker');
+            });
+    });
+</script>
 <!-- ck editor -->
 <script src="{{asset('public/assets/admin')}}/js/ck-editor.js"></script>
 {!! Toastr::message() !!}
