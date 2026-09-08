@@ -109,17 +109,27 @@
         overflow: auto;
         max-height: 68vh;
     }
-    .ms-collection-grid {
-        display: grid;
-        grid-template-columns: minmax(0, 1fr) 360px;
-        gap: 18px;
-        align-items: start;
+    .ms-collection-row {
+        margin-right: 0;
+        margin-left: 0;
         padding: 18px;
+    }
+    .ms-collection-col {
+        min-width: 0;
+    }
+    .ms-chart-col {
+        display: flex;
+        min-width: 0;
+    }
+    .ms-chart-col .ms-chart-panel {
+        width: 100%;
     }
     .ms-chart-panel {
         background: #f7fbff;
         border: 1px solid #d9e6f2;
         border-radius: 8px;
+        max-height: 68vh;
+        overflow: auto;
         padding: 14px;
     }
     .ms-chart-title {
@@ -130,39 +140,41 @@
     }
     .ms-chart-grid {
         display: grid;
-        grid-template-columns: repeat(2, minmax(130px, 1fr));
+        grid-template-columns: 1fr;
         gap: 14px;
     }
     .ms-chart-card {
-        min-height: 208px;
+        min-height: 136px;
         background: #fff;
         border: 1px solid #d9e6f2;
         border-radius: 8px;
         padding: 12px;
         display: flex;
-        flex-direction: column;
+        flex-direction: row;
         align-items: center;
-        justify-content: space-between;
+        justify-content: flex-start;
+        gap: 14px;
     }
     .ms-chart-canvas-wrap {
-        width: 132px;
-        height: 132px;
+        flex: 0 0 112px;
+        width: 112px;
+        height: 112px;
     }
     .ms-chart-card canvas {
-        width: 132px !important;
-        height: 132px !important;
+        width: 112px !important;
+        height: 112px !important;
     }
     .ms-chart-name {
         color: #17365f;
         font-weight: 800;
-        text-align: center;
-        margin-top: 8px;
+        text-align: right;
+        margin-top: 0;
         line-height: 1.5;
-        min-height: 38px;
+        min-height: 0;
     }
     .ms-empty-chart {
-        width: 132px;
-        height: 132px;
+        width: 112px;
+        height: 112px;
         border-radius: 50%;
         border: 12px solid #e8eef5;
         display: flex;
@@ -170,11 +182,6 @@
         justify-content: center;
         color: #7a8da3;
         font-weight: 700;
-    }
-    @media (max-width: 1199.98px) {
-        .ms-collection-grid {
-            grid-template-columns: 1fr;
-        }
     }
     @media (max-width: 575.98px) {
         .ms-title {
@@ -188,6 +195,13 @@
         }
         .ms-chart-grid {
             grid-template-columns: 1fr;
+        }
+        .ms-chart-card {
+            flex-direction: column;
+            min-height: 196px;
+        }
+        .ms-chart-name {
+            text-align: center;
         }
     }
     @media print {
@@ -358,8 +372,8 @@
             <span class="badge badge-soft-primary">{{ $products->count() }} منتج</span>
         </div>
 
-        <div class="ms-collection-grid">
-            <div>
+        <div class="row ms-collection-row">
+            <div class="col-xl-8 ms-collection-col mb-3 mb-xl-0">
                 <div class="ms-scroll">
                     <table class="ms-table">
                         <thead>
@@ -399,6 +413,7 @@
             </div>
 
             {{-- نسبة التحقيق: حصة كل منطقة من تحصيل المنتج --}}
+            <div class="col-xl-4 ms-chart-col">
             <aside class="ms-chart-panel">
                 <div class="ms-chart-title">نسبة التحقيق للمناطق</div>
                 <div class="ms-chart-grid">
@@ -416,6 +431,7 @@
                     @endforeach
                 </div>
             </aside>
+            </div>
         </div>
     </div>
 
