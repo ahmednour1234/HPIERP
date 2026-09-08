@@ -3,32 +3,418 @@
 @push('css_or_js')
     {{-- <meta name="csrf-token" content="{{ csrf_token() }}"> --}}
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/custom.css"/>
+    <style>
+        .pos-orders-page {
+            direction: rtl;
+            background: linear-gradient(135deg, rgba(17, 36, 90, .05), rgba(20, 184, 166, .08)), #f4f8fb;
+            min-height: calc(100vh - 4rem);
+            padding-top: 2rem;
+            padding-bottom: 2.5rem;
+            color: #102a43;
+        }
+
+        .pos-orders-shell {
+            display: flex;
+            flex-direction: column;
+            gap: 1.15rem;
+        }
+
+        .pos-orders-hero,
+        .pos-orders-card,
+        .pos-orders-filter-card {
+            border: 1px solid #d9e6f2;
+            border-radius: 8px;
+            background: #fff;
+            box-shadow: 0 14px 32px rgba(15, 23, 42, .08);
+            overflow: hidden;
+        }
+
+        .pos-orders-hero {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 1rem;
+            padding: 1.35rem 1.5rem;
+            background: linear-gradient(135deg, #111857, #0f766e);
+            color: #fff;
+        }
+
+        .pos-orders-title {
+            display: flex;
+            align-items: center;
+            gap: .75rem;
+            margin: 0;
+            color: #fff;
+            font-size: 1.65rem;
+            font-weight: 900;
+        }
+
+        .pos-orders-title span {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, .14);
+        }
+
+        .pos-orders-hero p {
+            margin: .4rem 3.75rem 0 0;
+            color: rgba(255, 255, 255, .76);
+            font-weight: 700;
+        }
+
+        .pos-orders-count {
+            border-radius: 999px;
+            padding: .55rem .9rem;
+            background: #facc15;
+            color: #111857;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .pos-orders-filter-card {
+            margin-bottom: 1rem !important;
+        }
+
+        .pos-orders-filter-card .card-header {
+            border-bottom: 1px solid #e7eef6;
+            background: linear-gradient(90deg, #f8fbff, #eef7fb) !important;
+            padding: 1rem 1.15rem;
+        }
+
+        .pos-orders-filter-title {
+            display: flex;
+            align-items: center;
+            gap: .65rem;
+            margin: 0;
+            color: #132f52;
+            font-weight: 900;
+        }
+
+        .pos-orders-filter-title span {
+            width: 2.4rem;
+            height: 2.4rem;
+            border-radius: 8px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: #11245a;
+            color: #fff;
+        }
+
+        .pos-orders-filter-card .card-body {
+            background: #fff !important;
+            padding: 1.25rem !important;
+        }
+
+        .pos-orders-filter-form label {
+            color: #52677f !important;
+            font-weight: 900 !important;
+            margin-bottom: .45rem;
+        }
+
+        .pos-orders-filter-form .form-control,
+        .pos-orders-filter-form .custom-select,
+        .pos-orders-filter-form .bootstrap-select > .dropdown-toggle {
+            min-height: 3.15rem;
+            border: 1px solid #d5e2ef !important;
+            border-radius: 8px !important;
+            background: #fff !important;
+            color: #102a43 !important;
+            font-weight: 800;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, .04) !important;
+        }
+
+        .pos-orders-filter-form .input-group {
+            border: 1px solid #d5e2ef;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 8px 18px rgba(15, 23, 42, .04) !important;
+        }
+
+        .pos-orders-filter-form .input-group .form-control,
+        .pos-orders-filter-form .input-group .input-group-text {
+            border: 0 !important;
+            box-shadow: none !important;
+        }
+
+        .pos-orders-actions {
+            gap: .6rem;
+        }
+
+        .pos-orders-btn {
+            min-height: 3.1rem;
+            border-radius: 8px !important;
+            padding: .75rem 1.15rem;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: .45rem;
+            font-weight: 900;
+            box-shadow: 0 10px 20px rgba(15, 23, 42, .07);
+        }
+
+        .pos-orders-summary {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 1rem;
+            margin: 0 0 1rem !important;
+        }
+
+        .pos-orders-summary > [class*="col-"] {
+            max-width: none;
+            padding: 0;
+        }
+
+        .pos-orders-summary-card {
+            min-height: 6.8rem;
+            border: 1px solid #dbe7f2;
+            border-radius: 8px;
+            background: #fff;
+            padding: 1rem;
+            box-shadow: 0 10px 22px rgba(15, 23, 42, .05);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .pos-orders-summary-card::after {
+            content: "";
+            position: absolute;
+            inset: auto auto -2.75rem -2.75rem;
+            width: 6rem;
+            height: 6rem;
+            border-radius: 50%;
+            background: currentColor;
+            opacity: .1;
+        }
+
+        .pos-orders-summary-label {
+            display: block;
+            color: #60758b;
+            font-size: .82rem;
+            font-weight: 900;
+            margin-bottom: .55rem;
+        }
+
+        .pos-orders-summary-value {
+            color: #102a43;
+            font-size: 1.25rem;
+            font-weight: 900;
+            word-break: break-word;
+        }
+
+        .pos-orders-summary-card--sales { color: #11245a; }
+        .pos-orders-summary-card--cash { color: #0f9f6e; }
+        .pos-orders-summary-card--products { color: #d97706; }
+        .pos-orders-summary-card--qty { color: #7c3aed; }
+
+        .pos-orders-table-wrap {
+            border: 1px solid #e0e9f3;
+            border-radius: 8px;
+            overflow: hidden;
+            background: #fff;
+        }
+
+        .pos-orders-table {
+            margin: 0;
+            color: #506882;
+        }
+
+        .pos-orders-table thead th {
+            border: 0;
+            background: #11245a;
+            color: #fff;
+            padding: 1rem;
+            font-weight: 900;
+            white-space: nowrap;
+            text-align: right;
+        }
+
+        .pos-orders-table tbody td {
+            border-top: 1px solid #e7eef6;
+            padding: .95rem 1rem;
+            vertical-align: middle;
+            font-weight: 700;
+        }
+
+        .pos-orders-table tbody tr:hover {
+            background: #f8fbff;
+        }
+
+        .pos-orders-invoice-link {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            min-width: 4.5rem;
+            border-radius: 999px;
+            padding: .4rem .7rem;
+            background: #e0f2fe;
+            color: #075985;
+            font-weight: 900;
+            text-decoration: none;
+        }
+
+        .pos-orders-invoice-link:hover {
+            color: #11245a;
+            text-decoration: none;
+        }
+
+        .pos-orders-type-pill,
+        .pos-orders-payment-pill {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 999px;
+            padding: .38rem .65rem;
+            font-size: .8rem;
+            font-weight: 900;
+            white-space: nowrap;
+        }
+
+        .pos-orders-type-pill {
+            background: #dcfce7;
+            color: #166534;
+        }
+
+        .pos-orders-type-pill--refund {
+            background: #ffe4e6;
+            color: #be123c;
+        }
+
+        .pos-orders-payment-pill {
+            background: #eef4fb;
+            color: #52677f;
+        }
+
+        .pos-orders-collection {
+            min-width: 12rem;
+        }
+
+        .pos-orders-collection-total {
+            color: #102a43;
+            font-weight: 900;
+        }
+
+        .pos-orders-collection small {
+            font-weight: 800;
+        }
+
+        .pos-orders-collection .btn {
+            border-radius: 8px;
+            font-weight: 900;
+            margin-top: .35rem;
+        }
+
+        .pos-orders-image {
+            width: 3rem;
+            height: 3rem;
+            border-radius: 8px;
+            object-fit: cover;
+            cursor: pointer;
+            border: 1px solid #dbe7f2;
+        }
+
+        .pos-orders-empty {
+            padding: 3rem 1rem;
+            text-align: center;
+            color: #71869c;
+            font-weight: 800;
+        }
+
+        .pos-orders-empty img {
+            width: 7rem;
+            margin-bottom: 1rem;
+        }
+
+        .pos-orders-pagination {
+            border-top: 1px solid #e7eef6 !important;
+            background: #fff;
+        }
+
+        @media (max-width: 1199.98px) {
+            .pos-orders-summary {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 767.98px) {
+            .pos-orders-page {
+                padding-top: 1rem;
+            }
+
+            .pos-orders-hero {
+                flex-direction: column;
+                align-items: stretch;
+            }
+
+            .pos-orders-hero p {
+                margin-right: 0;
+            }
+
+            .pos-orders-summary {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        @media print {
+            .pos-orders-filter-card,
+            .pos-orders-pagination,
+            .non-printable,
+            .none {
+                display: none !important;
+            }
+
+            .pos-orders-page {
+                background: #fff;
+                padding: 0;
+            }
+
+            .pos-orders-card,
+            .pos-orders-summary-card,
+            .pos-orders-table-wrap {
+                box-shadow: none;
+            }
+        }
+    </style>
 @endpush
 
 @section('content')
-    <div class="content container-fluid">
+    <div class="content container-fluid pos-orders-page">
+        <div class="pos-orders-shell">
         <!-- Page Header -->
-        <div class="">
+        <section class="pos-orders-hero">
+            <div>
+                <h1 class="pos-orders-title">
+                    <span><i class="tio-receipt-outlined"></i></span>
+                    فواتير المبيعات
+                </h1>
+                <p>بحث وتصفية ومتابعة التحصيلات لكل فواتير نقطة البيع من شاشة واحدة مرتبة.</p>
+            </div>
+            <div class="pos-orders-count">{{ number_format($orders->total()) }} فاتورة</div>
+        </section>
+        <div class="d-none">
             <div class="row align-items-center mb-3">
                 <div class="col-sm">
                     <h1 class="page-header-title text-capitalize">{{\App\CPU\translate('pos')}} {{\App\CPU\translate('المبيعات')}}
-                        <span
-                            class="badge badge-soft-dark ml-2">{{$orders->total()}}</span></h1>
+                        <span class="badge badge-soft-dark ml-2">{{$orders->total()}}</span></h1>
                 </div>
             </div>
         </div>
         <!-- End Page Header -->
         <!-- Card -->
-        <div class="card">
+        <div class="card pos-orders-card">
             <!-- Header -->
-<div class="card shadow-sm border-0 mb-4">
-    <div class="card-header bg-white py-3 px-4">
-        <h5 class="mb-0 text-primary fw-bold">
-            <i class="tio-search mr-2"></i> {{ \App\CPU\translate('بحث وتصفية') }}
+<div class="card pos-orders-filter-card shadow-sm border-0 mb-4">
+    <div class="card-header">
+        <h5 class="pos-orders-filter-title">
+            <span><i class="tio-search"></i></span>
+            بحث وتصفية
         </h5>
     </div>
-    <div class="card-body bg-light p-4">
-        <form action="{{ url()->current() }}" method="GET" class="filter-panel-v2">
+    <div class="card-body">
+        <form action="{{ url()->current() }}" method="GET" class="filter-panel-v2 pos-orders-filter-form">
 
             {{-- Row 1: the free-text search gets its own line — it is the
                  control people reach for first and benefits from the width. --}}
@@ -73,8 +459,13 @@
                     </label>
                     {{-- region_id[] posts an array; applyRegionFilter() also accepts
                          a single value, so older links keep working. --}}
-                    <select name="region_id[]" class="custom-select shadow-sm" multiple size="5"
-                            style="height:auto;">
+                    <select name="region_id[]" class="selectpicker form-control" multiple
+                            data-live-search="true"
+                            data-actions-box="true"
+                            data-selected-text-format="count > 2"
+                            data-none-selected-text="اختار المنطقة"
+                            data-count-selected-text="{0} مناطق مختارة"
+                            title="اختار المنطقة">
                         @foreach($regions as $region)
                             {{-- The count tells you a region is empty before you filter by it. --}}
                             <option value="{{ $region->id }}"
@@ -85,9 +476,7 @@
                             </option>
                         @endforeach
                     </select>
-                    <small class="text-muted d-block mt-1">
-                        {{ \App\CPU\translate('اضغط Ctrl لاختيار أكثر من منطقة') }}
-                    </small>
+                    <small class="text-muted d-block mt-1">اكتب للبحث، ويمكن اختيار أكثر من منطقة مباشرة.</small>
                 </div>
 
                 <div class="col-lg-8 col-md-6">
@@ -135,24 +524,24 @@
             </div>
 
 {{-- Row 3: apply and reset on one side, the outputs on the other. --}}
-            <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top">
-                <div>
-                    <button type="submit" class="btn btn-primary px-4">
+            <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top pos-orders-actions">
+                <div class="d-flex flex-wrap pos-orders-actions">
+                    <button type="submit" class="btn btn-primary pos-orders-btn">
                         <i class="tio-filter-list"></i> {{ \App\CPU\translate('تطبيق') }}
                     </button>
-                    <a href="{{ url()->current() }}" class="btn btn-outline-secondary px-4">
+                    <a href="{{ url()->current() }}" class="btn btn-outline-secondary pos-orders-btn">
                         {{ \App\CPU\translate('إعادة تعيين') }}
                     </a>
                 </div>
 
-                <div>
+                <div class="d-flex flex-wrap pos-orders-actions">
                     {{-- Both carry the current filters, so what is downloaded or
                          printed matches what is on screen. --}}
                     <a href="{{ route('admin.pos.orders.export', request()->query()) }}"
-                       class="btn btn-success px-4">
+                       class="btn btn-success pos-orders-btn">
                         <i class="tio-file-outlined"></i> {{ \App\CPU\translate('تصدير CSV') }}
                     </a>
-                    <button type="button" class="btn btn-outline-secondary px-4" onclick="printTable()">
+                    <button type="button" class="btn btn-outline-secondary pos-orders-btn" onclick="printTable()">
                         <i class="tio-print"></i> {{ \App\CPU\translate('طباعة') }}
                     </button>
                 </div>
@@ -163,26 +552,38 @@
 
 <div class="card-body" id="product-table">
     <!-- Total Sales -->
-    <div class="row mb-3">
+    <div class="row mb-3 pos-orders-summary">
         <div class="col-md-3">
-            <strong>{{ \App\CPU\translate('إجمالي المبيعات') }}:</strong> {{ number_format($orderAmountSum, 2) }}
+            <div class="pos-orders-summary-card pos-orders-summary-card--sales">
+                <span class="pos-orders-summary-label">إجمالي المبيعات</span>
+                <span class="pos-orders-summary-value">{{ number_format($orderAmountSum, 2) }}</span>
+            </div>
         </div>
         <div class="col-md-3">
-            <strong>{{ \App\CPU\translate('إجمالي المبالغ المحصلة') }}:</strong> {{ number_format($collectedCashSum, 2) }}
+            <div class="pos-orders-summary-card pos-orders-summary-card--cash">
+                <span class="pos-orders-summary-label">إجمالي المبالغ المحصلة</span>
+                <span class="pos-orders-summary-value">{{ number_format($collectedCashSum, 2) }}</span>
+            </div>
         </div>
         <div class="col-md-3">  
-            <strong>{{ \App\CPU\translate('إجمالي عدد المنتجات المباعة') }}:</strong> {{ $productCount }}
+            <div class="pos-orders-summary-card pos-orders-summary-card--products">
+                <span class="pos-orders-summary-label">إجمالي عدد المنتجات المباعة</span>
+                <span class="pos-orders-summary-value">{{ number_format($productCount) }}</span>
+            </div>
         </div>
         <div class="col-md-3">
-            <strong>{{ \App\CPU\translate('إجمالي كميات المنتجات المباعة') }}:</strong> {{ $quantitySum }}
+            <div class="pos-orders-summary-card pos-orders-summary-card--qty">
+                <span class="pos-orders-summary-label">إجمالي كميات المنتجات المباعة</span>
+                <span class="pos-orders-summary-value">{{ number_format($quantitySum) }}</span>
+            </div>
         </div>
     </div>
             <!-- End Header -->
 
             <!-- Table -->
-            <div class="table-responsive ">
+            <div class="table-responsive pos-orders-table-wrap">
                 <table
-                    class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table"
+                    class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table pos-orders-table"
                 >
                     <thead class="thead-light">
                     <tr>
@@ -215,7 +616,7 @@
                                 {{$key+$orders->firstItem()}}
                             </td>
                             <td class="table-column-pl-0">
-                                <a class="text-primary" href="#" onclick="print_invoice('{{$order->id}}')">{{$order['id']}}</a>
+                                <a class="pos-orders-invoice-link" href="#" onclick="print_invoice('{{$order->id}}')">{{$order['id']}}</a>
                             </td>
                             <td>
 {{$order->seller->email ?? ''}}                            
@@ -228,8 +629,10 @@
 </td>
 
                             <td>{{date('d M Y',strtotime($order['created_at']))}}</td>
-                            <td>{{ $order['type'] == 4 ? 'مبيع' : 'مرتجع' }}</td>
-                            <td>{{ $order['cash'] == 2 ? 'أجل' : 'كاش' }}</td>
+                            <td>
+                                <span class="pos-orders-type-pill {{ $order['type'] == 4 ? '' : 'pos-orders-type-pill--refund' }}">{{ $order['type'] == 4 ? 'مبيع' : 'مرتجع' }}</span>
+                            </td>
+                            <td><span class="pos-orders-payment-pill">{{ $order['cash'] == 2 ? 'أجل' : 'كاش' }}</span></td>
                             <td>
                                 {{ ($order->payment_id != 0) ? ($order->account ? $order->account->account : \App\CPU\translate('account_deleted')): 'Customer balance' }}
                             </td>
@@ -254,7 +657,7 @@
 </td>
                             {{-- Collections: what has come in against this invoice, what is
                                  left, and the control to reverse a collection. --}}
-<td style="min-width:170px;">
+<td class="pos-orders-collection">
                                 @php
                                     $invoiceTotal = (float) $order->order_amount;
                                     $collected    = (float) $order->collected_cash;
@@ -262,7 +665,7 @@
                                 @endphp
 
                                 <div class="mb-1">
-                                    <span class="font-weight-bold">{{ number_format($collected, 2) }}</span>
+                                    <span class="pos-orders-collection-total">{{ number_format($collected, 2) }}</span>
                                     <small class="text-muted">/ {{ number_format($invoiceTotal, 2) }}</small>
                                 </div>
 
@@ -282,7 +685,7 @@
 
                                 @if ($remaining > 0)
                                     <button type="button"
-                                            class="btn btn-sm btn-outline-success btn-block"
+                                            class="btn btn-sm btn-outline-success btn-block pos-orders-collect-btn"
                                             data-toggle="modal"
                                             data-target="#collectModal-{{ $order->id }}"
                                             title="{{ \App\CPU\translate('تحصيل مبلغ على هذه الفاتورة') }}">
@@ -359,7 +762,7 @@
                                     {{-- A real button: this was an <a><small> with no button
                                          class, so it read as plain text under the badge. --}}
                                     <button type="button"
-                                            class="btn btn-sm btn-outline-danger btn-block btn-reverse-collection"
+                                            class="btn btn-sm btn-outline-danger btn-block btn-reverse-collection pos-orders-reverse-btn"
                                             title="{{ \App\CPU\translate('رد مبلغ محصّل على هذه الفاتورة') }}"
                                             onclick="reverseCollection({{ $order->id }}, {{ $collected }})">
                                         <i class="tio-undo"></i> {{ \App\CPU\translate('رد التحصيل') }}
@@ -377,7 +780,7 @@
         <img 
         src="{{ asset('storage/shop/'.$order['img']) }}" 
         alt="Image Description" 
-        style="width: 50px; height: auto; cursor: pointer;" 
+        class="pos-orders-image"
         data-toggle="modal" 
         data-target="#imageModal{{ $order['id'] }}">
     @else
@@ -422,7 +825,7 @@
             <!-- End Table -->
 
             <!-- Footer -->
-            <div class="card-footer none">
+            <div class="card-footer none pos-orders-pagination">
                 <!-- Pagination -->
                 <div class="row justify-content-center justify-content-sm-between align-items-sm-center">
                     <div class="col-sm-auto">
@@ -435,7 +838,7 @@
                 <!-- End Pagination -->
             </div>
             @if(count($orders)==0)
-                <div class="text-center p-4">
+                <div class="pos-orders-empty">
                     <img class="mb-3 img-one-ol" src="{{asset('public/assets/admin')}}/svg/illustrations/sorry.svg"
                          alt="Image Description">
                     <p class="mb-0">{{ \App\CPU\translate('No_data_to_show')}}</p>
@@ -444,6 +847,7 @@
         <!-- End Footer -->
         </div>
         <!-- End Card -->
+        </div>
     </div>
 
     <div class="modal fade" id="print-invoice" tabindex="-1">
