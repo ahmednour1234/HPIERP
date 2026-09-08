@@ -10,10 +10,14 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\CPU\Helpers;
 use App\Models\ConfirmStock;
+use App\Models\CurrentOrder;
+use App\Models\Installment;
 use App\Models\StockOrder;
 use App\Models\Product;
 use App\Models\Seller;
 use App\Models\Stock;
+use App\Models\Store;
+use App\Models\Transection;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -341,11 +345,52 @@ public function return_dispatch(Request $request, $id): RedirectResponse
     
     public function stock_products($seller_id): Factory|View|Application
     {
-        $stocks = $this->stock->where('seller_id', $seller_id)->whereRaw('stock < main_stock AND stock != 0');
-        $remain_stocks = $this->stock->where('seller_id', $seller_id)->whereRaw('main_stock = stock');
-        $seller = Seller::find($seller_id);
-        $orders = \App\Models\CurrentOrder::where('owner_id', $seller_id);
-        return view('admin-views.vehicle_stocks.stocks', compact('stocks', 'remain_stocks', 'orders', 'seller'));
+        $seller = Seller::findOrFail($seller_id);
+
+        $stocks = $this->stock->with('product')
+            ->where('seller_id', $seller_id)
+            ->whereColumn('stock', '<', 'main_stock')
+            ->orderBy('product_id')
+            ->get();
+
+        $remain_stocks = $this->stock->with('product')
+            ->where('seller_id', $seller_id)
+            ->whereColumn('main_stock', 'stock')
+            ->where('main_stock', '>', 0)
+            ->orderBy('product_id')
+            ->get();
+
+        $allStockRows = $stocks->concat($remain_stocks);
+        $orders = CurrentOrder::where('owner_id', $seller_id)->get();
+        $store = Store::where('store_id', $seller->vehicle_code)->first();
+
+        $totalIssued = (float) $allStockRows->sum('main_stock');
+        $totalSold = (float) $stocks->sum(fn ($stock) => max((float) $stock->main_stock - (float) $stock->stock, 0));
+        $totalRemaining = (float) $allStockRows->sum('stock');
+        $soldOutCount = $stocks->filter(fn ($stock) => (float) $stock->stock <= 0)->count();
+
+        $summary = [
+            'seller_name' => trim(($seller->f_name ?? '') . ' ' . ($seller->l_name ?? '')),
+            'seller_code' => $seller->mandob_code,
+            'vehicle_code' => $store->store_code ?? $seller->vehicle_code,
+            'vehicle_name' => $store->store_name1 ?? '',
+            'cash_sales' => (float) Transection::where('seller_id', $seller_id)->where('tran_type', 4)->where('cash', 1)->where('active', 1)->sum('amount'),
+            'credit_sales' => (float) Transection::where('seller_id', $seller_id)->where('tran_type', 4)->where('cash', 2)->where('active', 1)->sum('amount'),
+            'refund_sales' => (float) Transection::where('seller_id', $seller_id)->where('tran_type', 7)->where('active', 1)->sum('amount'),
+            'installments' => (float) Installment::where('seller_id', $seller_id)->sum('total_price'),
+            'orders_count' => $orders->count(),
+            'sold_products_count' => $stocks->count(),
+            'untouched_products_count' => $remain_stocks->count(),
+            'sold_out_count' => $soldOutCount,
+            'issued_qty' => $totalIssued,
+            'sold_qty' => $totalSold,
+            'remaining_qty' => $totalRemaining,
+            'sold_value' => (float) $stocks->sum(fn ($stock) => max((float) $stock->main_stock - (float) $stock->stock, 0) * (float) optional($stock->product)->selling_price),
+            'remaining_value' => (float) $allStockRows->sum(fn ($stock) => (float) $stock->stock * (float) optional($stock->product)->selling_price),
+            'sell_through_percent' => $totalIssued > 0 ? round(($totalSold / $totalIssued) * 100, 1) : 0,
+        ];
+
+        return view('admin-views.vehicle_stocks.stocks', compact('stocks', 'remain_stocks', 'orders', 'seller', 'store', 'summary'));
     }
 
     public function create(Request $request): Factory|View|Application|JsonResponse
