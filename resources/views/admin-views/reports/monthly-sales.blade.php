@@ -2,62 +2,203 @@
 
 @section('content')
 <style>
-    /* الألوان مأخوذة من الشكل المطلوب: عنوان كحلي وترويسة زرقاء فاتحة. */
+    .monthly-sales-page {
+        background: #f4f8fb;
+        min-height: calc(100vh - 70px);
+        padding-top: 24px;
+    }
     .ms-title {
-        background: #1F3864;
+        background: linear-gradient(135deg, #193866 0%, #285f8f 100%);
         color: #fff;
         font-weight: 700;
-        padding: 12px 40px;
-        border-radius: 6px;
+        padding: 13px 42px;
+        border-radius: 8px;
         display: inline-block;
-        font-size: 20px;
+        font-size: 21px;
+        box-shadow: 0 12px 28px rgba(31, 56, 100, .18);
+    }
+    .ms-filter-card,
+    .ms-panel {
+        background: #fff;
+        border: 1px solid #d9e6f2;
+        border-radius: 8px;
+        box-shadow: 0 12px 30px rgba(22, 48, 76, .08);
+    }
+    .ms-filter-card {
+        padding: 18px;
+    }
+    .ms-panel {
+        overflow: hidden;
+    }
+    .ms-panel-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 15px 18px;
+        background: linear-gradient(135deg, #eef6fb 0%, #ffffff 100%);
+        border-bottom: 1px solid #d9e6f2;
+    }
+    .ms-panel-title {
+        color: #17365f;
+        font-size: 18px;
+        font-weight: 800;
+        margin: 0;
+    }
+    .ms-panel-kicker {
+        color: #5d7188;
+        font-size: 12px;
+        margin: 4px 0 0;
     }
     .ms-table {
-        border-collapse: collapse;
+        border-collapse: separate;
+        border-spacing: 0;
         width: 100%;
         font-size: 13px;
+        background: #fff;
     }
     .ms-table th,
     .ms-table td {
-        border: 1px solid #1F3864;
-        padding: 8px 10px;
+        border: 0;
+        border-left: 1px solid #d7e4f1;
+        border-bottom: 1px solid #d7e4f1;
+        padding: 10px 12px;
         text-align: center;
         vertical-align: middle;
     }
     .ms-table thead th {
-        background: #9DC3E6;
-        color: #1F3864;
+        background: #9ec7e9;
+        color: #123154;
         font-weight: 700;
+        position: sticky;
+        top: 0;
+        z-index: 2;
+    }
+    .ms-table tbody tr:nth-child(even) td {
+        background: #f7fbff;
+    }
+    .ms-table tbody tr:hover td {
+        background: #eef7ff;
     }
     .ms-table td.ms-label {
-        background: #DEEBF7;
-        color: #1F3864;
+        background: #e4f0fb;
+        color: #17365f;
         font-weight: 700;
         text-align: right;
         white-space: nowrap;
+        position: sticky;
+        right: 38px;
+        z-index: 1;
     }
     .ms-table td.ms-serial {
-        background: #9DC3E6;
-        color: #1F3864;
+        background: #9ec7e9;
+        color: #123154;
         font-weight: 700;
-        width: 34px;
+        min-width: 38px;
+        position: sticky;
+        right: 0;
+        z-index: 1;
     }
-    /* عمود الإجمالي العام: مميّز بصريًا ليقرأ بسرعة. */
     .ms-table .ms-grand {
-        background: #1F3864;
+        background: #17365f !important;
         color: #fff;
         font-weight: 700;
     }
-    .ms-block { margin-bottom: 40px; }
-    /* الجداول عريضة بطبيعتها؛ التمرير داخل الحاوية يمنع تمدد الصفحة. */
-    .ms-scroll { overflow-x: auto; }
+    .ms-block { margin-bottom: 28px; }
+    .ms-scroll {
+        overflow: auto;
+        max-height: 68vh;
+    }
+    .ms-collection-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 360px;
+        gap: 18px;
+        align-items: start;
+        padding: 18px;
+    }
+    .ms-chart-panel {
+        background: #f7fbff;
+        border: 1px solid #d9e6f2;
+        border-radius: 8px;
+        padding: 14px;
+    }
+    .ms-chart-title {
+        color: #17365f;
+        font-weight: 800;
+        text-align: center;
+        margin-bottom: 14px;
+    }
+    .ms-chart-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(130px, 1fr));
+        gap: 14px;
+    }
+    .ms-chart-card {
+        min-height: 208px;
+        background: #fff;
+        border: 1px solid #d9e6f2;
+        border-radius: 8px;
+        padding: 12px;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: space-between;
+    }
+    .ms-chart-canvas-wrap {
+        width: 132px;
+        height: 132px;
+    }
+    .ms-chart-card canvas {
+        width: 132px !important;
+        height: 132px !important;
+    }
+    .ms-chart-name {
+        color: #17365f;
+        font-weight: 800;
+        text-align: center;
+        margin-top: 8px;
+        line-height: 1.5;
+        min-height: 38px;
+    }
+    .ms-empty-chart {
+        width: 132px;
+        height: 132px;
+        border-radius: 50%;
+        border: 12px solid #e8eef5;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #7a8da3;
+        font-weight: 700;
+    }
+    @media (max-width: 1199.98px) {
+        .ms-collection-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+    @media (max-width: 575.98px) {
+        .ms-title {
+            width: 100%;
+            padding: 12px 14px;
+            font-size: 17px;
+        }
+        .ms-panel-header {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+        .ms-chart-grid {
+            grid-template-columns: 1fr;
+        }
+    }
     @media print {
+        .monthly-sales-page { background: #fff; padding-top: 0; }
         .non-printable { display: none !important; }
-        .ms-scroll { overflow: visible; }
+        .ms-scroll { overflow: visible; max-height: none; }
+        .ms-panel { box-shadow: none; }
     }
 </style>
 
-<div class="content container-fluid" dir="rtl">
+<div class="content container-fluid monthly-sales-page" dir="rtl">
 
     <div class="text-center mb-4">
         <span class="ms-title">تقرير ملخص المبيعات الشهري — {{ $month->format('Y/m') }}</span>
@@ -65,7 +206,7 @@
 
     {{-- الفلاتر --}}
     <form method="GET" action="{{ route('admin.reports.monthly-sales') }}"
-          class="card card-body mb-4 non-printable">
+          class="ms-filter-card mb-4 non-printable">
         <div class="row">
             <div class="col-md-3 mb-2">
                 <label class="font-weight-bold">الشهر</label>
@@ -208,13 +349,17 @@
     @endforeach
 
     {{-- ============ التحصيلات: منتج × منطقة ============ --}}
-    <div class="ms-block">
-        <div class="text-center mb-3">
-            <span class="ms-title">تحصيلات المناطق</span>
+    <div class="ms-block ms-panel">
+        <div class="ms-panel-header">
+            <div>
+                <h2 class="ms-panel-title">تحصيلات المناطق</h2>
+                <p class="ms-panel-kicker">توزيع التحصيل حسب المنتج والمنطقة خلال الشهر المحدد</p>
+            </div>
+            <span class="badge badge-soft-primary">{{ $products->count() }} منتج</span>
         </div>
 
-        <div class="row">
-            <div class="col-lg-8">
+        <div class="ms-collection-grid">
+            <div>
                 <div class="ms-scroll">
                     <table class="ms-table">
                         <thead>
@@ -254,25 +399,23 @@
             </div>
 
             {{-- نسبة التحقيق: حصة كل منطقة من تحصيل المنتج --}}
-            <div class="col-lg-4">
-                <div class="text-center mb-3">
-                    <span class="border border-dark px-4 py-2 d-inline-block font-weight-bold"
-                          style="color:#1F3864;">نسبة التحقيق للمناطق</span>
-                </div>
-                <div class="row">
+            <aside class="ms-chart-panel">
+                <div class="ms-chart-title">نسبة التحقيق للمناطق</div>
+                <div class="ms-chart-grid">
                     @foreach($collections as $row)
-                        <div class="col-6 text-center mb-4">
-                            <canvas class="ms-share-chart"
-                                    data-labels="{{ json_encode($regions->pluck('name')->values(), JSON_UNESCAPED_UNICODE) }}"
-                                    data-values="{{ json_encode(array_values($row['shares'])) }}"
-                                    height="160"></canvas>
-                            <div class="font-weight-bold mt-2" style="color:#1F3864;">
+                        <div class="ms-chart-card">
+                            <div class="ms-chart-canvas-wrap">
+                                <canvas class="ms-share-chart"
+                                        data-labels="{{ json_encode($regions->pluck('name')->values(), JSON_UNESCAPED_UNICODE) }}"
+                                        data-values="{{ json_encode(array_values($row['shares'])) }}"></canvas>
+                            </div>
+                            <div class="ms-chart-name">
                                 {{ $row['product']->name }}
                             </div>
                         </div>
                     @endforeach
                 </div>
-            </div>
+            </aside>
         </div>
     </div>
 
@@ -375,22 +518,28 @@
                 return;
             }
 
-            var palette = ['#9DC3E6', '#ED7D31', '#1F3864', '#70AD47', '#FF0000', '#FFC000'];
+            var palette = ['#2563eb', '#f59e0b', '#16a34a', '#ef4444', '#7c3aed', '#0ea5e9', '#64748b'];
 
             document.querySelectorAll('.ms-share-chart').forEach(function (canvas) {
                 var labels = JSON.parse(canvas.dataset.labels || '[]');
                 var values = JSON.parse(canvas.dataset.values || '[]');
 
                 if (!values.length || values.every(function (v) { return !v; })) {
+                    var empty = document.createElement('div');
+                    empty.className = 'ms-empty-chart';
+                    empty.textContent = '0%';
+                    canvas.parentNode.replaceChild(empty, canvas);
                     return;
                 }
 
                 new Chart(canvas.getContext('2d'), {
-                    type: 'pie',
+                    type: 'doughnut',
                     data: {
                         labels: labels,
                         datasets: [{
                             data: values,
+                            borderColor: '#ffffff',
+                            borderWidth: 2,
                             backgroundColor: labels.map(function (_, i) {
                                 return palette[i % palette.length];
                             })
@@ -398,7 +547,18 @@
                     },
                     options: {
                         responsive: true,
-                        legend: { position: 'bottom', labels: { boxWidth: 12 } }
+                        maintainAspectRatio: false,
+                        cutoutPercentage: 62,
+                        legend: { display: false },
+                        tooltips: {
+                            callbacks: {
+                                label: function (tooltipItem, data) {
+                                    var label = data.labels[tooltipItem.index] || '';
+                                    var value = data.datasets[0].data[tooltipItem.index] || 0;
+                                    return label + ': ' + value + '%';
+                                }
+                            }
+                        }
                     }
                 });
             });
