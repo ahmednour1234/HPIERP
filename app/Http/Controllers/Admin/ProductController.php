@@ -107,12 +107,25 @@ private function soldProductsRows(Request $request): array
         ->when(!empty($validated['region_id']), fn($c) => $c->push((int)$validated['region_id']))
         ->unique()->values()->all();
 
-    $query = OrderDetail::with(['order.seller', 'order.customer.regions', 'product', 'order.details']);
+    $productCodes = $this->filterValues($validated['product_code'] ?? []);
+    $sellerIds = $this->filterValues($validated['seller_id'] ?? []);
+    $orderTypes = $this->filterValues($validated['order_type'] ?? []);
+    $selectedStatuses = $this->filterValues($validated['invoice_status'] ?? []);
+
+    $query = OrderDetail::query()
+        ->select('id', 'order_id', 'product_id', 'product_details', 'quantity', 'price', 'updated_at')
+        ->with([
+            'product:id,name,name_ar,product_code,selling_price',
+            'order:id,owner_id,user_id,type,order_amount,transaction_reference,updated_at,img',
+            'order.seller:id,email,f_name,l_name',
+            'order.customer:id,name,region_id',
+            'order.customer.regions:id,name',
+        ]);
 
     if (!empty($validated['product_name'])) {
         $query->whereJsonContains('product_details->name', $validated['product_name']);
     }
-    if ($codes = $this->filterValues($validated['product_code'] ?? [])) {
+    if ($codes = $productCodes) {
         // whereJsonContains لا يقبل قائمة، فنبني OR لكل كود مختار.
         $query->where(function ($q) use ($codes) {
             foreach ($codes as $code) {
@@ -123,10 +136,10 @@ private function soldProductsRows(Request $request): array
     if ($start_date && $end_date) {
         $query->whereBetween('updated_at', [$start_date, $end_date]);
     }
-    if ($sellerIds = $this->filterValues($validated['seller_id'] ?? [])) {
+    if ($sellerIds) {
         $query->whereHas('order', fn($q) => $q->whereIn('owner_id', $sellerIds));
     }
-    if ($orderTypes = $this->filterValues($validated['order_type'] ?? [])) {
+    if ($orderTypes) {
         $query->whereHas('order', fn($q) => $q->whereIn('type', $orderTypes));
     }
     if (!empty($regionIds)) {
@@ -280,14 +293,16 @@ public function getreportProducts(Request $request)
     ]);
 
     $adminId = Auth::guard('admin')->id();
-$productsall=Product::all();
+    $productsall = Product::select('id', 'name', 'name_ar', 'product_code')
+        ->orderBy('name')
+        ->get();
     // بيانات المساعدين للفلاتر
     $sellers = Seller::join('admin_sellers', 'admins.id', '=', 'admin_sellers.seller_id')
         ->where('admin_sellers.admin_id', $adminId)
-        ->select('admins.*')
+        ->select('admins.id', 'admins.email', 'admins.f_name', 'admins.l_name')
         ->get();
 
-    $regions = Region::all();
+    $regions = Region::select('id', 'name')->orderBy('name')->get();
 
     $start_date = !empty($validated['start_date']) ? Carbon::parse($validated['start_date'])->startOfDay() : null;
     $end_date   = !empty($validated['end_date'])   ? Carbon::parse($validated['end_date'])->endOfDay()   : null;
