@@ -18,6 +18,16 @@ class CategoryService extends CrudService
         $this->repository = $repository;
     }
 
+    /** Categories with the type / status / parent filters applied. */
+    public function list(array $filters): \Illuminate\Pagination\LengthAwarePaginator
+    {
+        return $this->repository->filtered(
+            $filters,
+            (int) ($filters['limit'] ?? 25),
+            (int) ($filters['offset'] ?? 1)
+        );
+    }
+
     public function children(int $parentId, array $filters): \Illuminate\Pagination\LengthAwarePaginator
     {
         return $this->repository->children(

@@ -1246,6 +1246,22 @@ Five modules share one implementation, so they expose an identical surface.
 `expire_date` (`after_or_equal:start_date`), `min_purchase`, `max_discount`,
 `discount` (numeric, min 0), `discount_type` (max 15), `status` (boolean).
 
+### Category filters
+
+`GET /categories` takes three filters beyond the shared `search`:
+
+| Parameter | Rules | Meaning |
+|---|---|---|
+| `type` | optional integer | `0` medical specialties, `1` product categories |
+| `status` | optional boolean | `1` active only, `0` inactive only |
+| `parent_id` | optional integer | Children of one parent; `0` for top level |
+
+They combine, so `?type=0&status=1` returns the active medical specialties.
+
+Every category also carries `image_url` — the full URL to the image, built
+from `storage/category/`. The raw `image` filename is still returned beside
+it, so existing clients keep working.
+
 ### Sub-categories
 
 Sub-categories are category rows carrying a parent, not a separate table.
