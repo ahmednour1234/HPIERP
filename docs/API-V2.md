@@ -33,6 +33,7 @@ running server.
 | [Visits](#visits) | `/visits` | 5 |
 | [Attendance](#attendance) | `/attendance` | 1 |
 | [Salary](#salary) | `/salary` | 2 |
+| [Manager](#manager) | `/manager` | 10 |
 | [Lookup tables](#lookup-tables) | `/brands` `/units` `/accounts` `/categories` `/coupons` | 32 |
 | [Reference data](#reference-data) | `/regions` `/storages` `/documents` `/specialties` `/product-categories` | 7 |
 | **Total** | | **97** |
@@ -1200,6 +1201,67 @@ entered yet is not an error:
 | `limit` | optional, integer, `between:1,36` (default 12) |
 
 Recent payslips, newest first, each in the shape above.
+---
+
+## Manager
+
+For accounts that manage sellers. A manager is identified by
+`admins.type = 'manager'` — `role` stays `seller` on these accounts, so
+checking `role` alone treats a manager as an ordinary seller. Full admins and
+anyone with sellers assigned in `admin_sellers` also qualify.
+
+Every path here is limited to the manager's own sellers, so one manager cannot
+read or write another's. `403` when the account is not a manager, or when the
+seller named is not theirs.
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/manager/sellers` | Their sellers — last position and today's attendance |
+| `GET` | `/manager/sellers/{id}/attendance` | One seller's attendance |
+| `GET` | `/manager/sellers/{id}/notes` | Development notes on one seller |
+| `POST` | `/manager/sellers/{id}/notes` | Write a development note |
+| `GET` | `/manager-notes` | The signed-in seller's own manager notes |
+
+### Courses
+
+Courses a manager assigns to their sellers. The seller reads their own from
+[`GET /hr/courses`](#seller-hr).
+
+| Method | Path | Purpose |
+|---|---|---|
+| `GET` | `/manager/courses` | Courses this manager created — `seller_id`, `search`, `limit`, `offset` |
+| `POST` | `/manager/courses` | Assign a course to a seller |
+| `GET` | `/manager/courses/{id}` | One course |
+| `PUT` `POST` | `/manager/courses/{id}` | Update it — `POST` too, for `multipart` uploads |
+| `DELETE` | `/manager/courses/{id}` | Remove it |
+
+| Field | Rules |
+|---|---|
+| `seller_id` | required, integer, `exists:admins,id` — must be one of yours |
+| `name` | required, string, max 500 |
+| `link` | nullable, url |
+| `image` | nullable, image, max 4 MB — send as `multipart/form-data` |
+
+On update every field is `sometimes`: send only what changes. Sending `link`
+as `null` clears it.
+
+Ownership is twofold — a course belongs to the manager who created it
+(`admin_id`), and may only be assigned to a seller in their `admin_sellers`.
+A course belonging to another manager answers `404`, not `403`, so the
+response does not reveal that it exists.
+
+```json
+{
+  "id": 12,
+  "name": "Cold chain handling",
+  "link": "https://example.com/course",
+  "image": "course/2026-09-10-abc123.png",
+  "image_url": "https://host/storage/course/2026-09-10-abc123.png",
+  "seller": { "id": 800050, "name": "Ahmed Nour" },
+  "created_at": "2026-09-10T18:04:41+03:00"
+}
+```
+
 ---
 
 ## Lookup tables

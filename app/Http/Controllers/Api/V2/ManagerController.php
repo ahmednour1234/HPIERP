@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Admin;
 use App\Models\AdminSeller;
 use App\Models\Attendance;
+use App\Models\CourseSeller;
 use App\Models\DevelopSeller;
 use App\Traits\ApiResponse;
 use Illuminate\Http\JsonResponse;
@@ -182,6 +183,191 @@ class ManagerController extends Controller
         $rows->getCollection()->transform(fn ($r) => $this->noteRow($r, $r->admins));
 
         return $this->ok($rows, 'Notes retrieved');
+    }
+
+    // ------------------------------------------------------------------
+    // الكورسات: المدير يسندها لمناديبه من التطبيق.
+    //
+    // كانت تُدار من اللوحة وحدها؛ المندوب يقرأ كورساته من GET /hr/courses.
+    // الملكية مزدوجة هنا: الكورس يخص المدير الذي أنشأه (admin_id)، ولا
+    // يُسند إلا لمندوب مسند له فعلًا، فلا يكتب مدير على مناديب غيره.
+    // ------------------------------------------------------------------
+
+    /** كورسات مناديب هذا المدير. */
+    public function courses(Request $request): JsonResponse
+    {
+        $request->validate([
+            'seller_id' => ['nullable', 'integer'],
+            'search'    => ['nullable', 'string', 'max:100'],
+        ]);
+
+        if (!$this->isManager($request)) {
+            return $this->fail('This account is not a manager', 403);
+        }
+
+        $query = CourseSeller::where('admin_id', (int) $request->user()->id)
+            ->with('sellers:id,f_name,l_name');
+
+        if (($sellerId = $request->input('seller_id')) !== null) {
+            if (!$this->owns($request, (int) $sellerId)) {
+                return $this->fail('This seller is not assigned to you', 403);
+            }
+
+            $query->where('seller_id', (int) $sellerId);
+        }
+
+        if ($search = $request->input('search')) {
+            $query->where('name', 'like', "%{$search}%");
+        }
+
+        $rows = $query->latest('id')->paginate(
+            (int) $request->input('limit', 25),
+            ['*'],
+            'page',
+            (int) $request->input('offset', 1)
+        );
+
+        $rows->getCollection()->transform(fn ($c) => $this->courseRow($c));
+
+        return $this->ok($rows, 'Courses retrieved');
+    }
+
+    /** كورس واحد. */
+    public function showCourse(Request $request, int $id): JsonResponse
+    {
+        $course = $this->findOwnCourse($request, $id);
+
+        if (!$course) {
+            return $this->fail('Course not found', 404);
+        }
+
+        return $this->ok($this->courseRow($course), 'Course retrieved');
+    }
+
+    /** إسناد كورس لمندوب. */
+    public function storeCourse(Request $request): JsonResponse
+    {
+        $data = $request->validate($this->courseRules());
+
+        if (!$this->owns($request, (int) $data['seller_id'])) {
+            return $this->fail('This seller is not assigned to you', 403);
+        }
+
+        $course = CourseSeller::create([
+            'admin_id'  => (int) $request->user()->id,
+            'seller_id' => (int) $data['seller_id'],
+            'name'      => $data['name'],
+            'link'      => $data['link'] ?? null,
+            'img'       => $this->courseImage($request),
+        ]);
+
+        return $this->created($this->courseRow($course->load('sellers:id,f_name,l_name')), 'Course created');
+    }
+
+    /** تعديل كورس. */
+    public function updateCourse(Request $request, int $id): JsonResponse
+    {
+        $course = $this->findOwnCourse($request, $id);
+
+        if (!$course) {
+            return $this->fail('Course not found', 404);
+        }
+
+        $data = $request->validate($this->courseRules(partial: true));
+
+        if (array_key_exists('seller_id', $data)) {
+            if (!$this->owns($request, (int) $data['seller_id'])) {
+                return $this->fail('This seller is not assigned to you', 403);
+            }
+
+            $course->seller_id = (int) $data['seller_id'];
+        }
+
+        if (array_key_exists('name', $data)) {
+            $course->name = $data['name'];
+        }
+
+        // link يقبل null صراحةً لمسح الرابط، فنفحص وجود المفتاح لا امتلاءه.
+        if (array_key_exists('link', $data)) {
+            $course->link = $data['link'];
+        }
+
+        if ($image = $this->courseImage($request)) {
+            $course->img = $image;
+        }
+
+        $course->save();
+
+        return $this->ok($this->courseRow($course->load('sellers:id,f_name,l_name')), 'Course updated');
+    }
+
+    /** حذف كورس. */
+    public function destroyCourse(Request $request, int $id): JsonResponse
+    {
+        $course = $this->findOwnCourse($request, $id);
+
+        if (!$course) {
+            return $this->fail('Course not found', 404);
+        }
+
+        $course->delete();
+
+        return $this->ok(['id' => $id], 'Course deleted');
+    }
+
+    /**
+     * كورس يملكه هذا المدير، أو null.
+     *
+     * نرد 404 لا 403 على كورس مدير آخر حتى لا يكشف الرد وجوده.
+     */
+    private function findOwnCourse(Request $request, int $id): ?CourseSeller
+    {
+        return CourseSeller::where('admin_id', (int) $request->user()->id)
+            ->with('sellers:id,f_name,l_name')
+            ->find($id);
+    }
+
+    private function courseRules(bool $partial = false): array
+    {
+        $required = $partial ? 'sometimes' : 'required';
+
+        return [
+            'seller_id' => [$required, 'integer', 'exists:admins,id'],
+            'name'      => [$required, 'string', 'max:500'],
+            'link'      => ['nullable', 'url', 'max:65535'],
+            'image'     => ['nullable', 'image', 'max:4096'],
+        ];
+    }
+
+    /** يحفظ الصورة إن أُرسلت ويرجع مسارها المخزَّن. */
+    private function courseImage(Request $request): ?string
+    {
+        if (!$request->hasFile('image')) {
+            return null;
+        }
+
+        // Helpers::upload تحفظ داخل المجلد وترجع اسم الملف وحده، فنضيف
+        // المجلد ليكون المخزَّن صالحًا لبناء الرابط منه مباشرة.
+        return 'course/' . \App\CPU\Helpers::upload('course/', 'png', $request->file('image'));
+    }
+
+    private function courseRow(CourseSeller $c): array
+    {
+        // العمود من نوع json في المخطط، فقد يعود مصفوفة من صفوف قديمة.
+        $img = is_array($c->img) ? ($c->img[0] ?? null) : $c->img;
+
+        return [
+            'id'         => $c->id,
+            'name'       => $c->name,
+            'link'       => $c->link,
+            'image'      => $img,
+            'image_url'  => $img ? asset('storage/' . $img) : null,
+            'seller'     => $c->sellers ? [
+                'id'   => $c->sellers->id,
+                'name' => trim($c->sellers->f_name . ' ' . $c->sellers->l_name),
+            ] : null,
+            'created_at' => optional($c->created_at)->toIso8601String(),
+        ];
     }
 
     /**

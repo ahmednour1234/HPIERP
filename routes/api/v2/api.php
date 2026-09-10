@@ -103,6 +103,15 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
             Route::get('sellers/{sellerId}/attendance', [\App\Http\Controllers\Api\V2\ManagerController::class, 'sellerAttendance'])->whereNumber('sellerId');
             Route::get('sellers/{sellerId}/notes', [\App\Http\Controllers\Api\V2\ManagerController::class, 'sellerNotes'])->whereNumber('sellerId');
             Route::post('sellers/{sellerId}/notes', [\App\Http\Controllers\Api\V2\ManagerController::class, 'storeNote'])->whereNumber('sellerId');
+
+            // الكورسات: المدير ينشئها ويسندها لمناديبه. المندوب نفسه يقرأ
+            // كورساته من GET /hr/courses.
+            Route::get('courses', [\App\Http\Controllers\Api\V2\ManagerController::class, 'courses']);
+            Route::post('courses', [\App\Http\Controllers\Api\V2\ManagerController::class, 'storeCourse']);
+            Route::get('courses/{id}', [\App\Http\Controllers\Api\V2\ManagerController::class, 'showCourse'])->whereNumber('id');
+            Route::post('courses/{id}', [\App\Http\Controllers\Api\V2\ManagerController::class, 'updateCourse'])->whereNumber('id');
+            Route::put('courses/{id}', [\App\Http\Controllers\Api\V2\ManagerController::class, 'updateCourse'])->whereNumber('id');
+            Route::delete('courses/{id}', [\App\Http\Controllers\Api\V2\ManagerController::class, 'destroyCourse'])->whereNumber('id');
         });
 
         // ملاحظات المدير كما يقرأها المندوب نفسه.
