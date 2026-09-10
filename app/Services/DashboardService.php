@@ -4,9 +4,9 @@ namespace App\Services;
 
 use App\Models\Order;
 use App\Models\Product;
+use App\Models\ResultVisitor;
 use App\Models\Stock;
 use App\Models\Transection;
-use App\Models\Visitor;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\DB;
 
@@ -42,7 +42,10 @@ class DashboardService
             'net_sales'  => $sales - $returns,
             'collected'  => (float) Transection::where('seller_id', $sellerId)
                 ->whereBetween('created_at', [$from, $to])->sum('amount'),
-            'visits'     => Visitor::where('seller_id', $sellerId)
+            // الزيارات المنفَّذة، وهي صفوف result_visitors التي تعرضها شاشة
+            // "زياراتي" — لا جدول visitors الذي يحمل الزيارات المخطَّطة فقط.
+            // وعمود المندوب هناك admin_id لا seller_id.
+            'visits'     => ResultVisitor::where('admin_id', $sellerId)
                 ->whereBetween('created_at', [$from, $to])->count(),
             // المستهدف مأخوذ من كشف راتب الشهر (number_of_visitors)، وهو نفس
             // المصدر الذي يقرأ منه /salary. صفر يعني لا مستهدف محدَّد لهذا
