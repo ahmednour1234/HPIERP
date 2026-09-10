@@ -34,8 +34,8 @@ running server.
 | [Attendance](#attendance) | `/attendance` | 1 |
 | [Salary](#salary) | `/salary` | 2 |
 | [Lookup tables](#lookup-tables) | `/brands` `/units` `/accounts` `/categories` `/coupons` | 32 |
-| [Reference data](#reference-data) | `/regions` `/storages` `/documents` | 4 |
-| **Total** | | **94** |
+| [Reference data](#reference-data) | `/regions` `/storages` `/documents` `/specialties` `/product-categories` | 7 |
+| **Total** | | **97** |
 
 ---
 
@@ -1268,7 +1268,27 @@ Read-only lists for populating pickers.
 | `GET` | `/regions` | All regions — `id`, `name`, `name_en` |
 | `GET` | `/regions/mine` | Only the regions this seller covers |
 | `GET` | `/storages` | `id`, `name` |
-| `GET` | `/documents` | `id`, `name`, `description`, `attachments[]` |
+| `GET` | `/specialties` | Medical specialties — `categories.type = 0` |
+| `GET` | `/product-categories` | Product categories — `categories.type = 1` |
+| `GET` | `/documents` | The signed-in seller's documents — `id`, `name`, `description`, `attachments[]` |
+| `GET` | `/documents/{id}` | One document, same shape |
+
+### Document visibility
+
+Documents are scoped to the signed-in seller. A document is visible when it is
+either assigned to that seller through the `document_sellers` pivot, or
+assigned to nobody at all — an unassigned document is public to every seller,
+which is what keeps documents created before assignment existed visible.
+
+Assignment is managed from the admin document form, whose seller picker is
+limited to the sellers that admin manages (`admin_sellers`).
+
+`GET /documents/{id}` runs through the same rule and answers `404` — not `403`
+— for a document the seller may not see, so the response does not reveal that
+the document exists.
+
+The rule lives in one place, `Document::scopeVisibleTo()`, so both endpoints
+cannot drift apart.
 
 ---
 

@@ -81,7 +81,8 @@ GET /profile
 | `GET /product-categories` | 6 فئات منتجات (`type=1`) |
 | `GET /regions` | كل المناطق |
 | `GET /regions/mine` | مناطق المندوب الحالي |
-| `GET /documents` | الوثائق |
+| `GET /documents` | وثائق المندوب الحالي: المسندة له + العامة |
+| `GET /documents/{id}` | وثيقة واحدة بمرفقاتها — ترد 404 لو غير مسندة له |
 
 ```json
 { "success": true, "data": [ { "id": 46, "name": "اطفال عام" } ] }
