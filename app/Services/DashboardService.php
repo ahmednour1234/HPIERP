@@ -54,16 +54,24 @@ class DashboardService
     }
 
     /**
-     * المستهدف الشهري للزيارات من كشف الراتب.
+     * المستهدف الشهري للزيارات.
      *
-     * كشف الراتب يُدخل شهريًا، فقد لا يكون موجودًا بعد للشهر الجاري؛ في تلك
-     * الحالة نرجع صفرًا بدل تخمين رقم.
+     * كشف الراتب هو المرجع حين يكون موجودًا، لكنه يُدخل بعد انتهاء الشهر،
+     * فالشهر الجاري بلا كشف غالبًا. ولأن اللوحة تملأ number_of_visitors من
+     * إعداد المندوب نفسه (admins.visitors) فهو المصدر الأصلي، ونرجع إليه
+     * حين لا يوجد كشف. صفر يعني أن المندوب بلا مستهدف محدَّد.
      */
     private function visitsTarget(int $sellerId, Carbon $from): int
     {
-        return (int) \App\Models\Salary::where('seller_id', $sellerId)
+        $fromSalary = (int) \App\Models\Salary::where('seller_id', $sellerId)
             ->where('month', $from->format('Y-m'))
             ->value('number_of_visitors');
+
+        if ($fromSalary > 0) {
+            return $fromSalary;
+        }
+
+        return (int) \App\Models\Seller::where('id', $sellerId)->value('visitors');
     }
 
     /**
