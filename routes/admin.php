@@ -494,7 +494,8 @@ Route::prefix('admin/TransactionSeller')->group(function () {
 }); 
                  Route::resource('coursesellers', CourseSellerController::class)->except(['show']);
 
-    });
+    // ملاحظة: مجموعة middleware admin كانت تُغلق هنا، فتخرج مسارات
+    // الحضور والوثائق من الحماية ويصل إليها أي زائر بلا تسجيل دخول.
     
 Route::prefix('/attendance')->name('attendance.')->group(function () {
 
@@ -511,4 +512,5 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
         Route::get    ('documents/{document}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
         Route::put    ('documents/{document}',      [DocumentController::class, 'update'])->name('documents.update');
         Route::delete ('documents/{document}',      [DocumentController::class, 'destroy'])->name('documents.destroy');
+    });   // نهاية مجموعة middleware admin
 });

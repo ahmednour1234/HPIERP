@@ -41,6 +41,12 @@ class DocumentController extends Controller
     {
         $admin = Auth::guard('admin')->user();
 
+        // بلا أدمن مسجَّل لا إسناد ممكن. المسارات محمية بـ middleware admin،
+        // لكن لا نعتمد على ذلك وحده حتى لا يتحول أي خلل في الحماية إلى خطأ 500.
+        if (!$admin) {
+            return collect();
+        }
+
         $sellers = Seller::where('role', 'seller');
 
         if (!$admin->is_super) {
