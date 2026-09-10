@@ -8,8 +8,11 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Contracts\View\Factory;
 use Illuminate\Contracts\Foundation\Application;
 use Illuminate\Http\RedirectResponse;
+use App\Models\AdminSeller;
 use App\Models\Document;
 use App\Models\DocumentAttachment;
+use App\Models\Seller;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Brian2694\Toastr\Facades\Toastr;
 
@@ -23,7 +26,17 @@ class DocumentController extends Controller
 
     public function create(): View|Factory|Application
     {
-        return view('admin-views.documents.create');
+        return view('admin-views.documents.create', ['sellers' => $this->assignableSellers()]);
+    }
+
+    /**
+     * المناديب الذين يديرهم هذا الأدمن، وهم وحدهم من يصح إسناد وثيقة لهم.
+     */
+    private function assignableSellers()
+    {
+        $ids = AdminSeller::where('admin_id', Auth::guard('admin')->id())->pluck('seller_id');
+
+        return Seller::whereIn('id', $ids)->orderBy('f_name')->get(['id', 'f_name', 'l_name']);
     }
 
 public function store(Request $request): RedirectResponse
@@ -33,6 +46,8 @@ public function store(Request $request): RedirectResponse
         'description'   => 'nullable|string',
         'attachments.*' => 'file|mimes:pdf,jpeg,png,jpg,gif,svg|max:20480',
         'links.*'       => 'nullable|url|max:2048',
+        'sellers'       => 'nullable|array',
+        'sellers.*'     => 'integer|exists:admins,id',
     ]);
 
     // 1) Создаем документ
@@ -69,6 +84,9 @@ public function store(Request $request): RedirectResponse
         }
     }
 
+    // 4) الإسناد للمناديب. تركه فارغًا يجعل الوثيقة عامة للجميع.
+    $doc->sellers()->sync($data['sellers'] ?? []);
+
     Toastr::success('تم إنشاء المستند بنجاح', 'نجاح');
     return redirect()->route('admin.documents.index');
 }
@@ -76,14 +94,18 @@ public function store(Request $request): RedirectResponse
 
     public function show(Document $document): View|Factory|Application
     {
-        $document->load('attachments');
+        $document->load('attachments', 'sellers:id,f_name,l_name');
         return view('admin-views.documents.show', compact('document'));
     }
 
     public function edit(Document $document): View|Factory|Application
     {
-        $document->load('attachments');
-        return view('admin-views.documents.edit', compact('document'));
+        $document->load('attachments', 'sellers:id');
+
+        return view('admin-views.documents.edit', [
+            'document' => $document,
+            'sellers'  => $this->assignableSellers(),
+        ]);
     }
 
     public function update(Request $request, Document $document): RedirectResponse
@@ -95,9 +117,14 @@ public function store(Request $request): RedirectResponse
             'links.*'       => 'nullable|url|max:2048',
             'remove_attachments' => 'array',
             'remove_attachments.*' => 'integer|exists:document_attachments,id',
+            'sellers'   => 'nullable|array',
+            'sellers.*' => 'integer|exists:admins,id',
         ]);
 
         $document->update($data);
+
+        // الإسناد يُستبدل بالكامل بما ورد في النموذج؛ فراغه يعيدها عامة.
+        $document->sellers()->sync($data['sellers'] ?? []);
 
         // حذف المرفقات التي اختارها المستخدم
         if ($request->filled('remove_attachments')) {
@@ -153,6 +180,7 @@ public function store(Request $request): RedirectResponse
             $att->delete();
         }
 
+        $document->sellers()->detach();
         $document->delete();
         Toastr::success('تم حذف المستند بنجاح', 'نجاح');
         return redirect()->route('admin.documents.index');

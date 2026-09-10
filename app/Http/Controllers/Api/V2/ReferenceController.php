@@ -65,14 +65,39 @@ class ReferenceController extends Controller
         );
     }
 
-    public function documents(): JsonResponse
+    /**
+     * وثائق المندوب الحالي: المسندة له والعامة.
+     *
+     * كانت ترجع كل وثائق النظام لأي مندوب، فيرى وثائق لا تخصه.
+     */
+    public function documents(Request $request): JsonResponse
     {
         return $this->ok(
-            Document::with('attachments:id,document_id,type,url')
+            Document::visibleTo((int) $request->user()->id)
+                ->with('attachments:id,document_id,type,url')
                 ->orderBy('name')
                 ->get(['id', 'name', 'description']),
             'Documents retrieved'
         );
+    }
+
+    /**
+     * وثيقة واحدة بمرفقاتها.
+     *
+     * تمر بنفس فحص الرؤية، فطلب وثيقة غير مسندة للمندوب يرد 404 لا 403 —
+     * حتى لا يكشف الرد وجود وثيقة لا يملك رؤيتها أصلًا.
+     */
+    public function document(Request $request, int $id): JsonResponse
+    {
+        $document = Document::visibleTo((int) $request->user()->id)
+            ->with('attachments:id,document_id,type,url')
+            ->find($id, ['id', 'name', 'description']);
+
+        if (!$document) {
+            return $this->fail('Document not found', 404);
+        }
+
+        return $this->ok($document, 'Document retrieved');
     }
 
     /** The regions this seller covers. */

@@ -151,6 +151,7 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
         Route::get('regions/mine', [ReferenceController::class, 'myRegions']);
         Route::get('storages', [ReferenceController::class, 'storages']);
         Route::get('documents', [ReferenceController::class, 'documents']);
+        Route::get('documents/{id}', [ReferenceController::class, 'document'])->whereNumber('id');
 
         Route::group(['prefix' => 'dashboard'], function () {
             Route::get('summary', [DashboardController::class, 'summary']);

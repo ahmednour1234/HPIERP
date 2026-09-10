@@ -31,6 +31,18 @@
         <p class="text-muted">{{ $document->description ?: 'لا يوجد وصف.' }}</p>
       </div>
 
+      {{-- المناديب المسند لهم --}}
+      <div class="mb-4">
+        <h6 class="fw-semibold">المناديب المسند لهم:</h6>
+        @if($document->sellers->isEmpty())
+          <p class="text-muted mb-0">وثيقة عامة — يراها كل المناديب.</p>
+        @else
+          @foreach($document->sellers as $seller)
+            <span class="badge bg-secondary">{{ trim($seller->f_name . ' ' . $seller->l_name) }}</span>
+          @endforeach
+        @endif
+      </div>
+
       {{-- المرفقات --}}
 <div>
   <h6 class="fw-semibold mb-3">المرفقات:</h6>
