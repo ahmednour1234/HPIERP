@@ -30,13 +30,27 @@ class DocumentController extends Controller
     }
 
     /**
-     * المناديب الذين يديرهم هذا الأدمن، وهم وحدهم من يصح إسناد وثيقة لهم.
+     * المناديب الذين يصح إسناد وثيقة لهم.
+     *
+     * جدول admin_sellers يربط الأدمن بمن يديرهم، لكنه يضم صفوفًا لأدمن
+     * ومديرين أيضًا، والوثائق تخص المناديب وحدهم، فنقصر القائمة على
+     * role = seller. والسوبر أدمن بلا صفوف في الجدول أصلًا، فيرى الجميع
+     * بدل قائمة فارغة لا تتيح له أي إسناد.
      */
     private function assignableSellers()
     {
-        $ids = AdminSeller::where('admin_id', Auth::guard('admin')->id())->pluck('seller_id');
+        $admin = Auth::guard('admin')->user();
 
-        return Seller::whereIn('id', $ids)->orderBy('f_name')->get(['id', 'f_name', 'l_name']);
+        $sellers = Seller::where('role', 'seller');
+
+        if (!$admin->is_super) {
+            $sellers->whereIn(
+                'id',
+                AdminSeller::where('admin_id', $admin->id)->pluck('seller_id')
+            );
+        }
+
+        return $sellers->orderBy('f_name')->get(['id', 'f_name', 'l_name']);
     }
 
 public function store(Request $request): RedirectResponse

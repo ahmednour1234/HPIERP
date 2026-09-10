@@ -49,6 +49,8 @@
               @enderror
             </div>
 
+            @include('admin-views.documents._sellers')
+
             {{-- المرفقات الحالية --}}
             @if($document->attachments->count())
               <div class="mb-4">
