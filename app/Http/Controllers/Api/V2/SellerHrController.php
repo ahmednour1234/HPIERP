@@ -59,6 +59,24 @@ class SellerHrController extends Controller
         return $this->ok($rows, 'Ratings retrieved');
     }
 
+    /**
+     * تقييم المندوب الحالي: الدرجة والملاحظة كما كتبها مديره.
+     *
+     * مخزَّن على حساب المندوب نفسه (admins.score / note)، وهو ما تكتبه
+     * شاشة التقييم في اللوحة و POST /manager/sellers/{id}/rating.
+     * وهو غير تقييم كشف الراتب الشهري الذي ترجعه GET /hr/ratings.
+     */
+    public function myRating(Request $request): JsonResponse
+    {
+        $me = $request->user();
+
+        return $this->ok([
+            'score'      => (float) $me->score,
+            'note'       => $me->note,
+            'updated_at' => optional($me->updated_at)->toIso8601String(),
+        ], 'Rating retrieved');
+    }
+
     /** ملاحظات تطوير المندوب المكتوبة من مديره. */
     public function development(Request $request): JsonResponse
     {

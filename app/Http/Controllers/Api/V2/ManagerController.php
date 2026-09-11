@@ -64,6 +64,7 @@ class ManagerController extends Controller
 
         $sellers = $query->get([
             'id', 'f_name', 'l_name', 'phone', 'image', 'mandob_code', 'latitude', 'longitude',
+            'score', 'note',
         ]);
 
         // بصمة اليوم لكل المناديب في استعلام واحد بدل استعلام لكل مندوب.
@@ -85,6 +86,10 @@ class ManagerController extends Controller
 
                 // آخر موقع معروف: أعمدة الموقع على حساب المندوب نفسه.
                 'last_location' => $this->location($s->latitude, $s->longitude, $s->updated_at ?? null),
+
+                // التقييم الحالي كما تكتبه شاشة التقييم في اللوحة.
+                'rating'      => (float) $s->score,
+                'rating_note' => $s->note,
 
                 'today_status'    => $this->todayStatus($att),
                 'today_check_in'  => $att->check_in ?? null,
@@ -183,6 +188,74 @@ class ManagerController extends Controller
         $rows->getCollection()->transform(fn ($r) => $this->noteRow($r, $r->admins));
 
         return $this->ok($rows, 'Notes retrieved');
+    }
+
+    // ------------------------------------------------------------------
+    // التقييم: درجة المندوب الحالية وملاحظتها.
+    //
+    // تُخزَّن على حساب المندوب نفسه (admins.score / admins.note)، وهو ما
+    // تكتبه شاشة التقييم في اللوحة، فالتطبيق واللوحة يقرآن ويكتبان نفس
+    // القيمة. تقييم كشف الراتب الشهري شيء آخر يعيش في salaries.score.
+    // ------------------------------------------------------------------
+
+    /** تقييم مندوب: الدرجة والملاحظة. */
+    public function sellerRating(Request $request, int $sellerId): JsonResponse
+    {
+        if (!$this->owns($request, $sellerId)) {
+            return $this->fail('This seller is not assigned to you', 403);
+        }
+
+        $seller = Admin::find($sellerId, ['id', 'f_name', 'l_name', 'score', 'note', 'updated_at']);
+
+        if (!$seller) {
+            return $this->fail('Seller not found', 404);
+        }
+
+        return $this->ok($this->ratingRow($seller), 'Rating retrieved');
+    }
+
+    /** كتابة تقييم المندوب. */
+    public function storeRating(Request $request, int $sellerId): JsonResponse
+    {
+        $data = $request->validate([
+            'score' => ['required', 'numeric', 'between:0,100'],
+            'note'  => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        if (!$this->owns($request, $sellerId)) {
+            return $this->fail('This seller is not assigned to you', 403);
+        }
+
+        $seller = Admin::find($sellerId);
+
+        if (!$seller) {
+            return $this->fail('Seller not found', 404);
+        }
+
+        // العمودان varchar في هذا المخطط، فنكتب نصًا كما تفعل اللوحة.
+        $seller->score = (string) $data['score'];
+
+        // note اختيارية هنا بعكس اللوحة، فلا نمسح ملاحظة قائمة بإغفالها.
+        if (array_key_exists('note', $data)) {
+            $seller->note = $data['note'];
+        }
+
+        $seller->save();
+
+        return $this->ok($this->ratingRow($seller), 'Rating saved');
+    }
+
+    private function ratingRow($seller): array
+    {
+        return [
+            'seller' => [
+                'id'   => $seller->id,
+                'name' => trim(($seller->f_name ?? '') . ' ' . ($seller->l_name ?? '')),
+            ],
+            'score'      => (float) $seller->score,
+            'note'       => $seller->note,
+            'updated_at' => optional($seller->updated_at)->toIso8601String(),
+        ];
     }
 
     // ------------------------------------------------------------------

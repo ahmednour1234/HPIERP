@@ -33,7 +33,7 @@ running server.
 | [Visits](#visits) | `/visits` | 5 |
 | [Attendance](#attendance) | `/attendance` | 1 |
 | [Salary](#salary) | `/salary` | 2 |
-| [Manager](#manager) | `/manager` | 10 |
+| [Manager](#manager) | `/manager` | 12 |
 | [Lookup tables](#lookup-tables) | `/brands` `/units` `/accounts` `/categories` `/coupons` | 32 |
 | [Reference data](#reference-data) | `/regions` `/storages` `/documents` `/specialties` `/product-categories` | 7 |
 | **Total** | | **97** |
@@ -1220,7 +1220,42 @@ seller named is not theirs.
 | `GET` | `/manager/sellers/{id}/attendance` | One seller's attendance |
 | `GET` | `/manager/sellers/{id}/notes` | Development notes on one seller |
 | `POST` | `/manager/sellers/{id}/notes` | Write a development note |
+| `GET` | `/manager/sellers/{id}/rating` | One seller's current rating |
+| `POST` | `/manager/sellers/{id}/rating` | Write a seller's rating |
 | `GET` | `/manager-notes` | The signed-in seller's own manager notes |
+
+### Rating
+
+The seller's **current** rating — a single score and note held on the seller
+record (`admins.score` / `admins.note`), overwritten each time it is set. This
+is what the panel's rating screen writes, so the app and the panel read and
+write the same value.
+
+> Not the same as the **monthly** score on a payslip (`salaries.score`, read
+> through [`GET /hr/ratings`](#salary)), which is kept per month and does not
+> change once the month is entered.
+
+| Field | Rules |
+|---|---|
+| `score` | required, numeric, `between:0,100` |
+| `note` | nullable, string, max 5000 |
+
+Omitting `note` leaves any existing note untouched rather than clearing it.
+The seller reads their own from `GET /hr/my-rating`, and every row of
+`GET /manager/sellers` carries `rating` and `rating_note`.
+
+```json
+{
+  "seller": { "id": 800050, "name": "Ahmed Nour" },
+  "score": 87,
+  "note": "أداء ممتاز",
+  "updated_at": "2026-09-11T16:40:07+03:00"
+}
+```
+
+> The v1 equivalent, `POST /api/v1/seller/rating`, writes the same two columns
+> but checks no ownership at all — any authenticated seller can rate any
+> other. This one is limited to the manager's own sellers.
 
 ### Courses
 

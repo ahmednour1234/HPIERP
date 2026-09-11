@@ -104,6 +104,10 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
             Route::get('sellers/{sellerId}/notes', [\App\Http\Controllers\Api\V2\ManagerController::class, 'sellerNotes'])->whereNumber('sellerId');
             Route::post('sellers/{sellerId}/notes', [\App\Http\Controllers\Api\V2\ManagerController::class, 'storeNote'])->whereNumber('sellerId');
 
+            // التقييم: درجة المندوب الحالية، يكتبها المدير من التطبيق.
+            Route::get('sellers/{sellerId}/rating', [\App\Http\Controllers\Api\V2\ManagerController::class, 'sellerRating'])->whereNumber('sellerId');
+            Route::post('sellers/{sellerId}/rating', [\App\Http\Controllers\Api\V2\ManagerController::class, 'storeRating'])->whereNumber('sellerId');
+
             // الكورسات: المدير ينشئها ويسندها لمناديبه. المندوب نفسه يقرأ
             // كورساته من GET /hr/courses.
             Route::get('courses', [\App\Http\Controllers\Api\V2\ManagerController::class, 'courses']);
@@ -120,6 +124,8 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
         // شؤون المندوب: كانت متاحة في اللوحة فقط ولا يراها المندوب.
         Route::group(['prefix' => 'hr'], function () {
             Route::get('ratings', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'ratings']);
+            // التقييم الحالي (admins.score) لا تقييم كشف الراتب الشهري.
+            Route::get('my-rating', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'myRating']);
             Route::get('development', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'development']);
             Route::get('courses', [\App\Http\Controllers\Api\V2\SellerHrController::class, 'courses']);
 
