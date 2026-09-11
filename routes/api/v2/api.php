@@ -168,6 +168,9 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
         Route::get('product-categories', [ReferenceController::class, 'productCategories']);
         Route::get('regions', [ReferenceController::class, 'regions']);
         Route::get('regions/mine', [ReferenceController::class, 'myRegions']);
+
+        // الفئات المسندة لهذا المندوب، وهي ما يحق له بيعه.
+        Route::get('categories/mine', [ReferenceController::class, 'myCategories']);
         Route::get('storages', [ReferenceController::class, 'storages']);
         Route::get('documents', [ReferenceController::class, 'documents']);
         Route::get('documents/{id}', [ReferenceController::class, 'document'])->whereNumber('id');

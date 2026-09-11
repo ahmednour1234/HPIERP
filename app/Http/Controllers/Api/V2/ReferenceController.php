@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V2;
 
 use App\Http\Controllers\Controller;
+use App\Http\Resources\Api\V1\CategoryResource;
 use App\Models\Document;
 use App\Models\Region;
 use App\Models\Storage;
@@ -108,6 +109,46 @@ class ReferenceController extends Controller
         return $this->ok(
             Region::whereIn('id', $ids)->orderBy('name')->get(['id', 'name', 'name_en']),
             'Regions retrieved'
+        );
+    }
+
+    /**
+     * الفئات المسندة لهذا المندوب عبر جدول seller_categories.
+     *
+     * وهي نفسها التي تحدد ما يحق له بيعه، فيستخدمها التطبيق لملء منتقي
+     * الفئات بدل عرض فئات النظام كلها.
+     *
+     * الفلترة اختيارية: type للتمييز بين التخصصات الطبية (0) وفئات
+     * المنتجات (1)، و status لإخفاء الفئات المعطَّلة — وبعض المسند فعلًا
+     * معطَّل، فبدون الفلتر يظهر للمندوب ما لا يبيعه.
+     */
+    public function myCategories(Request $request): JsonResponse
+    {
+        $request->validate([
+            'type'   => ['nullable', 'integer'],
+            'status' => ['nullable', 'boolean'],
+        ]);
+
+        $ids = \App\Models\SellerCategory::where('seller_id', $request->user()->id)->pluck('cat_id');
+
+        $categories = \App\Models\Category::whereIn('id', $ids)
+            // القيمتان قد تكونان 0 وهي قيمة صالحة، فلا يصلح فحص الامتلاء.
+            ->when(
+                $request->input('type') !== null && $request->input('type') !== '',
+                fn ($q) => $q->where('type', (int) $request->input('type'))
+            )
+            ->when(
+                $request->input('status') !== null && $request->input('status') !== '',
+                fn ($q) => $q->where('status', (int) $request->input('status'))
+            )
+            // كل الأعمدة: CategoryResource يقرأ parent_id و position
+            // و created_at أيضًا، فاختيار بعضها يجعلها أصفارًا صامتة.
+            ->orderBy('name')
+            ->get();
+
+        return $this->ok(
+            CategoryResource::collection($categories),
+            'Categories retrieved'
         );
     }
 }

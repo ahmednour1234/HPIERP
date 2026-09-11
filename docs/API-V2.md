@@ -35,7 +35,7 @@ running server.
 | [Salary](#salary) | `/salary` | 2 |
 | [Manager](#manager) | `/manager` | 12 |
 | [Lookup tables](#lookup-tables) | `/brands` `/units` `/accounts` `/categories` `/coupons` | 32 |
-| [Reference data](#reference-data) | `/regions` `/storages` `/documents` `/specialties` `/product-categories` | 7 |
+| [Reference data](#reference-data) | `/regions` `/storages` `/documents` `/specialties` `/product-categories` | 8 |
 | **Total** | | **97** |
 
 ---
@@ -1449,11 +1449,30 @@ Read-only lists for populating pickers.
 |---|---|---|
 | `GET` | `/regions` | All regions — `id`, `name`, `name_en` |
 | `GET` | `/regions/mine` | Only the regions this seller covers |
+| `GET` | `/categories/mine` | Only the categories assigned to this seller |
 | `GET` | `/storages` | `id`, `name` |
 | `GET` | `/specialties` | Medical specialties — `categories.type = 0` |
 | `GET` | `/product-categories` | Product categories — `categories.type = 1` |
 | `GET` | `/documents` | The signed-in seller's documents — `id`, `name`, `description`, `attachments[]` |
 | `GET` | `/documents/{id}` | One document, same shape |
+
+### The seller's own categories
+
+`GET /categories/mine` returns the categories assigned to the signed-in seller
+through `seller_categories` — the same assignment that decides what they are
+allowed to sell, so the app can fill a category picker with those rather than
+every category in the system.
+
+| Parameter | Rules | Meaning |
+|---|---|---|
+| `type` | optional integer | `0` medical specialties, `1` product categories |
+| `status` | optional boolean | `1` active only, `0` disabled only |
+
+Each entry is the same shape as [`GET /categories`](#lookup-tables), `image_url`
+included. Assignments can point at disabled categories, so pass `status=1` when
+the picker should offer only what is actually sellable.
+
+A seller with no assignment gets an empty list, not an error.
 
 ### Document visibility
 
