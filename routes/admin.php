@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\POSSessionController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\StockReturnRequestController;
 use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\PurchaseController;
 use App\Http\Controllers\Admin\SupplyOrderController;
@@ -512,5 +513,11 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
         Route::get    ('documents/{document}/edit', [DocumentController::class, 'edit'])->name('documents.edit');
         Route::put    ('documents/{document}',      [DocumentController::class, 'update'])->name('documents.update');
         Route::delete ('documents/{document}',      [DocumentController::class, 'destroy'])->name('documents.destroy');
+
+        // طلبات إرجاع البضاعة من عربيات المناديب: الاعتماد وحده ينقل الكميات.
+        Route::get  ('stock-returns',              [StockReturnRequestController::class, 'index'])->name('stock-returns.index');
+        Route::get  ('stock-returns/{id}',         [StockReturnRequestController::class, 'show'])->whereNumber('id')->name('stock-returns.show');
+        Route::post ('stock-returns/{id}/approve', [StockReturnRequestController::class, 'approve'])->whereNumber('id')->name('stock-returns.approve');
+        Route::post ('stock-returns/{id}/reject',  [StockReturnRequestController::class, 'reject'])->whereNumber('id')->name('stock-returns.reject');
     });   // نهاية مجموعة middleware admin
 });

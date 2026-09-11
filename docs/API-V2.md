@@ -24,7 +24,7 @@ running server.
 | [Profile](#profile) | `/profile` | 2 |
 | [Dashboard](#dashboard) | `/dashboard` | 4 |
 | [Orders (POS)](#orders-pos) | `/orders` | 8 |
-| [Stock](#stock) | `/stocks` | 3 |
+| [Stock](#stock) | `/stocks` | 5 |
 | [Products](#products) | `/products` | 9 |
 | [Customers](#customers) | `/customers` | 6 |
 | [Suppliers](#suppliers) | `/suppliers` | 8 |
@@ -621,18 +621,87 @@ Seller-specific prices replace the catalogue price where one exists.
 }
 ```
 
-### `POST /stocks/confirm`
+### Returning stock to the warehouse
 
-Closes out the seller's day and returns the settlement summary: what sold
-becomes `confirm_stocks` and `stock_histories` records, unsold units return to
-warehouse quantity, and the working tables are cleared for the next run.
+The seller picks what goes back from their van and files a request; **nothing
+moves until an admin approves it**. Approval transfers the quantities in one
+transaction, rejection changes no stock at all.
 
-Wrapped in a transaction — a failure part-way through cannot leave stock
-counted twice or lost.
+> Previously `POST /stocks/confirm` settled immediately and irreversibly: the
+> server decided what was left over and returned it to the warehouse, with no
+> say from the seller and no review. A miscount had no remedy. The old
+> immediate settlement still lives at `POST /api/v1/stocks/confirm`, which
+> also writes the `confirm_stocks` / `stock_histories` records that
+> [`GET /stocks/history`](#stock) reads.
 
-Response `data` includes `vehicle_code`, `vehicle_name`, `total_stock`,
-`remain_stock`, `order_count`, `total_cash`, `total_credit`,
-`installment_total`, `refund_total`, `products[]`, `remain_products[]`.
+#### `POST /stocks/confirm`
+
+| Field | Rules |
+|---|---|
+| `items` | required, array, min 1 |
+| `items.*.product_id` | required, integer, `exists:products,id` |
+| `items.*.quantity` | required, integer, min 1 |
+| `note` | nullable, string, max 2000 |
+
+```bash
+curl -X POST "$BASE/api/v2/stocks/confirm"   -H "Authorization: Bearer $TOKEN"   -H 'Content-Type: application/json'   -d '{ "items": [{ "product_id": 812, "quantity": 6 }], "note": "باقي اليوم" }'
+```
+
+```json
+{
+  "success": true,
+  "message": "Stock return request submitted for approval",
+  "data": {
+    "id": 77,
+    "status": "pending",
+    "status_text": "بانتظار الموافقة",
+    "note": "باقي اليوم",
+    "admin_note": null,
+    "reviewed_at": null,
+    "created_at": "2026-09-11T14:20:00+03:00",
+    "items": [
+      { "product_id": 812, "quantity": 6,
+        "product": { "id": 812, "name": "فوليك أسيد", "product_code": "P-812" } }
+    ]
+  }
+}
+```
+
+`201` on success. Rejections:
+
+| Situation | Code |
+|---|---|
+| More than the van holds, or a product not in the van | `422` |
+| A pending request is already open | `409` |
+
+Repeated lines for the same product are summed before the check, so two lines
+that each fit but together exceed the van are refused rather than accepted.
+
+#### `GET /stocks/confirm/current`
+
+The seller's latest request — the pending one if there is one, otherwise the
+last reviewed. `data` is `null` when they have never filed one, which is what
+tells the app to show the picker rather than the waiting screen.
+
+Carries `admin_note` and `reviewed_at` once an admin has acted, so the app can
+show why a request was refused.
+
+#### `POST /stocks/confirm/{id}/cancel`
+
+Withdraws a pending request before review. `409` once it has been reviewed,
+`404` for another seller's request — not `403`, so the response does not
+reveal that it exists.
+
+#### Admin review
+
+Handled in the panel at `admin/stock-returns`, not over the API:
+
+- **approve** — moves each quantity from the van to warehouse stock in a single
+  transaction, and marks the request `approved`. Rows are locked while it runs,
+  so two approvals cannot both pass the check and deduct twice. If the van no
+  longer holds the amount (it changed between filing and review), the whole
+  approval is refused and nothing is written.
+- **reject** — records `admin_note` explaining why. No stock changes.
 
 ### `GET /stocks/history`
 

@@ -42,7 +42,11 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
 
         Route::group(['prefix' => 'stocks'], function () {
             Route::get('/', [StockController::class, 'index']);
+            // إرجاع البضاعة للمخزن: طلب يعتمده الأدمن، لا تسوية فورية.
             Route::post('confirm', [StockController::class, 'confirm']);
+            Route::get('confirm/current', [StockController::class, 'currentReturn']);
+            Route::post('confirm/{id}/cancel', [StockController::class, 'cancelReturn'])->whereNumber('id');
+
             Route::get('history', [StockController::class, 'history']);
         });
 

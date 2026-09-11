@@ -113,6 +113,12 @@ class Handler extends ExceptionHandler
             return $this->envelope($e->getMessage(), JsonResponse::HTTP_UNPROCESSABLE_ENTITY);
         }
 
+        // هذه تحمل حالتها بنفسها: طلب إرجاع معلّق قائم يردّ 409 لا 422،
+        // وهو ما يميّزه التطبيق ليعرض شاشة الانتظار بدل رسالة خطأ.
+        if ($e instanceof \App\Services\Exceptions\ReturnRequestException) {
+            return $this->envelope($e->getMessage(), $e->status());
+        }
+
         // A service rejecting its arguments (e.g. transferring to the same
         // account) is a client error, not a crash.
         if ($e instanceof \InvalidArgumentException) {
