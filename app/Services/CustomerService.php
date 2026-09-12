@@ -26,6 +26,7 @@ class CustomerService
             [
                 'category_id' => array_filter((array) ($filters['category_id'] ?? [])),
                 'region_ids'  => array_filter((array) ($filters['region_ids'] ?? [])),
+                'specialist'  => array_filter((array) ($filters['specialist'] ?? [])),
             ]
         );
     }

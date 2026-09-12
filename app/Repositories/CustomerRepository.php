@@ -66,6 +66,12 @@ class CustomerRepository extends BaseRepository
             $query->whereIn('customers.region_id', (array) $filters['region_ids']);
         }
 
+        // نوع الجهة: 1 صيدلية، 2 مركز، 3 مستشفى، 4 طبيب. يعمل مع
+        // category_id بـ AND كبقية الفلاتر، فيمكن طلب أطباء تخصص بعينه.
+        if (!empty($filters['specialist'])) {
+            $query->whereIn('customers.specialist', (array) $filters['specialist']);
+        }
+
         return $query->orderByDesc('customers.id')->paginate($perPage, ['*'], 'page', $page);
     }
 

@@ -15,7 +15,11 @@ class CustomerResource extends JsonResource
             'mobile'        => $this->mobile,
             'email'         => $this->email,
             'pharmacy_name' => $this->pharmacy_name,
-            'specialist'    => $this->specialist,
+            // نوع الجهة، رقمًا كما هو مخزَّن ومعه اسمه حتى لا يضطر
+            // التطبيق لتكرار الترجمة عنده. غير التخصص الطبي، وهو
+            // category_id أدناه.
+            'specialist'      => $this->specialist,
+            'specialist_name' => $this->specialistName(),
             'address'       => $this->address ?? '',
             'state'         => $this->state,
             'city'          => $this->city,
@@ -46,5 +50,21 @@ class CustomerResource extends JsonResource
             'executed_visits' => $this->when(isset($this->executed_visits), fn () => (int) $this->executed_visits),
             'created_at'      => optional($this->created_at)->toIso8601String(),
         ];
+    }
+
+    /**
+     * اسم نوع الجهة مقابل الرقم المخزَّن.
+     *
+     * العمود int بلا قيد، وبعض الصفوف القديمة تحمل أرقامًا خارج 1..4
+     * (أرقام هواتف كُتبت فيه خطأً)، فتلك ترجع null بدل اسم مختلق.
+     */
+    private function specialistName(): ?string
+    {
+        return [
+            1 => 'صيدلية',
+            2 => 'مركز طبي',
+            3 => 'مستشفى',
+            4 => 'طبيب',
+        ][(int) $this->specialist] ?? null;
     }
 }

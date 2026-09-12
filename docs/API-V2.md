@@ -808,6 +808,32 @@ returns `403`.
 Supports `search` (name, mobile, pharmacy name), `limit`, `offset`.
 `order_count` and `executed_visits` are computed in SQL.
 
+| Parameter | Meaning |
+|---|---|
+| `category_id` | Medical specialty — `categories.type = 0`. Accepts a list |
+| `region_ids` | Region. Accepts a list |
+| `specialist` | Kind of establishment. Accepts a list |
+
+The filters combine with AND, so `?specialist=4&category_id=3` is doctors in
+that one specialty, and paging applies after filtering.
+
+**`specialist` is not `category_id`.** `specialist` is what kind of place the
+customer is; `category_id` is the medical specialty practised there.
+
+| `specialist` | Meaning |
+|---|---|
+| `1` | صيدلية |
+| `2` | مركز طبي |
+| `3` | مستشفى |
+| `4` | طبيب |
+
+Every customer carries `specialist` (the raw number) and `specialist_name`
+(the label above), so the app does not repeat the mapping.
+
+> The column is an unconstrained `int`, and some older rows hold values well
+> outside 1–4 — phone numbers written into the wrong field. Those return
+> `specialist_name: null` rather than an invented label.
+
 ```json
 {
   "success": true,

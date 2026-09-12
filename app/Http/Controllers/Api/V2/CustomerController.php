@@ -24,7 +24,7 @@ class CustomerController extends Controller
     {
         $customers = $this->customers->listForSeller(
             (int) $request->user()->id,
-            $request->only(['search', 'limit', 'offset', 'category_id', 'region_ids'])
+            $request->only(['search', 'limit', 'offset', 'category_id', 'region_ids', 'specialist'])
         );
 
         return $this->ok(
