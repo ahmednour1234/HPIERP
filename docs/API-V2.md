@@ -515,6 +515,28 @@ Returns only the signed-in seller's orders.
 `collected_cash >= order_amount`, `partial` when something was collected but
 not all of it, `unpaid` when nothing was.
 
+**Every order carries its own settlement state**, so a list does not have to
+be cross-referenced to know what is still owed or what came back:
+
+| Field | Meaning |
+|---|---|
+| `remaining` | `order_amount - collected_cash`, floored at 0 |
+| `payment_status` | `paid` · `partial` · `unpaid` |
+| `payment_status_text` | محصلة بالكامل · محصلة جزئيًا · غير محصلة |
+| `returned_amount` | Total of the returns filed against this invoice |
+| `has_returns` | Whether any return exists |
+
+`payment_status` uses the same rule as the filter above, so rows returned by
+`?payment_status=partial` always report `partial` themselves.
+
+`returned_amount` sums the type-7 orders carrying this invoice's `parent_id`,
+and is computed in the listing query — 25 invoices stay one query, not 26.
+Returns filed the older unlinked way (`POST /orders` with `order_type: 7`)
+record no `parent_id`, so they are not counted here.
+
+> Amounts are JSON numbers, so a whole value serialises as `250`, not `250.0`.
+> Parse them as numbers rather than comparing formatted strings.
+
 `product_id` matches orders that contain that product on a line.
 
 ### `GET /orders/totals`

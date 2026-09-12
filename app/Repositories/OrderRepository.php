@@ -24,6 +24,16 @@ class OrderRepository extends BaseRepository
         return $this->query()
             ->where('owner_id', $sellerId)
             ->with(['details', 'customer:id,name,mobile'])
+            ->select('orders.*')
+            // مجموع المرتجع على الفاتورة في نفس الاستعلام: حسابه من علاقة
+            // لكل صف يجعل عرض 25 فاتورة 26 استعلامًا.
+            ->selectSub(
+                fn ($q) => $q->from('orders as returns')
+                    ->selectRaw('COALESCE(SUM(returns.order_amount), 0)')
+                    ->whereColumn('returns.parent_id', 'orders.id')
+                    ->where('returns.type', 7),
+                'returned_amount'
+            )
             ->tap(fn (Builder $q) => $this->applyFilters($q, $filters))
             ->when(
                 in_array($filters['sort'] ?? '', ['amount_asc', 'amount_desc', 'oldest'], true),
