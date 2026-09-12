@@ -25,6 +25,7 @@ running server.
 | [Dashboard](#dashboard) | `/dashboard` | 4 |
 | [Orders (POS)](#orders-pos) | `/orders` | 8 |
 | [Stock](#stock) | `/stocks` | 5 |
+| [Reservations](#reservations-and-issued-stock) | `/reservations` | 4 |
 | [Products](#products) | `/products` | 9 |
 | [Customers](#customers) | `/customers` | 6 |
 | [Suppliers](#suppliers) | `/suppliers` | 8 |
@@ -728,6 +729,75 @@ Handled in the panel at `admin/stock-returns`, not over the API:
 ### `GET /stocks/history`
 
 Past settlements, newest first, each with its stored summary decoded.
+
+---
+
+## Reservations and issued stock
+
+Two different things share the `reserve_products` table, told apart by `type`:
+
+| `type` | What it is | Who writes it |
+|---|---|---|
+| `4` | A request for goods from the warehouse | The seller, from the app |
+| `7` | A request to send goods back | The seller, from the app |
+| `3` | **أمر صرف** — stock actually issued to the van | The admin, from the panel |
+
+A type-3 row is a record of something already done: the panel writes it *after*
+decrementing warehouse quantity and incrementing van stock. That is why it
+carries `active = 2` rather than the `1` a pending request has, and why it is
+read from its own endpoint rather than mixed into the seller's requests.
+
+### `GET /reservations`
+
+The seller's own requests and returns — types 4 and 7 only.
+
+| Parameter | Rules |
+|---|---|
+| `type` | optional, `in:4,7` |
+| `active` | optional, `in:0,1` — `1` pending, `0` closed |
+| `customer_id` | optional integer |
+| `from` / `to` | optional dates, `to` `after_or_equal:from` |
+| `search` | id, note, or customer name |
+
+### `POST /reservations` · `GET /reservations/{id}`
+
+Filing a request, and reading one. Prices are resolved server-side.
+
+### `GET /reservations/issued`
+
+The أوامر صرف executed for the signed-in seller, newest first.
+
+| Parameter | Rules |
+|---|---|
+| `product_id` | optional integer — orders containing that product |
+| `from` / `to` | optional dates, `to` `after_or_equal:from` |
+| `search` | optional — id, or a product name on the order |
+
+```json
+{
+  "id": 20000497,
+  "type": "3",
+  "type_text": "issue",
+  "status_text": "executed",
+  "items_count": 1,
+  "total": 7200,
+  "items": [
+    { "product_id": 812, "product_name": "بايوفونكس", "quantity": 96,
+      "balance": 15463, "price": 75, "line_total": 7200 }
+  ],
+  "created_at": "2026-08-20T16:31:04+03:00"
+}
+```
+
+`balance` is the warehouse quantity left after that line was issued, as
+recorded at the time.
+
+> The lines live as a JSON blob on `data`, not in their own table, so
+> `product_id` and `search` match against that text. The `product_id` match is
+> anchored so `?product_id=143` cannot match an order for product `14316`.
+
+> `date` is null on issued orders — the panel does not set it — so order and
+> display them by `created_at`.
 
 ---
 

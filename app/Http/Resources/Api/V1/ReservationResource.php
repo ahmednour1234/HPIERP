@@ -19,9 +19,9 @@ class ReservationResource extends JsonResource
         return [
             'id'          => $this->id,
             'type'        => (string) $this->type,
-            'type_text'   => (string) $this->type === '7' ? 'return' : 'request',
+            'type_text'   => $this->typeText(),
             'active'      => (int) $this->active,
-            'status_text' => (int) $this->active === 1 ? 'pending' : 'closed',
+            'status_text' => $this->statusText(),
             'note'        => $this->note,
             'date'        => $this->date,
             'customer'    => $this->whenLoaded('customer', fn () => $this->customer ? [
@@ -42,5 +42,27 @@ class ReservationResource extends JsonResource
             'total'       => round($total, 2),
             'created_at'  => optional($this->created_at)->toIso8601String(),
         ];
+    }
+
+    private function typeText(): string
+    {
+        return match ((string) $this->type) {
+            '7'     => 'return',
+            '3'     => 'issue',
+            default => 'request',
+        };
+    }
+
+    /**
+     * أمر الصرف (type 3) منفَّذ دائمًا — الأدمن يكتبه بعد نقل الكميات —
+     * فوسمه بـ pending/closed حسب active يقلب معناه: قيمته 2 لا 1.
+     */
+    private function statusText(): string
+    {
+        if ((string) $this->type === '3') {
+            return 'executed';
+        }
+
+        return (int) $this->active === 1 ? 'pending' : 'closed';
     }
 }

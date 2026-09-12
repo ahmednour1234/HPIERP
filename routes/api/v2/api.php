@@ -144,6 +144,11 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
         Route::group(['prefix' => 'reservations'], function () {
             Route::get('/', [ReservationController::class, 'index']);
             Route::post('/', [ReservationController::class, 'store']);
+
+            // أوامر الصرف المنفَّذة: ما صرفه الأدمن للعربية، لا ما طلبه
+            // المندوب. قبل {id} لأنها ليست معرِّفًا رقميًا.
+            Route::get('issued', [ReservationController::class, 'issued']);
+
             Route::get('{id}', [ReservationController::class, 'show'])->whereNumber('id');
         });
 

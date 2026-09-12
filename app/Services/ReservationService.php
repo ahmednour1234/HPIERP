@@ -25,6 +25,15 @@ class ReservationService
     public const TYPE_REQUEST = '4';
     public const TYPE_RETURN  = '7';
 
+    /**
+     * أمر الصرف: ما صرفه الأدمن فعلًا إلى عربية المندوب.
+     *
+     * تكتبه شاشة "إضافة مخزون للعربية" في اللوحة بعد أن تكون قد خصمت من
+     * المخزن وأضافت للعربية، فالصف هنا سجل لصرف نُفِّذ لا طلب معلّق —
+     * ولهذا active = 2 لا 1.
+     */
+    public const TYPE_ISSUE = '3';
+
     public function __construct(private CustomerRepository $customers)
     {
     }
@@ -33,6 +42,10 @@ class ReservationService
     {
         return ReserveProduct::where('seller_id', $sellerId)
             ->with(['customer:id,name,mobile'])
+            // طلبات المندوب وحدها: أوامر الصرف (type 3) يكتبها الأدمن
+            // وتُقرأ من GET /reservations/issued، فبدون هذا الحد تظهر
+            // مختلطة بها في قائمة بلا فلتر type.
+            ->whereIn('type', [self::TYPE_REQUEST, self::TYPE_RETURN])
             ->when($filters['type'] ?? null, fn (Builder $q, $t) => $q->where('type', $t))
             ->when(isset($filters['active']) && $filters['active'] !== '',
                 fn (Builder $q) => $q->where('active', (int) $filters['active']))
@@ -43,6 +56,32 @@ class ReservationService
                 $q->where(fn (Builder $i) => $i->where('id', $term)
                     ->orWhere('note', 'LIKE', "%{$term}%")
                     ->orWhereHas('customer', fn (Builder $c) => $c->where('name', 'LIKE', "%{$term}%"))))
+            ->latest('id')
+            ->paginate((int) ($filters['limit'] ?? 25), ['*'], 'page', (int) ($filters['offset'] ?? 1));
+    }
+
+    /**
+     * أوامر الصرف المنفَّذة لهذا المندوب، الأحدث أولًا.
+     *
+     * منفصلة عن listForSeller لأن أمر الصرف ليس طلبًا يقدّمه المندوب:
+     * الأدمن هو من ينشئه وقد نُفِّذ سلفًا، فلا يمر بفلتر active ولا
+     * يُخلط بطلبات الحجز والرد في نفس القائمة.
+     */
+    public function issuedToSeller(int $sellerId, array $filters): LengthAwarePaginator
+    {
+        return ReserveProduct::where('seller_id', $sellerId)
+            ->where('type', self::TYPE_ISSUE)
+            ->when($filters['from'] ?? null, fn (Builder $q, $d) => $q->whereDate('created_at', '>=', $d))
+            ->when($filters['to'] ?? null, fn (Builder $q, $d) => $q->whereDate('created_at', '<=', $d))
+            // البحث في اسم المنتج داخل data: الأسطر مخزَّنة كـ JSON في
+            // العمود لا في جدول مستقل، فلا سبيل لربطها بـ products.
+            ->when($filters['search'] ?? null, fn (Builder $q, $term) =>
+                $q->where(fn (Builder $i) => $i->where('id', $term)
+                    ->orWhere('data', 'LIKE', "%{$term}%")))
+            // الفاصلة بعد الرقم تُغلق المطابقة: بدونها يطابق "product_id":143
+            // كلَّ صف فيه 14316 لأنه بادئة له.
+            ->when($filters['product_id'] ?? null, fn (Builder $q, $p) =>
+                $q->where('data', 'LIKE', '%"product_id":' . (int) $p . ',%'))
             ->latest('id')
             ->paginate((int) ($filters['limit'] ?? 25), ['*'], 'page', (int) ($filters['offset'] ?? 1));
     }

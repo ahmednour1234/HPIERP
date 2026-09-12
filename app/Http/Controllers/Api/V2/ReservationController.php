@@ -41,6 +41,29 @@ class ReservationController extends Controller
         );
     }
 
+    /**
+     * أوامر الصرف التي نُفِّذت لهذا المندوب.
+     *
+     * ما صرفه الأدمن فعلًا إلى العربية، لا ما طلبه المندوب — تلك في
+     * GET /reservations.
+     */
+    public function issued(Request $request): JsonResponse
+    {
+        $request->validate([
+            'product_id' => ['nullable', 'integer'],
+            'from'       => ['nullable', 'date'],
+            'to'         => ['nullable', 'date', 'after_or_equal:from'],
+            'search'     => ['nullable', 'string', 'max:255'],
+        ]);
+
+        return $this->ok(
+            ReservationResource::collection(
+                $this->reservations->issuedToSeller((int) $request->user()->id, $request->all())
+            ),
+            'Issued stock orders retrieved'
+        );
+    }
+
     public function show(Request $request, int $id): JsonResponse
     {
         return $this->ok(
