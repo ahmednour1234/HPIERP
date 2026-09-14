@@ -512,9 +512,29 @@ Sales, returns and installments all live here; filter by `type` for one kind.
 
 Returns only the signed-in seller's orders.
 
-`payment_status` is derived from the row rather than stored: `paid` when
-`collected_cash >= order_amount`, `partial` when something was collected but
-not all of it, `unpaid` when nothing was.
+`payment_status` is derived from the row rather than stored, and **one formula
+serves the filter, the totals and the field on each order** — evaluated in this
+order:
+
+| Condition | Status |
+|---|---|
+| `collected_cash >= order_amount` | `paid` |
+| `collected_cash > 0` | `partial` |
+| `collected_cash == 0` or null | `unpaid` |
+
+The comparison is `>=`, not `==`, so an invoice collected beyond its amount is
+`paid` (and its `remaining` is 0, never negative). A null `collected_cash`
+counts as zero rather than dropping out of every filter.
+
+The three states partition the invoices exactly: every order falls in one tab,
+none in two. `GET /orders/totals` runs the same filter chain as `GET /orders`,
+so the summary bar always describes the rows beneath it and the tabs sum to
+the unfiltered total.
+
+> **Returns and installments have no collection**, so their `collected_cash` is
+> 0 and they classify as `unpaid` — which adds their value to `remaining` as if
+> it were owed. Pass `type=4` whenever you are looking at money owed on sales;
+> without it the figure includes returns.
 
 **Every order carries its own settlement state**, so a list does not have to
 be cross-referenced to know what is still owed or what came back:
