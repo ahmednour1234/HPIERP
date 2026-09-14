@@ -123,6 +123,33 @@ class OrderRepository extends BaseRepository
             )
             ->sum('order_amount');
 
+        // المستحق والزيادة يُجمعان لكل فاتورة على حدة ثم تُجمع النتيجة:
+        // طرحهما على مستوى الإجمالي يجعل زيادة فاتورة تُلغي دين أخرى،
+        // فيظهر الشريط خاليًا بينما على العميل دين وله ردّ في آن.
+        $perInvoice = $this->applyFilters(
+            $this->query()->where('owner_id', $sellerId), $filters
+        )
+            ->select('orders.id', 'orders.order_amount', 'orders.collected_cash')
+            ->selectSub(
+                fn ($q) => $q->from('orders as returns')
+                    ->selectRaw('COALESCE(SUM(returns.order_amount), 0)')
+                    ->whereColumn('returns.parent_id', 'orders.id')
+                    ->where('returns.type', 7),
+                'returned_amount'
+            )
+            ->get();
+
+        $netRemaining = 0.0;
+        $overpaid     = 0.0;
+
+        foreach ($perInvoice as $invoice) {
+            $net  = max(0, (float) $invoice->order_amount - (float) $invoice->returned_amount);
+            $paid = (float) $invoice->collected_cash;
+
+            $netRemaining += max(0, $net - $paid);
+            $overpaid     += max(0, $paid - $net);
+        }
+
         return [
             'orders'    => (int) ($row->orders ?? 0),
             'total'     => $total,
@@ -134,7 +161,9 @@ class OrderRepository extends BaseRepository
             'remaining' => round(max($total - $collected, 0), 2),
             // The same after returns, which is what the customer actually owes.
             'net_total'     => round(max($total - $returned, 0), 2),
-            'net_remaining' => round(max($total - $returned - $collected, 0), 2),
+            'net_remaining' => round($netRemaining, 2),
+            // Collected beyond what the invoices came to — owed back.
+            'overpaid'      => round($overpaid, 2),
         ];
     }
 

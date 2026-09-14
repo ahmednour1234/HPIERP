@@ -34,6 +34,11 @@ class OrderResource extends JsonResource
             // وأُرجع 600 تبدو "جزئية بمتبقٍّ 600" بينما لا شيء مستحق.
             'net_amount'             => $this->netAmount(),
             'net_remaining'          => $this->netRemaining(),
+
+            // الفرق قد ينقلب لصالح العميل: تحصيل كامل ثم إرجاع جزء يترك
+            // مبلغًا مستحقًا له. المتبقّي مصفور عند الصفر فلا يظهر فيه.
+            'overpaid'               => $this->overpaid(),
+
             'settlement_status'      => $this->settlementStatus(),
             'settlement_status_text' => $this->settlementStatusText(),
 
@@ -98,6 +103,17 @@ class OrderResource extends JsonResource
     }
 
     /**
+     * ما حُصِّل زيادة عن صافي الفاتورة، أي ما يستحقه العميل ردًّا.
+     *
+     * يحدث بالإرجاع بعد التحصيل الكامل: فاتورة 1000 حُصِّلت كاملة ثم
+     * أُرجع منها 600 تترك 600 للعميل. ويحدث بالدفعة الزائدة كذلك.
+     */
+    private function overpaid(): float
+    {
+        return round(max(0, (float) $this->collected_cash - $this->netAmount()), 2);
+    }
+
+    /**
      * حالة التسوية بعد أخذ المرتجع في الحسبان.
      *
      * منفصلة عن payment_status لا بديلة عنه: ذاك يقارن بالمبلغ الأصلي
@@ -106,10 +122,14 @@ class OrderResource extends JsonResource
      */
     private function settlementStatus(): string
     {
-        $net = $this->netAmount();
+        // الزيادة أولًا: مبلغ مستحق للعميل حالة تستدعي إجراءً، فوسمها
+        // "مسوّاة" أو "مرتجعة بالكامل" يخفي أن هناك ما يُرد.
+        if ($this->overpaid() > 0) {
+            return 'overpaid';
+        }
 
         // أُرجعت بالكامل: لا مبلغ باقٍ لتحصيله أصلًا.
-        if ($net <= 0) {
+        if ($this->netAmount() <= 0) {
             return 'fully_returned';
         }
 
@@ -127,6 +147,7 @@ class OrderResource extends JsonResource
             'partial'        => 'متبقٍّ جزء',
             'unpaid'         => 'غير محصلة',
             'fully_returned' => 'مرتجعة بالكامل',
+            'overpaid'       => 'محصلة بالزيادة',
         ][$this->settlementStatus()];
     }
 

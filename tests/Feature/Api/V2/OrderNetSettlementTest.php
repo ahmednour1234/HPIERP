@@ -142,6 +142,81 @@ class OrderNetSettlementTest extends ApiTestCase
         $this->assertSame('settled', $rows[0]['settlement_status']);
     }
 
+    /**
+     * الفرق ينقلب لصالح العميل: تحصيل كامل ثم إرجاع جزء يترك مبلغًا
+     * يُردّ إليه، والمتبقّي مصفور عند الصفر فلا يُظهره.
+     */
+    public function test_collecting_in_full_then_returning_leaves_the_customer_owed(): void
+    {
+        $id = $this->sale(1000, 1000);
+        $this->returnAgainst($id, 600);
+
+        $row = $this->firstRow();
+
+        $this->assertEqualsWithDelta(400.0, (float) $row['net_amount'], 0.01);
+        $this->assertEqualsWithDelta(0.0, (float) $row['net_remaining'], 0.01);
+        $this->assertEqualsWithDelta(600.0, (float) $row['overpaid'], 0.01);
+        $this->assertSame('overpaid', $row['settlement_status']);
+        $this->assertSame('محصلة بالزيادة', $row['settlement_status_text']);
+    }
+
+    /** الدفعة الزائدة بلا مرتجع تُبلَّغ كذلك. */
+    public function test_a_plain_overpayment_is_reported(): void
+    {
+        $this->sale(1000, 1200);
+
+        $row = $this->firstRow();
+
+        $this->assertEqualsWithDelta(200.0, (float) $row['overpaid'], 0.01);
+        $this->assertSame('overpaid', $row['settlement_status']);
+    }
+
+    /** الإرجاع الكامل بعد التحصيل الكامل: المبلغ كله يُردّ. */
+    public function test_a_fully_collected_invoice_returned_in_full_is_owed_back(): void
+    {
+        $id = $this->sale(1000, 1000);
+        $this->returnAgainst($id, 1000);
+
+        $row = $this->firstRow();
+
+        $this->assertEqualsWithDelta(0.0, (float) $row['net_amount'], 0.01);
+        $this->assertEqualsWithDelta(1000.0, (float) $row['overpaid'], 0.01);
+
+        // الزيادة تسبق "مرتجعة بالكامل": هناك ما يُردّ فعلًا.
+        $this->assertSame('overpaid', $row['settlement_status']);
+    }
+
+    public function test_a_settled_invoice_reports_no_overpayment(): void
+    {
+        $id = $this->sale(1000, 400);
+        $this->returnAgainst($id, 600);
+
+        $row = $this->firstRow();
+
+        $this->assertEqualsWithDelta(0.0, (float) $row['overpaid'], 0.01);
+        $this->assertSame('settled', $row['settlement_status']);
+    }
+
+    /**
+     * الإجماليات تجمع لكل فاتورة على حدة: طرحها إجماليًا يجعل زيادة
+     * فاتورة تُلغي دين أخرى فيبدو الشريط خاليًا وكلاهما قائم.
+     */
+    public function test_totals_do_not_let_an_overpayment_cancel_another_invoices_debt(): void
+    {
+        $this->sale(1000, 500);              // عليها 500
+
+        $paid = $this->sale(1000, 1000);     // وله فيها 600
+        $this->returnAgainst($paid, 600);
+
+        $totals = $this->asSeller()
+            ->getJson('/api/v2/orders/totals?type=4')
+            ->assertOk()
+            ->json('data');
+
+        $this->assertEqualsWithDelta(500.0, (float) $totals['net_remaining'], 0.01);
+        $this->assertEqualsWithDelta(600.0, (float) $totals['overpaid'], 0.01);
+    }
+
     /** شريط الإجماليات يحمل نفس التصحيح، وإلا ناقض مجموع الصفوف تحته. */
     public function test_totals_report_the_returned_amount_and_the_net(): void
     {

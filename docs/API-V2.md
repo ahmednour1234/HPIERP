@@ -550,26 +550,42 @@ These fields take the returns off, and are the ones to show a seller:
 |---|---|
 | `net_amount` | `order_amount - returned_amount` — what the invoice came to |
 | `net_remaining` | `net_amount - collected_cash`, floored at 0 |
-| `settlement_status` | `settled` · `partial` · `unpaid` · `fully_returned` |
-| `settlement_status_text` | مسوّاة · متبقٍّ جزء · غير محصلة · مرتجعة بالكامل |
+| `overpaid` | `collected_cash - net_amount`, floored at 0 — owed **back** |
+| `settlement_status` | `settled` · `partial` · `unpaid` · `fully_returned` · `overpaid` |
+| `settlement_status_text` | مسوّاة · متبقٍّ جزء · غير محصلة · مرتجعة بالكامل · محصلة بالزيادة |
+
+**The difference runs both ways.** Collect an invoice in full and then return
+part of it and the money is owed to the customer, not by them. `net_remaining`
+is floored at 0 and cannot show that, so `overpaid` carries it. Only one of
+the two is ever non-zero.
 
 Worked through, for an invoice of 1000:
 
-| collected | returned | `payment_status` / `remaining` | `settlement_status` / `net_remaining` |
-|---|---|---|---|
-| 400 | 600 | `partial` / 600 | `settled` / 0 |
-| 400 | 0 | `partial` / 600 | `partial` / 600 |
-| 300 | 200 | `partial` / 700 | `partial` / 500 |
-| 0 | 1000 | `unpaid` / 1000 | `fully_returned` / 0 |
-| 0 | 400 | `unpaid` / 1000 | `unpaid` / 600 |
+| collected | returned | `payment_status` / `remaining` | `settlement_status` | `net_remaining` | `overpaid` |
+|---|---|---|---|---|---|
+| 400 | 600 | `partial` / 600 | `settled` | 0 | 0 |
+| 400 | 0 | `partial` / 600 | `partial` | 600 | 0 |
+| 300 | 200 | `partial` / 700 | `partial` | 500 | 0 |
+| 0 | 1000 | `unpaid` / 1000 | `fully_returned` | 0 | 0 |
+| 0 | 400 | `unpaid` / 1000 | `unpaid` | 600 | 0 |
+| 1000 | 600 | `paid` / 0 | `overpaid` | 0 | **600** |
+| 1200 | 0 | `paid` / 0 | `overpaid` | 0 | **200** |
+| 1000 | 1000 | `paid` / 0 | `overpaid` | 0 | **1000** |
+
+`overpaid` is checked before `fully_returned`, because money waiting to go back
+to the customer needs acting on.
 
 `payment_status` is kept as it is because the `payment_status` filter is built
 on it — changing one without the other would put rows in a tab that contradict
 the tab itself.
 
-`GET /orders/totals` carries the same pair: `remaining` before returns,
-`returned` and `net_remaining` after. Only returns belonging to invoices the
-filter matched are counted.
+`GET /orders/totals` carries the same figures: `remaining` before returns,
+and `returned`, `net_total`, `net_remaining` and `overpaid` after. Only returns
+belonging to invoices the filter matched are counted.
+
+`net_remaining` and `overpaid` are summed **per invoice**, not netted across
+the total — otherwise one invoice's overpayment cancels another's debt and the
+bar reads zero while both are outstanding.
 
 **Every order carries its own settlement state**, so a list does not have to
 be cross-referenced to know what is still owed or what came back:
