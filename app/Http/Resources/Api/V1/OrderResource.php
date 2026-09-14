@@ -29,6 +29,14 @@ class OrderResource extends JsonResource
             'returned_amount'        => $this->returnedAmount(),
             'has_returns'            => $this->returnedAmount() > 0,
 
+            // صافي الفاتورة بعد المرتجع، وهو ما يُدين به العميل فعلًا.
+            // الحقول أعلاه تتجاهل المرتجع: فاتورة بـ 1000 حُصِّل منها 400
+            // وأُرجع 600 تبدو "جزئية بمتبقٍّ 600" بينما لا شيء مستحق.
+            'net_amount'             => $this->netAmount(),
+            'net_remaining'          => $this->netRemaining(),
+            'settlement_status'      => $this->settlementStatus(),
+            'settlement_status_text' => $this->settlementStatusText(),
+
             'cash'                   => (int) $this->cash,
             'payment_id'             => $this->payment_id,
             'img'                    => $this->img,
@@ -70,6 +78,56 @@ class OrderResource extends JsonResource
             'partial' => 'محصلة جزئيًا',
             'unpaid'  => 'غير محصلة',
         ][$this->paymentStatus()];
+    }
+
+    /** قيمة الفاتورة بعد خصم ما أُرجع منها. */
+    private function netAmount(): float
+    {
+        return round(max(0, (float) $this->order_amount - $this->returnedAmount()), 2);
+    }
+
+    /**
+     * المستحق فعلًا: الصافي بعد المرتجع ناقص ما حُصِّل.
+     *
+     * المرتجع يُقيَّد في دفتر الأستاذ خصمًا من رصيد العميل، فهو يقلّل ما
+     * يدين به سواء حُصِّل قبله أو بعده.
+     */
+    private function netRemaining(): float
+    {
+        return round(max(0, $this->netAmount() - (float) $this->collected_cash), 2);
+    }
+
+    /**
+     * حالة التسوية بعد أخذ المرتجع في الحسبان.
+     *
+     * منفصلة عن payment_status لا بديلة عنه: ذاك يقارن بالمبلغ الأصلي
+     * وتعتمد عليه الفلترة، فتغييره كان يجعل الصف يناقض التبويب الذي جاء
+     * منه.
+     */
+    private function settlementStatus(): string
+    {
+        $net = $this->netAmount();
+
+        // أُرجعت بالكامل: لا مبلغ باقٍ لتحصيله أصلًا.
+        if ($net <= 0) {
+            return 'fully_returned';
+        }
+
+        if ((float) $this->collected_cash <= 0) {
+            return 'unpaid';
+        }
+
+        return $this->netRemaining() <= 0 ? 'settled' : 'partial';
+    }
+
+    private function settlementStatusText(): string
+    {
+        return [
+            'settled'        => 'مسوّاة',
+            'partial'        => 'متبقٍّ جزء',
+            'unpaid'         => 'غير محصلة',
+            'fully_returned' => 'مرتجعة بالكامل',
+        ][$this->settlementStatus()];
     }
 
     /**

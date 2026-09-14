@@ -111,13 +111,30 @@ class OrderRepository extends BaseRepository
         $total     = (float) ($row->total ?? 0);
         $collected = (float) ($row->collected ?? 0);
 
+        // ما أُرجع من الفواتير المطابقة. استعلام ثانٍ لا عمود فرعي: عمود
+        // مرتبط داخل استعلام تجميعي يرتبط بصف واحد اعتباطي فيعود صفرًا.
+        $returned = (float) $this->query()
+            ->where('type', 7)
+            ->whereIn(
+                'parent_id',
+                $this->applyFilters(
+                    $this->query()->where('owner_id', $sellerId), $filters
+                )->select('id')
+            )
+            ->sum('order_amount');
+
         return [
             'orders'    => (int) ($row->orders ?? 0),
             'total'     => $total,
             'collected' => $collected,
             'tax'       => (float) ($row->tax ?? 0),
-            // What is still owed on the orders this filter matched.
+            'returned'  => round($returned, 2),
+            // What is still owed on the orders this filter matched, before
+            // returns are taken off.
             'remaining' => round(max($total - $collected, 0), 2),
+            // The same after returns, which is what the customer actually owes.
+            'net_total'     => round(max($total - $returned, 0), 2),
+            'net_remaining' => round(max($total - $returned - $collected, 0), 2),
         ];
     }
 

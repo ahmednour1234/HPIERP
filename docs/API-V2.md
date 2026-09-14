@@ -536,6 +536,41 @@ the unfiltered total.
 > it were owed. Pass `type=4` whenever you are looking at money owed on sales;
 > without it the figure includes returns.
 
+#### What is actually owed — after returns
+
+**`payment_status` and `remaining` ignore returns.** A return is a separate
+row and never touches the invoice it reverses, so both compare against the
+amount before anything came back. An invoice of 1000 with 400 collected and
+600 returned reads as `partial` with 600 outstanding, while the customer in
+fact owes nothing.
+
+These fields take the returns off, and are the ones to show a seller:
+
+| Field | Meaning |
+|---|---|
+| `net_amount` | `order_amount - returned_amount` — what the invoice came to |
+| `net_remaining` | `net_amount - collected_cash`, floored at 0 |
+| `settlement_status` | `settled` · `partial` · `unpaid` · `fully_returned` |
+| `settlement_status_text` | مسوّاة · متبقٍّ جزء · غير محصلة · مرتجعة بالكامل |
+
+Worked through, for an invoice of 1000:
+
+| collected | returned | `payment_status` / `remaining` | `settlement_status` / `net_remaining` |
+|---|---|---|---|
+| 400 | 600 | `partial` / 600 | `settled` / 0 |
+| 400 | 0 | `partial` / 600 | `partial` / 600 |
+| 300 | 200 | `partial` / 700 | `partial` / 500 |
+| 0 | 1000 | `unpaid` / 1000 | `fully_returned` / 0 |
+| 0 | 400 | `unpaid` / 1000 | `unpaid` / 600 |
+
+`payment_status` is kept as it is because the `payment_status` filter is built
+on it — changing one without the other would put rows in a tab that contradict
+the tab itself.
+
+`GET /orders/totals` carries the same pair: `remaining` before returns,
+`returned` and `net_remaining` after. Only returns belonging to invoices the
+filter matched are counted.
+
 **Every order carries its own settlement state**, so a list does not have to
 be cross-referenced to know what is still owed or what came back:
 
