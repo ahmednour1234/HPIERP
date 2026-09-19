@@ -100,8 +100,20 @@ $admin->canAccessGroup('accounts');
 
 ```bash
 php artisan migrate
-php artisan db:seed --class=RolesPermissionsSeeder
+php artisan permissions:sync
 ```
+
+`permissions:sync` يغلّف البذرة ويعرض بعدها الحالة، وأهمها من لا دور له —
+مستخدم بلا دور لا يرى شيئًا، وهي حالة صامتة يصعب تشخيصها. و`--show` يعرض
+الحالة دون كتابة:
+
+```bash
+php artisan permissions:sync --show
+```
+
+البذرة مستدعاة أيضًا من `DatabaseSeeder` بعد بذور البيانات، فالتركيب من
+الصفر يخرج بأدوار جاهزة. تشغيلها مرارًا آمن: لا تكرّر صفًّا ولا تمحو
+تعديلًا أُجري على دور.
 
 لكل أدمن دور باسم `legacy-admin-<id>` يحمل ما كان يملكه بالضبط، فلا يفقد
 أحد وصوله لحظة تفعيل الفحص. الأدوار المولَّدة قابلة للتعديل والاستبدال،

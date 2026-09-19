@@ -26,6 +26,10 @@ class DatabaseSeeder extends Seeder
         $this->call([
             DemoDataSeeder::class,
             ApiTestingSeeder::class,
+
+            // أخيرًا: يزرع الصلاحيات ويمنح دورًا لكل أدمن أنشأته البذور
+            // قبله. بلا دور لا يرى صاحب الحساب شيئًا في اللوحة.
+            RolesPermissionsSeeder::class,
         ]);
     }
 }

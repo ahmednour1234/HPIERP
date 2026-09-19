@@ -79,7 +79,7 @@ class DemoDataSeeder extends Seeder
         $this->reference($now);
         $this->catalogue($now);
         $this->people($now);
-        $this->stockAndTrade($now);
+        $this->stockAndTrade($now);
         $this->payslips($now);
 
         $this->command->info('');
@@ -245,9 +245,9 @@ class DemoDataSeeder extends Seeder
 
     private function people(Carbon $now): void
     {
-        // Web admin. Every section flag defaults to 0 and the Check*Access
-        // middleware redirects away from anything not granted, so an admin
-        // without these can only see the dashboard shell.
+        // Web admin. The flags feed RolesPermissionsSeeder, which turns them
+        // into an actual role; without that seeder this account has no access
+        // at all, since the columns alone no longer grant anything.
         DB::table('admins')->updateOrInsert(
             ['id' => self::BASE + 1],
             array_merge([
@@ -340,11 +340,12 @@ class DemoDataSeeder extends Seeder
     }
 
     /**
-     * Every section flag switched on.
+     * Every legacy section flag switched on.
      *
-     * The columns exist on `admins` and each Check*Access middleware reads one
-     * of them; without these a freshly seeded admin is bounced back to the
-     * dashboard from every page.
+     * The columns no longer grant anything on their own — access comes from
+     * roles now — but RolesPermissionsSeeder reads them to build this admin a
+     * role, so they still decide what the demo admin ends up with. Run that
+     * seeder after this one, as DatabaseSeeder does.
      */
     private function allPermissions(): array
     {
