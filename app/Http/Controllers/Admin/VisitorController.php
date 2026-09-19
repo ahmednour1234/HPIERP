@@ -9,6 +9,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\CPU\Helpers;
+use App\Exports\ExecutedVisitsExport;
 use App\Exports\VisitsExport;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Seller;
@@ -630,6 +631,14 @@ $sellers = Seller::whereIn('id', $allowedSellerIds)
     $categories = Category::where('type', 0)->orderBy('name')->get();
     $regions    = Region::orderBy('name')->get();
 
+    // أنواع الجهات كما تكتبها شاشة العملاء في اللوحة.
+    $specialistTypes = [
+        1 => 'صيدلية',
+        2 => 'مركز طبي',
+        3 => 'مستشفى',
+        4 => 'طبيب',
+    ];
+
     // ====== ضبط التواريخ ======
     $dateFrom = $request->filled('date_from') ? Carbon::parse($request->date_from)->startOfDay() : null;
     $dateTo   = $request->filled('date_to')   ? Carbon::parse($request->date_to)->endOfDay()   : null;
@@ -659,6 +668,13 @@ $sellers = Seller::whereIn('id', $allowedSellerIds)
     if ($request->filled('category_id')) {
         $categoryId = $request->integer('category_id');
         $base->whereHas('customer', fn ($q) => $q->where('category_id', $categoryId));
+    }
+
+    // نوع الجهة (طبيب / مستشفى / صيدلية / مركز طبي) وهو عمود specialist
+    // على العميل، غير category_id أعلاه الذي يحمل التخصص الطبي.
+    $specialists = array_filter((array) $request->input('specialist'), fn ($v) => $v !== '' && $v !== null);
+    if ($specialists) {
+        $base->whereHas('customer', fn ($q) => $q->whereIn('specialist', $specialists));
     }
 
     // المنطقة، مع إمكانية تحديد أكثر من منطقة معًا.
@@ -705,7 +721,7 @@ $sellers = Seller::whereIn('id', $allowedSellerIds)
 
     return view('admin-views.visitors.indexresultnew', compact(
         'visitors', 'customerTotal', 'sellerTotal', 'sellers',
-        'categories', 'regions', 'regionIds'
+        'categories', 'regions', 'regionIds', 'specialistTypes', 'specialists'
     ));
 }
 
@@ -748,6 +764,12 @@ public function exportResult(Request $request)
         $base->whereHas('customer', fn ($q) => $q->where('category_id', $categoryId));
     }
 
+    // نوع الجهة: يطابق فلتر الشاشة، وإلا صدّر الملف صفوفًا لا تعرضها.
+    $specialists = array_filter((array) $request->input('specialist'), fn ($v) => $v !== '' && $v !== null);
+    if ($specialists) {
+        $base->whereHas('customer', fn ($q) => $q->whereIn('specialist', $specialists));
+    }
+
     $regionIds = array_filter((array) $request->input('region_id'), fn ($v) => $v !== '' && $v !== null);
     if ($regionIds) {
         $base->whereHas('customer', fn ($q) => $q->whereIn('region_id', $regionIds));
@@ -769,41 +791,27 @@ public function exportResult(Request $request)
 
     $categories = Category::where('type', 0)->pluck('name', 'id');
 
+    // أسماء أنواع الجهات، كما تعرضها الشاشة.
+    $specialistLabels = [1 => 'صيدلية', 2 => 'مركز طبي', 3 => 'مستشفى', 4 => 'طبيب'];
+
+    // مصفوفة مرتّبة لا مفتاحية: العناوين تأتي من ExecutedVisitsExport.
     $rows = $base->latest()->get()->map(fn ($v) => [
-        'رقم الزيارة' => $v->id,
-        'التاريخ'     => optional($v->created_at)->format('Y-m-d H:i'),
-        'العميل'      => optional($v->customer)->name ?? '',
-        'الموبايل'    => optional($v->customer)->mobile ?? '',
-        'التخصص'      => $categories[optional($v->customer)->category_id] ?? '',
-        'المنطقة'     => optional(optional($v->customer)->regions)->name ?? '',
-        'المندوب'     => trim((optional($v->seller)->f_name ?? '') . ' ' . (optional($v->seller)->l_name ?? '')),
-        'الملاحظة'    => $v->note,
-        'خط العرض'    => $v->lat,
-        'خط الطول'    => $v->lang,
-    ]);
+        $v->id,
+        optional($v->created_at)->format('Y-m-d H:i'),
+        optional($v->customer)->name ?? '',
+        optional($v->customer)->mobile ?? '',
+        $specialistLabels[(int) optional($v->customer)->specialist] ?? '',
+        $categories[optional($v->customer)->category_id] ?? '',
+        optional(optional($v->customer)->regions)->name ?? '',
+        trim((optional($v->seller)->f_name ?? '') . ' ' . (optional($v->seller)->l_name ?? '')),
+        $v->note,
+        $v->lat,
+        $v->lang,
+    ])->values();
 
-    $filename = 'executed-visits-' . now()->format('Y-m-d') . '.csv';
+    $filename = 'executed-visits-' . now()->format('Y-m-d-His') . '.xlsx';
 
-    // maatwebsite/excel غير مثبّت، وExcel يفتح CSV مباشرة؛ الـ BOM يبقي
-    // العربية مقروءة.
-    return response()->streamDownload(function () use ($rows) {
-        $out = fopen('php://output', 'w');
-        fwrite($out, "\xEF\xBB\xBF");
-
-        if ($rows->isNotEmpty()) {
-            fputcsv($out, array_keys($rows->first()));
-            foreach ($rows as $row) {
-                fputcsv($out, array_values($row));
-            }
-        } else {
-            fputcsv($out, ['لا توجد بيانات']);
-        }
-
-        fclose($out);
-    }, $filename, [
-        'Content-Type'        => 'text/csv; charset=UTF-8',
-        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-    ]);
+    return Excel::download(new ExecutedVisitsExport($rows), $filename);
 }
     
     // public function history(Request $request)

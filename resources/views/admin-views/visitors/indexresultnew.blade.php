@@ -457,6 +457,21 @@
                             </div>
 
                             <div class="col-lg-4 col-md-6 mb-3">
+                                <label for="specialist">نوع الجهة</label>
+                                {{-- غير "التخصص" أعلاه: ذاك التخصص الطبي
+                                     (category_id)، وهذا نوع الجهة نفسها. --}}
+                                <select name="specialist[]" id="specialist" class="form-control visitor-select2" multiple
+                                        data-placeholder="كل الأنواع">
+                                    @foreach($specialistTypes as $value => $label)
+                                        <option value="{{ $value }}"
+                                            {{ in_array((string) $value, array_map('strval', $specialists), true) ? 'selected' : '' }}>
+                                            {{ $label }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+
+                            <div class="col-lg-4 col-md-6 mb-3">
                                 <label for="date_from">من تاريخ</label>
                                 <input type="date" name="date_from" id="date_from" class="form-control"
                                        value="{{ request('date_from') }}">
