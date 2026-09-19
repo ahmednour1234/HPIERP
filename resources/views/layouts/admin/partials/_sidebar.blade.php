@@ -230,6 +230,7 @@ body {
      
 
 
+@hasanypermission(['sales.view','customers.view','sellers.view','visits.view','tracking.view'])
 <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/admin/pos*') ? 'active' : '' }}">
     <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:" data-bs-toggle="collapse" data-bs-target="#salesDropdownContent" aria-expanded="{{ Request::is('admin/admin/pos*') ? 'true' : 'false' }}">
         <i class="tio-shopping nav-icon"></i>
@@ -396,6 +397,10 @@ body {
             </a>
         </li>
         @endif
+    </ul>
+</li>
+@endhasanypermission
+
                                           @cangroup('reports')
 {{-- قسم مستقل بذاته كبقية الأقسام، لا بندًا داخل قائمة أخرى: كان
      مطويًا تحت نقطة البيع فلا يجده من يبحث عن التقارير. --}}
@@ -457,8 +462,6 @@ body {
     </ul>
 </li>
 @endif
-    </ul>
-</li>
                       @cangroup('accounts')
 
              
