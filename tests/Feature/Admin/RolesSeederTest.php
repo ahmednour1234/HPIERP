@@ -119,6 +119,26 @@ class RolesSeederTest extends TestCase
         }
     }
 
+    /** من يدير المستخدمين يدير الأدوار، وإلا بقي النظام بلا موزِّع صلاحيات. */
+    public function test_a_legacy_user_manager_can_reach_the_roles_screen(): void
+    {
+        $id = $this->legacyAdmin(['admin' => 1]);
+
+        $this->seed(RolesPermissionsSeeder::class);
+
+        $this->assertTrue(Admin::find($id)->canAccessGroup('roles'));
+    }
+
+    /** ومن لا يدير المستخدمين لا يُمنحها ضمنًا. */
+    public function test_a_legacy_admin_without_users_has_no_roles_access(): void
+    {
+        $id = $this->legacyAdmin(['accounts' => 1]);
+
+        $this->seed(RolesPermissionsSeeder::class);
+
+        $this->assertFalse(Admin::find($id)->canAccessGroup('roles'));
+    }
+
     public function test_a_super_admin_column_maps_to_the_super_role(): void
     {
         $id = $this->legacyAdmin(['is_super' => 1]);

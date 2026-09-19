@@ -151,6 +151,12 @@ class RolesPermissionsSeeder extends Seeder
             // منحها للأدوار المرحَّلة يمنع أن يفقدها من كان يستعملها.
             $groups = array_merge($groups, self::PREVIOUSLY_OPEN_GROUPS);
 
+            // من يدير المستخدمين يدير الأدوار: بدون هذا لا يرى أحد شاشة
+            // الأدوار سوى السوبر أدمن، فيبقى النظام بلا من يوزّع صلاحياته.
+            if (in_array('admins', $groups, true)) {
+                $groups[] = 'roles';
+            }
+
             $name = 'legacy-admin-' . $admin->id;
 
             $role = Role::firstOrCreate(
