@@ -19,29 +19,37 @@
             </div>
         </div>
         <div class="card-header">
+    @php
+        // المناطق المختارة: قيمة مفردة من رابط قديم تُعامل كمصفوفة.
+        $selectedRegions = array_map('strval', array_filter((array) request('region_id', [])));
+    @endphp
+
+    {{-- الأعمدة كانت 4+4+3+3+2 = 16 من 12، فتلتفّ بشكل مكسور. --}}
     <form action="{{ route('admin.visitor.index') }}" method="GET">
-        <div class="row justify-content-between align-items-center flex-grow-1">
-            <!-- Search by Seller -->
-            <div class="col-12 col-sm-4 mb-3 mb-sm-0">
-                <div class="form-group">
-                    <label for="seller_id">{{ \App\CPU\translate('البحث عن طريق المندوب') }}</label>
+        <div class="row g-3 align-items-end">
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="form-group mb-0">
+                    <label for="seller_id">{{ \App\CPU\translate('المندوب') }}</label>
                     <select name="seller_id" id="seller_id" class="form-control">
-                        <option value="">{{ \App\CPU\translate('اختار المندوب') }}</option>
+                        <option value="">{{ \App\CPU\translate('كل المناديب') }}</option>
                         @foreach($sellers as $seller)
                             <option value="{{ $seller->id }}" {{ request()->seller_id == $seller->id ? 'selected' : '' }}>
-                                {{ $seller->email }}
+                                {{ trim(($seller->f_name ?? '') . ' ' . ($seller->l_name ?? '')) ?: $seller->email }}
                             </option>
                         @endforeach
                     </select>
                 </div>
             </div>
-            <div class="col-12 col-sm-4 mb-3 mb-sm-0">
-                <div class="form-group">
-                    <label for="region_id">{{ \App\CPU\translate('البحث عن طريق المنطقة') }}</label>
-                    <select name="region_id" id="region_id" class="form-control">
-                        <option value="">{{ \App\CPU\translate('اختار منطقة') }}</option>
+
+            <div class="col-12 col-md-6 col-lg-3">
+                <div class="form-group mb-0">
+                    <label for="region_id">{{ \App\CPU\translate('المنطقة') }}</label>
+                    {{-- multiple: التخطيط يحوّل أي select متعدد إلى منتقي
+                         بحث مع "تحديد الكل" تلقائيًا. --}}
+                    <select name="region_id[]" id="region_id" class="form-control" multiple
+                            data-placeholder="{{ \App\CPU\translate('كل المناطق') }}">
                         @foreach($regions as $region)
-                            <option value="{{ $region->id }}" {{ request()->region_id == $region->id ? 'selected' : '' }}>
+                            <option value="{{ $region->id }}" @selected(in_array((string) $region->id, $selectedRegions, true))>
                                 {{ $region->name }}
                             </option>
                         @endforeach
@@ -49,35 +57,35 @@
                 </div>
             </div>
 
-            <!-- Search by Date Range -->
-            <div class="col-12 col-sm-3 mb-3 mb-sm-0">
-                <div class="form-group">
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="form-group mb-0">
                     <label for="from_date">{{ \App\CPU\translate('من تاريخ') }}</label>
                     <input type="date" name="from_date" id="from_date" class="form-control" value="{{ request()->from_date }}">
                 </div>
             </div>
 
-            <div class="col-12 col-sm-3 mb-3 mb-sm-0">
-                <div class="form-group">
+            <div class="col-6 col-md-3 col-lg-2">
+                <div class="form-group mb-0">
                     <label for="to_date">{{ \App\CPU\translate('إلى تاريخ') }}</label>
                     <input type="date" name="to_date" id="to_date" class="form-control" value="{{ request()->to_date }}">
                 </div>
             </div>
 
-            <!-- Submit Button -->
-            <div class="col-12 col-sm-2 mb-3 mb-sm-0">
-                <button type="submit" class="btn btn-primary">{{ \App\CPU\translate('بحث') }}</button>
+            <div class="col-12 col-lg-2">
+                <div class="d-flex g-2" style="gap:.5rem;">
+                    <button type="submit" class="btn btn-primary flex-grow-1">
+                        <i class="tio-search mr-1"></i> {{ \App\CPU\translate('بحث') }}
+                    </button>
+                    {{-- رابط لا نموذج ثانٍ: يحمل الفلاتر الحالية كما هي،
+                         فيصدّر ما على الشاشة بالضبط. --}}
+                    <a href="{{ route('admin.visitor.export', request()->query()) }}"
+                       class="btn btn-success flex-grow-1">
+                        <i class="tio-file-outlined mr-1"></i> {{ \App\CPU\translate('تصدير Excel') }}
+                    </a>
+                </div>
             </div>
         </div>
     </form>
-    <form method="GET" action="{{ route('admin.visitor.export') }}">
-    <input type="hidden" name="seller_id" value="{{ request('seller_id') }}">
-    <input type="hidden" name="region_id" value="{{ request('region_id') }}">
-    <input type="hidden" name="from_date" value="{{ request('from_date') }}">
-    <input type="hidden" name="to_date" value="{{ request('to_date') }}">
-    <button type="submit">Export CSV</button>
-</form>
-
 </div>
 
         <!-- End Page Header -->

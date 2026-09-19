@@ -9,6 +9,8 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use App\CPU\Helpers;
+use App\Exports\VisitsExport;
+use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Seller;
 use App\Models\Stock;
 use App\Models\SellerRegion;
@@ -63,10 +65,13 @@ public function index(Request $request)
         $query->where('seller_id', $request->seller_id);
     }
 
-    // Filter by region_id if provided
-    if ($request->has('region_id') && $request->region_id) {
-        $query->whereHas('customer', function ($q) use ($request) {
-            $q->where('region_id', $request->region_id);
+    // المنطقة تقبل أكثر من قيمة: يُرسلها النموذج مصفوفة، وتبقى القيمة
+    // المفردة مقبولة لروابط قديمة محفوظة.
+    $regionIds = array_filter((array) $request->input('region_id', []));
+
+    if (!empty($regionIds)) {
+        $query->whereHas('customer', function ($q) use ($regionIds) {
+            $q->whereIn('region_id', $regionIds);
         });
     }
 
@@ -392,7 +397,7 @@ public function export(Request $request)
 {
     // Retrieve filters from request
     $sellerId = $request->seller_id;
-    $regionId = $request->region_id;
+    $regionIds = array_filter((array) $request->input('region_id', []));
     $fromDate = $request->from_date;
     $toDate = $request->to_date;
 
@@ -404,9 +409,9 @@ public function export(Request $request)
         $query->where('seller_id', $sellerId);
     }
 
-    if ($regionId) {
-        $query->whereHas('customer', function ($q) use ($regionId) {
-            $q->where('region_id', $regionId);
+    if (!empty($regionIds)) {
+        $query->whereHas('customer', function ($q) use ($regionIds) {
+            $q->whereIn('region_id', $regionIds);
         });
     }
 
@@ -421,20 +426,27 @@ public function export(Request $request)
     // Fetch the filtered visitors data
     $visitors = $query->with('seller', 'customer')->get();
 
-    // Prepare the data for the Excel export
+    // مصفوفة مرتّبة لا مفتاحية: العناوين تأتي من VisitsExport.
     $data = $visitors->map(function ($visitor) {
-        return [
-            'Visitor ID' => $visitor->id,
-            'Seller Name' => $visitor->seller->email ?? 'N/A',
-            'Customer Name' => $visitor->customer->name ?? 'N/A',
-            'Region' => $visitor->customer->regions->name ?? 'N/A',
-            'Date' => $visitor->date,
-            'Note' => $visitor->note ?? 'N/A',
-        ];
-    });
+        // اسم المندوب لا بريده: البريد لا يعرّف أحدًا في تقرير مطبوع.
+        $seller = trim(
+            (optional($visitor->seller)->f_name ?? '') . ' ' .
+            (optional($visitor->seller)->l_name ?? '')
+        );
 
-    // Use FastExcel to download the data as an Excel file
-    return (new FastExcel($data))->download('visitors.xlsx');
+        return [
+            $visitor->id,
+            $seller !== '' ? $seller : (optional($visitor->seller)->email ?? '-'),
+            optional($visitor->customer)->name ?? '-',
+            optional(optional($visitor->customer)->regions)->name ?? '-',
+            $visitor->date,
+            $visitor->note ?: '-',
+        ];
+    })->values();
+
+    $filename = 'visits-' . now()->format('Y-m-d-His') . '.xlsx';
+
+    return Excel::download(new VisitsExport($data), $filename);
 }
 
 
