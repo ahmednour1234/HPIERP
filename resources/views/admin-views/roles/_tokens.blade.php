@@ -89,8 +89,19 @@
         background: #fff;
         border: 1px solid var(--hpi-line);
         border-radius: 14px;
-        overflow: hidden;
         margin-bottom: 1.25rem;
+    }
+
+    /* الترويسة وحدها تُقصّ لتتبع انحناء الزاوية. قصّ اللوحة كلها كان
+       يحبس قائمة الاختيار المنسدلة داخلها، فتنقلب لأعلى فوق الحقول. */
+    .roles-panel > .head {
+        border-top-left-radius: 14px;
+        border-top-right-radius: 14px;
+    }
+
+    .roles-panel > .body:last-child {
+        border-bottom-left-radius: 14px;
+        border-bottom-right-radius: 14px;
     }
 
     .roles-panel > .head {

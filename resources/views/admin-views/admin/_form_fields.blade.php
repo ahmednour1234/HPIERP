@@ -83,8 +83,10 @@
             المناديب التابعون له <span class="req">*</span>
         </label>
 
+        {{-- اللوحة ترقّي كل select[multiple] إلى bootstrap-select، فلا يُعطى
+             ارتفاعًا هنا: يُخفى العنصر الأصلي ويبقى الارتفاع أثرًا قبل عمل JS. --}}
         <select name="sellers[]" id="sellers" class="form-control" multiple required
-                style="min-height:9rem;">
+                data-placeholder="اختر المناديب">
             @foreach($sellers as $cat)
                 <option value="{{ $cat->id }}"
                     @selected(in_array($cat->id, $chosenSel))>{{ $cat->email }}</option>

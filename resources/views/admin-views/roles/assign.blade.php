@@ -17,9 +17,12 @@
         background: #fff;
         border: 1px solid var(--hpi-line);
         border-radius: 14px;
-        overflow: hidden;
         transition: border-color .15s ease, box-shadow .15s ease;
     }
+
+    /* لا overflow:hidden على البطاقة: يحبس القائمة المنسدلة داخلها. */
+    .assign-card .a-head { border-top-left-radius: 14px; border-top-right-radius: 14px; }
+    .assign-card .a-foot { border-bottom-left-radius: 14px; border-bottom-right-radius: 14px; }
 
     .assign-card:hover { border-color: var(--hpi-blue); box-shadow: 0 10px 24px rgba(20,57,92,.08); }
 
@@ -88,13 +91,14 @@
         border-color: #f6d3d1;
     }
 
+    /* اللوحة ترقّي select[multiple] إلى bootstrap-select وتخفي الأصلي،
+       فلا يُفرض ارتفاع هنا: لا يظهر إلا كوميض قبل عمل JS. */
     .a-body select {
         width: 100%;
         border: 1px solid var(--hpi-line);
         border-radius: 10px;
         padding: .4rem .6rem;
         font-size: .84rem;
-        min-height: 7.5rem;
     }
 
     .a-body select:focus {
@@ -239,7 +243,8 @@
                                 <label for="roles-{{ $admin->id }}" class="mb-0">تعديل الأدوار</label>
                             </div>
 
-                            <select name="roles[]" id="roles-{{ $admin->id }}" multiple>
+                            <select name="roles[]" id="roles-{{ $admin->id }}" multiple
+                                    data-placeholder="بدون دور">
                                 @foreach($roles as $role)
                                     <option value="{{ $role->id }}"
                                         @selected($admin->roles->contains('id', $role->id))>

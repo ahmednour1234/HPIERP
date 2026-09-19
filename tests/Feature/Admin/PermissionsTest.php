@@ -360,6 +360,39 @@ class PermissionsTest extends TestCase
     }
 
 
+    /**
+     * لا لوحة تقصّ ما بداخلها في صفحات بها قائمة منسدلة.
+     *
+     * اللوحة ترقّي كل select[multiple] إلى bootstrap-select، وقائمته تُرسم
+     * داخل اللوحة: overflow:hidden عليها كان يحبسها فتنقلب لأعلى فوق
+     * الحقول بدل أن تنسدل.
+     */
+    public function test_panels_do_not_clip_the_select_dropdown(): void
+    {
+        $actor = $this->admin();
+        $actor->roles()->sync([$this->role([Permissions::SUPER])->id]);
+        $actor = Admin::find($actor->id);
+
+        foreach (['/admin/admin/add', '/admin/roles/assign'] as $url) {
+            $html = $this->actingAs($actor, 'admin')->get($url)->assertOk()->getContent();
+
+            $this->assertMatchesRegularExpression(
+                '/<select[^>]*multiple/', $html,
+                "لا يوجد select متعدّد في {$url}"
+            );
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/\.roles-panel\s*\{[^}]*overflow:\s*hidden/', $html,
+                "roles-panel تقصّ القائمة المنسدلة في {$url}"
+            );
+
+            $this->assertDoesNotMatchRegularExpression(
+                '/\.assign-card\s*\{[^}]*overflow:\s*hidden/', $html,
+                "assign-card تقصّ القائمة المنسدلة في {$url}"
+            );
+        }
+    }
+
     private function admin(array $attributes = []): Admin
     {
         $id = (int) (DB::table('admins')->max('id') ?? 0) + 1;
