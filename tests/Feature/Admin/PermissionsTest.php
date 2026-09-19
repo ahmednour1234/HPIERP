@@ -258,6 +258,56 @@ class PermissionsTest extends TestCase
             ->assertSee('بلا صلاحيات');
     }
 
+    /** سقف العدّاد هو ما يمكن تحديده فعلًا: system.super ليست مربّعًا. */
+    public function test_the_form_counter_ceiling_matches_the_grid(): void
+    {
+        $admin = $this->admin();
+        $admin->roles()->sync([$this->role([Permissions::SUPER])->id]);
+
+        $assignable = array_sum(array_map(
+            fn (array $meta) => count($meta['actions']),
+            Permissions::groups()
+        ));
+
+        $this->assertLessThan(count(Permissions::all()), $assignable);
+
+        $html = $this->actingAs(Admin::find($admin->id), 'admin')
+            ->get('/admin/roles/create')
+            ->assertOk()
+            ->getContent();
+
+        $this->assertStringContainsString('/ ' . $assignable . '</small>', $html);
+        $this->assertSame($assignable, substr_count($html, 'class="perm-box"'));
+    }
+
+    /** شاشة الإسناد تعرض كل مستخدمي اللوحة ونموذجًا لمن ليس سوبر أدمن. */
+    public function test_the_assign_page_renders_a_form_per_admin(): void
+    {
+        $admin = $this->admin();
+        $admin->roles()->sync([$this->role([Permissions::SUPER])->id]);
+
+        $plain = $this->admin(['email' => 'plain@test.test']);
+        $super = $this->admin(['email' => 'super@test.test', 'is_super' => 1]);
+
+        $html = $this->actingAs(Admin::find($admin->id), 'admin')
+            ->get('/admin/roles/assign')
+            ->assertOk()
+            ->assertSee('plain@test.test')
+            ->assertSee('super@test.test')
+            ->getContent();
+
+        // <form> بين <tr> و<td> لا يصحّ، فينقله المتصفح خارج الجدول.
+        $this->assertDoesNotMatchRegularExpression('/<tr>\s*<form/', $html);
+
+        // السوبر أدمن بلا نموذج: الأدوار لا تغيّر شيئًا في حالته.
+        $this->assertStringNotContainsString(
+            route('admin.roles.assign.store', $super), $html
+        );
+        $this->assertStringContainsString(
+            route('admin.roles.assign.store', $plain), $html
+        );
+    }
+
     private function admin(array $attributes = []): Admin
     {
         $id = (int) (DB::table('admins')->max('id') ?? 0) + 1;

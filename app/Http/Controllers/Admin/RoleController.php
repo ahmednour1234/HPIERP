@@ -53,9 +53,10 @@ class RoleController extends Controller
     public function create(): View|Factory|Application
     {
         return view('admin-views.roles.form', [
-            'role'     => new Role(),
-            'groups'   => Permissions::groups(),
-            'selected' => [],
+            'role'        => new Role(),
+            'groups'      => Permissions::groups(),
+            'selected'    => [],
+            'total_perms' => $this->assignablePermissionCount(),
         ]);
     }
 
@@ -79,9 +80,10 @@ class RoleController extends Controller
     public function edit(Role $role): View|Factory|Application
     {
         return view('admin-views.roles.form', [
-            'role'     => $role,
-            'groups'   => Permissions::groups(),
-            'selected' => $role->permissions()->pluck('name')->all(),
+            'role'        => $role,
+            'groups'      => Permissions::groups(),
+            'selected'    => $role->permissions()->pluck('name')->all(),
+            'total_perms' => $this->assignablePermissionCount(),
         ]);
     }
 
@@ -123,6 +125,20 @@ class RoleController extends Controller
         Toastr::success('تم حذف الدور.');
 
         return redirect()->route('admin.roles.index');
+    }
+
+    /**
+     * عدد الصلاحيات التي تظهر فعلًا في شبكة النموذج.
+     *
+     * system.super ليست مربّعًا فيها — يمنحها دور النظام وحده — فعدّها
+     * يجعل العدّاد يقيس إلى سقف لا يُبلَغ أبدًا.
+     */
+    private function assignablePermissionCount(): int
+    {
+        return array_sum(array_map(
+            fn (array $meta) => count($meta['actions']),
+            Permissions::groups()
+        ));
     }
 
     /** شاشة إسناد الأدوار للمستخدمين. */
