@@ -399,6 +399,66 @@ body {
                      @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->pos == 1)
                       
                         <!-- Pos Pages -->
+                                          @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->reports == 1)
+    <li class="nav-item">
+        <small class="tio-more-horizontal nav-subtitle-replacer"></small>
+        <a href="javascript:void(0);" class="nav-link" data-toggle="collapse" data-target="#reportsMenu" aria-expanded="false">
+            <span class="tio-circle nav-indicator-icon"></span>
+            <span class="text-truncate">{{ \App\CPU\translate('قسم التقارير') }}</span>
+        </a>
+    </li>
+    <ul id="reportsMenu" class="nav collapse">
+         <li class="nav-item {{ Request::is('admin/product/listreportexpire') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.product.getreportProducts') }}" title="{{ \App\CPU\translate('getreportProducts') }}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{ \App\CPU\translate('كشف المنتجات المباعة') }}</span>
+            </a>
+        </li>
+        <li class="nav-item {{ Request::is('admin/reports/monthly-sales') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.reports.monthly-sales') }}" title="ملخص المبيعات الشهري">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">ملخص المبيعات الشهري</span>
+            </a>
+        </li>
+        <li class="nav-item {{ Request::is('admin/visitors/showResultVisitors*') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.visitor.indexresult') }}" title="تقرير أداء المناديب">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">تقرير أداء المناديب</span>
+            </a>
+        </li>
+        <li class="nav-item {{ Request::is('admin/product/listreportexpire') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.product.listreportexpire') }}" title="{{ \App\CPU\translate('list_of_products') }}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{ \App\CPU\translate('كشف الصلاحية') }}</span>
+            </a>
+        </li>
+
+        <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/stock*') ? 'active' : '' }}">
+            <a class="js-navbar-vertical-aside-menu-link nav-link" href="{{ route('admin.stock.stock-limit') }}">
+                <i class="tio-warning nav-icon"></i>
+                <span class="text-truncate">{{ \App\CPU\translate('كشف نواقص') }}</span>
+            </a>
+        </li>
+
+        <li class="nav-item {{ Request::is('admin/productsunlike') ? 'active' : '' }}">
+            <a class="nav-link" href="{{ route('admin.ordernotification.Productunlike') }}" title="{{ \App\CPU\translate('list_of_products') }}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{ \App\CPU\translate('كشف الركود') }}</span>
+            </a>
+        </li>
+    </ul>
+@endif
+            {{-- الإغلاق قبل @endif: كان بعده فتبقى القائمة مفتوحة
+                 لمن لا يملك صلاحية نقطة البيع. --}}
+            @endif
+    </ul>
+</li>
+                      @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->accounts == 1)
+
+             
+{{-- الفواتير تحت إدارة الحسابات: يقرأها المحاسب لا البائع. حارس pos
+     يبقى معها، فثلاثة حسابات تملك pos دون accounts وكانت ستفقدها. --}}
+@if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->pos == 1)
                         @php($orders = $badgeCounts['orders_type_4'])
                         <li class="navbar-vertical-aside-has-menu">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
@@ -486,63 +546,8 @@ body {
 
                             </ul>
                         </li>
-                                          @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->reports == 1)
-    <li class="nav-item">
-        <small class="tio-more-horizontal nav-subtitle-replacer"></small>
-        <a href="javascript:void(0);" class="nav-link" data-toggle="collapse" data-target="#reportsMenu" aria-expanded="false">
-            <span class="tio-circle nav-indicator-icon"></span>
-            <span class="text-truncate">{{ \App\CPU\translate('قسم التقارير') }}</span>
-        </a>
-    </li>
-    <ul id="reportsMenu" class="nav collapse">
-         <li class="nav-item {{ Request::is('admin/product/listreportexpire') ? 'active' : '' }}">
-            <a class="nav-link" href="{{ route('admin.product.getreportProducts') }}" title="{{ \App\CPU\translate('getreportProducts') }}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{ \App\CPU\translate('كشف المنتجات المباعة') }}</span>
-            </a>
-        </li>
-        <li class="nav-item {{ Request::is('admin/reports/monthly-sales') ? 'active' : '' }}">
-            <a class="nav-link" href="{{ route('admin.reports.monthly-sales') }}" title="ملخص المبيعات الشهري">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">ملخص المبيعات الشهري</span>
-            </a>
-        </li>
-        <li class="nav-item {{ Request::is('admin/visitors/showResultVisitors*') ? 'active' : '' }}">
-            <a class="nav-link" href="{{ route('admin.visitor.indexresult') }}" title="تقرير أداء المناديب">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">تقرير أداء المناديب</span>
-            </a>
-        </li>
-        <li class="nav-item {{ Request::is('admin/product/listreportexpire') ? 'active' : '' }}">
-            <a class="nav-link" href="{{ route('admin.product.listreportexpire') }}" title="{{ \App\CPU\translate('list_of_products') }}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{ \App\CPU\translate('كشف الصلاحية') }}</span>
-            </a>
-        </li>
-
-        <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/stock*') ? 'active' : '' }}">
-            <a class="js-navbar-vertical-aside-menu-link nav-link" href="{{ route('admin.stock.stock-limit') }}">
-                <i class="tio-warning nav-icon"></i>
-                <span class="text-truncate">{{ \App\CPU\translate('كشف نواقص') }}</span>
-            </a>
-        </li>
-
-        <li class="nav-item {{ Request::is('admin/productsunlike') ? 'active' : '' }}">
-            <a class="nav-link" href="{{ route('admin.ordernotification.Productunlike') }}" title="{{ \App\CPU\translate('list_of_products') }}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{ \App\CPU\translate('كشف الركود') }}</span>
-            </a>
-        </li>
-    </ul>
 @endif
-            {{-- الإغلاق قبل @endif: كان بعده فتبقى القائمة مفتوحة
-                 لمن لا يملك صلاحية نقطة البيع. --}}
-            @endif
-    </ul>
-</li>
-                      @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->accounts == 1)
 
-             
 <li class="navbar-vertical-aside-has-menu {{Request::is('admin/account*')?'active':''}}">
     <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
         <i class="tio-wallet nav-icon"></i>
