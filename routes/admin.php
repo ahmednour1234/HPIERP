@@ -16,6 +16,7 @@ use App\Http\Controllers\Admin\POSSessionController;
 use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DocumentController;
+use App\Http\Controllers\Admin\RoleController;
 use App\Http\Controllers\Admin\StockReturnRequestController;
 use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\PurchaseController;
@@ -39,7 +40,9 @@ Route::group(['namespace'=>'Admin', 'as' => 'admin.', 'prefix'=>'admin'] ,functi
         Route::get('logout', 'LoginController@logout')->name('logout');
     });
 
-    Route::group(['middleware' => ['admin']], function(){
+    // section.permission: يحرس كل مسار في المجموعة بصلاحية قسمه. كانت
+    // الحماية على 26 مسارًا من 327، فبقية الأقسام تُفتح بكتابة الرابط.
+    Route::group(['middleware' => ['admin', 'section.permission']], function(){
 Route::get('/', function () {
     return view('admin-views.welcome');
 })->name('welcome');
@@ -516,6 +519,17 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
         Route::delete ('documents/{document}',      [DocumentController::class, 'destroy'])->name('documents.destroy');
 
         // طلبات إرجاع البضاعة من عربيات المناديب: الاعتماد وحده ينقل الكميات.
+        // الأدوار والصلاحيات. محروسة بصلاحية roles لا بالقسم المستنتَج
+        // من الرابط وحده: من يمنح الصلاحيات يملك النظام كله فعليًا.
+        Route::get   ('roles',                [RoleController::class, 'index'])->middleware('permission:roles.view')->name('roles.index');
+        Route::get   ('roles/create',         [RoleController::class, 'create'])->middleware('permission:roles.create')->name('roles.create');
+        Route::post  ('roles',                [RoleController::class, 'store'])->middleware('permission:roles.create')->name('roles.store');
+        Route::get   ('roles/assign',         [RoleController::class, 'assign'])->middleware('permission:roles.update')->name('roles.assign');
+        Route::post  ('roles/assign/{admin}', [RoleController::class, 'storeAssignment'])->middleware('permission:roles.update')->name('roles.assign.store');
+        Route::get   ('roles/{role}/edit',    [RoleController::class, 'edit'])->middleware('permission:roles.update')->name('roles.edit');
+        Route::put   ('roles/{role}',         [RoleController::class, 'update'])->middleware('permission:roles.update')->name('roles.update');
+        Route::delete('roles/{role}',         [RoleController::class, 'destroy'])->middleware('permission:roles.delete')->name('roles.destroy');
+
         Route::get  ('stock-returns',              [StockReturnRequestController::class, 'index'])->name('stock-returns.index');
         Route::get  ('stock-returns/{id}',         [StockReturnRequestController::class, 'show'])->whereNumber('id')->name('stock-returns.show');
         Route::post ('stock-returns/{id}/approve', [StockReturnRequestController::class, 'approve'])->whereNumber('id')->name('stock-returns.approve');

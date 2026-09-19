@@ -110,7 +110,7 @@ body {
                 <div class="navbar-vertical-content">
                     <ul class="navbar-nav navbar-nav-lg nav-tabs">
                         <!-- Dashboards -->
-        @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->dashboard == 1)
+        @cangroup('dashboard')
     <li class="nav-item">
         <small class="tio-more-horizontal nav-subtitle-replacer"></small>
     </li>
@@ -127,7 +127,7 @@ body {
 @else
     <!-- Optionally, handle the case where the user is not authenticated or doesn't have dashboard access -->
 @endif
-   @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->notification == 1)
+   @cangroup('notifications')
        <li class="nav-item">
     <small class="tio-more-horizontal nav-subtitle-replacer"></small>
 </li>
@@ -144,7 +144,7 @@ body {
  
 </li>
 @endif
- @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->requests == 1)
+ @cangroup('requests')
 
 <li class="navbar-vertical-aside-has-menu {{Request::is('admin/admin/reservations_notification*')?'active':''}}">
     <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
@@ -239,7 +239,7 @@ body {
     </a>
 
     <ul class="js-navbar-vertical-aside-submenu nav nav-sub collapse {{ Request::is('admin/admin/pos*') ? 'show' : '' }}" id="salesDropdownContent">
-            @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->customer == 1)
+            @cangroup('customers')
 
 
                         <!-- Customer Pages -->
@@ -286,7 +286,7 @@ body {
                         @endif
                         
                            
-                            @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->seller == 1)
+                            @cangroup('sellers')
 
                        
                         <!-- Seller Pages -->
@@ -316,7 +316,7 @@ body {
                             </ul>
                         </li>
                         @endif
-                             @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->visit == 1)
+                             @cangroup('visits')
      
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/visitors*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
@@ -348,7 +348,7 @@ body {
                             </ul>
                         </li>
                         @endif
-                                @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->tracking == 1)
+                                @cangroup('tracking')
                     
                         <!-- Admin Pages -->
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/tracking*')?'active':''}}">
@@ -369,7 +369,7 @@ body {
                             </ul>
                         </li>
                         @endif
-                                @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->sales == 1)
+                                @cangroup('sales')
 
         <li class="nav-item {{ Request::is('admin/admin/pos*') && request('type') == 4 ? 'active' : '' }}">
             <a class="nav-link" href="{{ route('admin.pos.index', ['type' => 4]) }}" title="{{ \App\CPU\translate('list_stock') }}">
@@ -396,7 +396,7 @@ body {
             </a>
         </li>
         @endif
-                                          @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->reports == 1)
+                                          @cangroup('reports')
 {{-- قسم مستقل بذاته كبقية الأقسام، لا بندًا داخل قائمة أخرى: كان
      مطويًا تحت نقطة البيع فلا يجده من يبحث عن التقارير. --}}
 @php($reportsActive = Request::is('admin/product/getreportProducts')
@@ -459,12 +459,12 @@ body {
 @endif
     </ul>
 </li>
-                      @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->accounts == 1)
+                      @cangroup('accounts')
 
              
 {{-- الفواتير تحت إدارة الحسابات: يقرأها المحاسب لا البائع. حارس pos
      يبقى معها، فثلاثة حسابات تملك pos دون accounts وكانت ستفقدها. --}}
-@if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->pos == 1)
+@cangroup('invoices')
                         @php($orders = $badgeCounts['orders_type_4'])
                         <li class="navbar-vertical-aside-has-menu">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
@@ -537,7 +537,7 @@ body {
                                         </span>
                                     </a>
                                 </li>
-                                                                @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->install == 1)
+                                                                @cangroup('installments')
 
                                 <li class="nav-item {{Request::is('admin/pos/installments')?'active':''}}">
                                     <a class="nav-link " href="{{route('admin.pos.installments')}}"
@@ -623,7 +623,7 @@ body {
         </ul>
     </li>
     
-@if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->storage == 1)
+@cangroup('storages')
 
     <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/storagesseller*') || Request::is('admin/storages*') ? 'active' : '' }}">
         <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle">
@@ -648,7 +648,7 @@ body {
         </ul>
     </li>
 @endif
-     @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->sectionsalary == 1)
+     @cangroup('salaries')
                      
                         <!-- Admin Pages -->
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/salaries*')?'active':''}}">
@@ -680,7 +680,7 @@ body {
     </ul>
 </li>
 @endif
-                      @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->production == 1)
+                      @cangroup('production')
 
 <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/factories*')||Request::is('admin/materials*')||Request::is('admin/purchases*')||Request::is('admin/supply_orders*')|| Request::is('admin/production_orders*') ? 'active' : '' }}">
     <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:" data-bs-toggle="collapse" data-bs-target="#salesDropdownContent" aria-expanded="{{ Request::is('admin/factories*') ? 'true' : 'false' }}">
@@ -785,7 +785,7 @@ body {
 </li>
 @endif
 
-                      @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->hr == 1)
+                      @cangroup('hr')
                      
                         <!-- Admin Pages -->
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/salaries*')?'active':''}}">
@@ -848,7 +848,7 @@ body {
                             </ul>
                         </li>
                         @endif
-                      @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->attendance == 1)
+                      @cangroup('attendance')
 
   <li class="nav-item {{Request::is('admin/attendance') ?'active':''}}">
                                     <a class="nav-link " href="{{route('admin.attendance.index')}}"
@@ -885,7 +885,7 @@ body {
 
                             </ul>
                         </li>
-    @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->supplier == 1)
+    @cangroup('suppliers')
               <li class="navbar-vertical-aside-has-menu {{Request::is('admin/supplier*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
                             >
@@ -936,7 +936,7 @@ body {
                      
                         
                         <!-- Product End Pages -->
-                        <!--@if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->coupon == 1)-->
+                        <!--@cangroup('coupons')-->
                         <li class="nav-item">
                             <small
                                 class="nav-subtitle">{{\App\CPU\translate('قسم البيزنس')}}</small>
@@ -955,14 +955,14 @@ body {
  
 
                         <!-- Settings Start Pages -->
-                            @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->setting == 1)
+                            @cangroup('settings')
                                                     <li class="navbar-vertical-aside-has-menu {{Request::is('admin/business-settings*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
                                 <i class="tio-settings nav-icon"></i>
                                 <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{\App\CPU\translate('الاعدادات')}}</span>
                             </a>
                             <ul class="js-navbar-vertical-aside-submenu nav nav-sub {{Request::is('admin/business-settings*')?'d-block':''}}">
-                                       @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->regions == 1)
+                                       @cangroup('regions')
 
                         <!-- Admin Pages -->
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/tracking*')?'active':''}}">
@@ -983,7 +983,7 @@ body {
                             </ul>
                         </li>
                         @endif
-  @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->unit == 1)
+  @cangroup('units')
                             
                                   <li class="navbar-vertical-aside-has-menu {{Request::is('admin/unit*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
@@ -1019,7 +1019,7 @@ body {
                                 </ul>
                         </li>
                         @endif
-                                @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->cat == 1)
+                                @cangroup('categories')
    
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/category*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
@@ -1064,7 +1064,7 @@ body {
                                 
                             </ul>
                         </li>
-                                                    @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->store == 1)
+                                                    @cangroup('stores')
 
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/store*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
@@ -1089,7 +1089,7 @@ body {
                             </ul>
                         </li>
 @endif
-        @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->admin == 1)
+        @cangroup('admins')
                         
                         <!-- Admin Pages -->
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/admin*')?'active':''}}">
@@ -1115,6 +1115,16 @@ body {
                                         <span class="text-truncate">{{\App\CPU\translate('قائمة الادمن')}}</span>
                                     </a>
                                 </li>
+
+                                @cangroup('roles')
+                                <li class="nav-item {{Request::is('admin/roles*')?'active':''}}">
+                                    <a class="nav-link" href="{{route('admin.roles.index')}}"
+                                       title="{{\App\CPU\translate('الأدوار والصلاحيات')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">{{\App\CPU\translate('الأدوار والصلاحيات')}}</span>
+                                    </a>
+                                </li>
+                                @endcangroup
                             </ul>
                         </li>
                         @endif

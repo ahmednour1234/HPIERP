@@ -73,6 +73,13 @@ class Kernel extends HttpKernel
         'check.pos.access' => \App\Http\Middleware\CheckPosAccess::class,
         'check.stock.access' => \App\Http\Middleware\CheckStockAccess::class,
         'check.store.access' => \App\Http\Middleware\CheckStoreAccess::class,
+
+        // يحرس أي مسار بصلاحية مسمّاة، ويغني عن فحوص check.*.access
+        // المتفرقة التي لم تكن تغطي إلا جزءًا صغيرًا من المسارات.
+        'permission' => \App\Http\Middleware\CheckPermission::class,
+
+        // يحرس كل مسارات اللوحة بصلاحية قسمها المستنتَجة من الرابط.
+        'section.permission' => \App\Http\Middleware\EnforceSectionPermission::class,
         'check.category.access' => \App\Http\Middleware\CheckCategoryAccess::class,
         'check.unit.access' => \App\Http\Middleware\CheckUnitAccess::class,
         'check.product.access' => \App\Http\Middleware\CheckProductAccess::class,
