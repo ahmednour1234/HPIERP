@@ -25,9 +25,29 @@ class RoleController extends Controller
 {
     public function index(): View|Factory|Application
     {
-        $roles = Role::withCount(['permissions', 'admins'])->orderBy('id')->get();
+        $roles = Role::withCount(['permissions', 'admins'])
+            ->with('permissions:id,group')
+            ->orderBy('id')
+            ->get();
 
-        return view('admin-views.roles.index', compact('roles'));
+        $groups = Permissions::groups();
+
+        // عدد الصلاحيات وحده لا يقول شيئًا: 23 صلاحية قد تكون قسمًا
+        // واحدًا أو عشرة. الأقسام المغطّاة هي ما يُقرأ من نظرة.
+        $roles->each(function (Role $role) use ($groups) {
+            $covered = $role->permissions->pluck('group')->unique();
+
+            $role->section_labels = $covered
+                ->map(fn ($g) => $groups[$g]['label'] ?? $g)
+                ->sort()
+                ->values();
+        });
+
+        return view('admin-views.roles.index', [
+            'roles'       => $roles,
+            'total_perms' => count(Permissions::all()),
+            'total_groups' => count($groups),
+        ]);
     }
 
     public function create(): View|Factory|Application

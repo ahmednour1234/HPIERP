@@ -225,6 +225,39 @@ class PermissionsTest extends TestCase
         $this->assertDatabaseHas('roles', ['id' => $role->id]);
     }
 
+    /** صفحة الأدوار تعرض الأقسام التي يفتحها كل دور، لا عددًا مجرّدًا. */
+    public function test_the_roles_page_lists_the_sections_each_role_covers(): void
+    {
+        $admin = $this->admin();
+        $admin->roles()->sync([$this->role([Permissions::SUPER])->id]);
+
+        $covering = $this->role(['accounts.view', 'reports.view'], 'covering');
+        $covering->update(['label' => 'دور التغطية']);
+
+        $this->actingAs(Admin::find($admin->id), 'admin')
+            ->get('/admin/roles')
+            ->assertOk()
+            ->assertSee('دور التغطية')
+            ->assertSee(Permissions::groups()['accounts']['label'])
+            ->assertSee(Permissions::groups()['reports']['label']);
+    }
+
+    /** دور بلا صلاحيات لا يكسر الصفحة، وهي حالة تنشأ بعد إفراغ دور. */
+    public function test_the_roles_page_renders_a_role_with_no_permissions(): void
+    {
+        $admin = $this->admin();
+        $admin->roles()->sync([$this->role([Permissions::SUPER])->id]);
+
+        $empty = $this->role([], 'empty-role');
+        $empty->update(['label' => 'دور فارغ']);
+
+        $this->actingAs(Admin::find($admin->id), 'admin')
+            ->get('/admin/roles')
+            ->assertOk()
+            ->assertSee('دور فارغ')
+            ->assertSee('بلا صلاحيات');
+    }
+
     private function admin(array $attributes = []): Admin
     {
         $id = (int) (DB::table('admins')->max('id') ?? 0) + 1;
