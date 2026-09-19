@@ -74,4 +74,28 @@ class RouteCoverageTest extends TestCase
         $this->assertSame([], $missing,
             'مجموعات بلا صلاحية عرض، فلا تظهر في القائمة: ' . implode(', ', $missing));
     }
+
+    /**
+     * لا حارس يقرأ الأعمدة القديمة.
+     *
+     * كانت 13 وسيطة check.*.access تعيد التوجيه صامتةً بناءً على أعمدة
+     * لم يعد يكتبها النموذج، فيُحرم صاحب الدور الصحيح من صفحته.
+     */
+    public function test_no_route_uses_a_legacy_access_middleware(): void
+    {
+        $offenders = [];
+
+        foreach (Route::getRoutes() as $route) {
+            foreach ($route->gatherMiddleware() as $middleware) {
+                if (is_string($middleware)
+                    && str_starts_with($middleware, 'check.')
+                    && str_ends_with($middleware, '.access')) {
+                    $offenders[] = $route->uri() . ' → ' . $middleware;
+                }
+            }
+        }
+
+        $this->assertSame([], $offenders,
+            'مسارات ما زالت خلف حارس يقرأ الأعمدة القديمة');
+    }
 }

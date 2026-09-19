@@ -90,21 +90,21 @@ Route::prefix('/materials')->name('materials.')->group(function () {
     Route::get('/{id}/edit', [MaterialController::class, 'edit'])->name('edit');
     Route::put('/{id}/update', [MaterialController::class, 'update'])->name('update');
 });
-        Route::get('/dashboard', 'DashboardController@dashboard')->name('dashboard')->middleware('check.dashboard.access');
-        Route::post('account-status','DashboardController@account_stats')->name('account-status')->middleware('check.dashboard.access');
+        Route::get('/dashboard', 'DashboardController@dashboard')->name('dashboard');
+        Route::post('account-status','DashboardController@account_stats')->name('account-status');
         Route::get('settings', 'SystemController@settings')->name('settings');
         Route::post('settings', 'SystemController@settings_update');
         Route::get('settings-password', 'SystemController@settings')->name('settings.password');
         Route::post('settings-password', 'SystemController@settings_password_upospdate')->name('settings-password');
-   Route::get('/stores', [StoresController::class, 'index'])->name('stores.index')->middleware('check.store.access');
-    Route::get('/stores/create', [StoresController::class, 'create'])->name('stores.create')->middleware('check.store.access');
-    Route::post('/stores', [StoresController::class, 'store'])->name('stores.store')->middleware('check.store.access');
-Route::get('/stores/{store_id}/edit', [StoresController::class, 'edit'])->name('stores.edit')->middleware('check.store.access');
-    Route::post('/stores/{store_id}/update', [StoresController::class, 'update'])->name('stores.update')->middleware('check.store.access');
-    Route::delete('/stores/{store_id}', [StoresController::class, 'destroy'])->name('stores.destroy')->middleware('check.store.access');
+   Route::get('/stores', [StoresController::class, 'index'])->name('stores.index');
+    Route::get('/stores/create', [StoresController::class, 'create'])->name('stores.create');
+    Route::post('/stores', [StoresController::class, 'store'])->name('stores.store');
+Route::get('/stores/{store_id}/edit', [StoresController::class, 'edit'])->name('stores.edit');
+    Route::post('/stores/{store_id}/update', [StoresController::class, 'update'])->name('stores.update');
+    Route::delete('/stores/{store_id}', [StoresController::class, 'destroy'])->name('stores.destroy');
         
         
-        Route::group(['prefix' => 'category', 'as' => 'category.', 'middleware' => 'check.category.access'], function () {
+        Route::group(['prefix' => 'category', 'as' => 'category.'], function () {
             Route::get('add', 'CategoryController@index')->name('add');
             Route::get('add-sub-category', 'CategoryController@sub_index')->name('add-sub-category');
         Route::get('add-special-category', 'CategoryController@indexspecial')->name('indexspecial');
@@ -128,7 +128,7 @@ Route::get('/stores/{store_id}/edit', [StoresController::class, 'edit'])->name('
             Route::delete('delete/{id}', 'BrandController@delete')->name('delete');
         });
         //unit
-        Route::group(['prefix' => 'unit', 'as' => 'unit.', 'middleware' => 'check.unit.access'], function () {
+        Route::group(['prefix' => 'unit', 'as' => 'unit.'], function () {
             Route::get('index', 'UnitController@index')->name('index');
             Route::post('store', 'UnitController@store')->name('store');
             Route::get('edit/{id}', 'UnitController@edit')->name('edit');
@@ -136,7 +136,7 @@ Route::get('/stores/{store_id}/edit', [StoresController::class, 'edit'])->name('
              Route::delete('delete/{id}', 'UnitController@delete')->name('delete');
         });
 
-        Route::group(['prefix' => 'product', 'as' => 'product.', 'middleware' => 'check.unit.access'], function () {
+        Route::group(['prefix' => 'product', 'as' => 'product.'], function () {
             Route::get('add', 'ProductController@index')->name('add');
             Route::get('getreportProducts', 'ProductController@getreportProducts')->name('getreportProducts');
             // التصدير يحترم نفس فلاتر الشاشة.
@@ -169,7 +169,7 @@ Route::group(['prefix' => 'reports', 'as' => 'reports.'], function () {
     Route::get('monthly-sales/export', 'MonthlySalesReportController@export')->name('monthly-sales.export');
 });
 
-Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.access'], function () {
+Route::group(['prefix' => 'pos', 'as' => 'pos.'], function () {
             Route::get('/pos/{type}', 'POSController@index')->name('index');
             Route::get('quick-view', 'POSController@quick_view')->name('quick-view');
             Route::post('variant_price', 'POSController@variant_price')->name('variant_price');
@@ -248,7 +248,7 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
             Route::get('get-cart-ids','POSController@get_cart_ids')->name('get-cart-ids');
         });
 
-        Route::group(['prefix' => 'vehicle-stock', 'as' => 'stock.', 'middleware' => 'check.stock.access'], function () {
+        Route::group(['prefix' => 'vehicle-stock', 'as' => 'stock.'], function () {
             // Export honours the same filters as the listing.
             Route::get('export', 'StockController@export')->name('export');
             // Give part of what a seller is carrying back to the warehouse.
@@ -325,7 +325,7 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
         });
 
         //customer
-        Route::group(['prefix' => 'customer', 'as' => 'customer.', 'middleware' => 'check.customer.access'], function () {
+        Route::group(['prefix' => 'customer', 'as' => 'customer.'], function () {
             Route::get('add','CustomerController@index')->name('add');
                 Route::get ('customers/updateexport', [CustomerController::class,'exportupdate'])
          ->name('updateexport');
@@ -361,7 +361,7 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
         });
 
         //seller
-        Route::group(['prefix' => 'seller', 'as' => 'seller.', 'middleware' => 'check.seller.access'], function () {
+        Route::group(['prefix' => 'seller', 'as' => 'seller.'], function () {
             Route::get('add','SellerController@index')->name('add');
                         Route::get('getAvailableAdmins','SellerController@getAvailableAdmins')->name('getAvailableAdmins');
             Route::post('store', 'SellerController@store')->name('store');
@@ -376,7 +376,7 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
             Route::delete('delete/{id}', 'SellerController@delete')->name('delete');
         });
         //seller
-        Route::group(['prefix' => 'admin', 'as' => 'admin.', 'middleware' => 'check.admin.access'], function () {
+        Route::group(['prefix' => 'admin', 'as' => 'admin.'], function () {
             Route::get('add','AdminController@index')->name('add');
             Route::get('showmap','AdminController@showmap')->name('showmap');
             Route::post('store', 'AdminController@store')->name('store');
@@ -388,7 +388,7 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
         });
 
         //supplier
-        Route::group(['prefix' => 'supplier', 'as' => 'supplier.', 'middleware' => 'check.supplier.access'], function () {
+        Route::group(['prefix' => 'supplier', 'as' => 'supplier.'], function () {
             Route::get('add','SupplierController@index')->name('add');
             Route::post('store', 'SupplierController@store')->name('store');
             Route::get('list', 'SupplierController@list')->name('list');
@@ -410,7 +410,7 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
             Route::post('update-quantity', 'StocklimitController@update_quantity')->name('update-quantity');
         });
         //business settings
-        Route::group(['prefix' => 'business-settings', 'as' => 'business-settings.','middleware'=>['actch'],'middleware' => 'check.setting.access'], function () {
+        Route::group(['prefix' => 'business-settings', 'as' => 'business-settings.','middleware'=>['actch']], function () {
             Route::get('shop-setup', 'BusinessSettingsController@shop_index')->name('shop-setup');
             Route::post('update-setup', 'BusinessSettingsController@shop_setup')->name('update-setup');
             Route::get('shortcut-keys', 'BusinessSettingsController@shortcut_key')->name('shortcut-keys');
@@ -426,14 +426,14 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
             Route::delete('delete/{id}', 'CouponController@delete')->name('delete');
         });
         
-        Route::group(['prefix' => 'regions', 'as' => 'regions.', 'middleware' => 'check.seller.access'], function() {
+        Route::group(['prefix' => 'regions', 'as' => 'regions.'], function() {
             Route::get('list', 'DashboardController@regionList')->name('list');
             Route::post('store', 'DashboardController@regionStore')->name('store');
             Route::get('edit/{id}', 'DashboardController@regionEdit')->name('edit');
             Route::post('update/{id}', 'DashboardController@regionUpdate')->name('update');
             Route::delete('delete/{id}', 'DashboardController@regionDelete')->name('delete');
         });
-    Route::group(['prefix' => 'storages', 'as' => 'storage.', 'middleware' => 'check.storage.access', 'namespace' => 'App\Http\Controllers\Admin'], function() {
+    Route::group(['prefix' => 'storages', 'as' => 'storage.', 'namespace' => 'App\Http\Controllers\Admin'], function() {
     Route::get('list', [StorageController::class, 'index'])->name('list');
     Route::get('create', [StorageController::class, 'create'])->name('create');
     Route::post('store', [StorageController::class, 'store'])->name('store');
@@ -450,7 +450,7 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
     Route::get('status/{id}/{status}',[TaxController::class, 'status'])->name('status');
     Route::delete('delete/{id}', [TaxController::class, 'delete'])->name('delete');
 });
-  Route::group(['prefix' => 'storagesseller', 'as' => 'storageseller.','middleware' => 'check.storage.access', 'namespace' => 'App\Http\Controllers\Admin'], function() {
+  Route::group(['prefix' => 'storagesseller', 'as' => 'storageseller.', 'namespace' => 'App\Http\Controllers\Admin'], function() {
     Route::get('list', [StorageSellerController::class, 'index'])->name('list');
     Route::get('create', [StorageSellerController::class, 'create'])->name('create');
     Route::post('store', [StorageSellerController::class, 'store'])->name('store');
@@ -463,11 +463,11 @@ Route::get('/admin/notifications', [NotificationController::class, 'listItems'])
 
         //order notification
         Route::middleware('auth:admin')->group(function () {
-                    Route::get('/ordernotification', 'OrderNotificationController@index')->name('ordernotification.index')->middleware('check.pos.access');
-                    Route::get('/ordernotification/{order_id}', 'OrderNotificationController@show')->name('ordernotification.show')->middleware('check.pos.access');
-        Route::post('/ordernotification/store', 'OrderNotificationController@placeOrder')->name('ordernotification.placeOrder')->middleware('check.pos.access');
-        Route::get('/admin/orders/search', 'OrderNotificationController@search')->name('orders.search')->middleware('check.pos.access');
-                    Route::get('/productsunlike', 'OrderNotificationController@Productunlike')->name('ordernotification.Productunlike')->middleware('check.product.access');
+                    Route::get('/ordernotification', 'OrderNotificationController@index')->name('ordernotification.index');
+                    Route::get('/ordernotification/{order_id}', 'OrderNotificationController@show')->name('ordernotification.show');
+        Route::post('/ordernotification/store', 'OrderNotificationController@placeOrder')->name('ordernotification.placeOrder');
+        Route::get('/admin/orders/search', 'OrderNotificationController@search')->name('orders.search');
+                    Route::get('/productsunlike', 'OrderNotificationController@Productunlike')->name('ordernotification.Productunlike');
 
 
 });

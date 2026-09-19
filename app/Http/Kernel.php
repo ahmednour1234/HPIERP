@@ -69,10 +69,6 @@ class Kernel extends HttpKernel
         'installation-check' => InstallationMiddleware::class,
         'actch' => ActivationCheckMiddleware::class,
         'api_token' => \App\Http\Middleware\EnsureTokenIsValid::class,
-        'check.dashboard.access' => \App\Http\Middleware\CheckDashboardAccess::class,
-        'check.pos.access' => \App\Http\Middleware\CheckPosAccess::class,
-        'check.stock.access' => \App\Http\Middleware\CheckStockAccess::class,
-        'check.store.access' => \App\Http\Middleware\CheckStoreAccess::class,
 
         // يحرس أي مسار بصلاحية مسمّاة، ويغني عن فحوص check.*.access
         // المتفرقة التي لم تكن تغطي إلا جزءًا صغيرًا من المسارات.
@@ -80,16 +76,6 @@ class Kernel extends HttpKernel
 
         // يحرس كل مسارات اللوحة بصلاحية قسمها المستنتَجة من الرابط.
         'section.permission' => \App\Http\Middleware\EnforceSectionPermission::class,
-        'check.category.access' => \App\Http\Middleware\CheckCategoryAccess::class,
-        'check.unit.access' => \App\Http\Middleware\CheckUnitAccess::class,
-        'check.product.access' => \App\Http\Middleware\CheckProductAccess::class,
-        'check.customer.access' => \App\Http\Middleware\CheckCustomerAccess::class,
-        'check.seller.access' => \App\Http\Middleware\CheckSellerAccess::class,
-        'check.admin.access' => \App\Http\Middleware\CheckAdminAccess::class,
-        'check.supplier.access' => \App\Http\Middleware\CheckSupplierAccess::class,
-        'check.setting.access' => \App\Http\Middleware\CheckSettingAccess::class,
-        'check.storage.access' => \App\Http\Middleware\CheckStorageAccess::class,
-        'check.notificaion.access' => \App\Http\Middleware\CheckNotificationAccess::class,
         // Opts a route into the unified { success, message, data } envelope
         // and the matching error rendering in App\Exceptions\Handler.
         'api.standard' => \App\Http\Middleware\StandardApiResponse::class,

@@ -12,6 +12,7 @@ use Brian2694\Toastr\Facades\Toastr;
 use App\CPU\Helpers;
 use App\Models\Category;
 use App\Models\Region;
+use App\Models\Role;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\DB;
 use function App\CPU\translate;
@@ -27,9 +28,9 @@ class AdminController extends Controller
    public function index()
 {
     $sellers = Seller::all();
+    $roles = Role::orderBy('label')->get();
 
-    // Pass data to the view using compact
-    return view('admin-views.admin.index', compact('sellers'));
+    return view('admin-views.admin.index', compact('sellers', 'roles'));
 }
 
   public function showmap()
@@ -70,19 +71,13 @@ class AdminController extends Controller
         $admin->email = $request->email;
         $admin->password = Hash::make($request->password);
 
-        $permissions = [
-            'supplier', 'dashboard', 'pos', 'stock', 'store', 'cat', 'unit', 'product',
-            'stock_limit', 'coupons', 'customer', 'seller', 'admin', 'storage',
-            'setting', 'requests', 'notification', 'tracking', 'regions', 'reports', 'vehicle_stock','visit','rating','sectionsalary','accounts','sales','hr','attendance','production','install'
-        ];
-
-        foreach ($permissions as $permission) {
-            $admin->$permission = $request->has($permission) ? 1 : 0;
-        }
-
         $admin->save();
 
-        foreach ($request->sellers as $item) {
+        // الصلاحيات صارت أدوارًا. الأعمدة المنطقية القديمة لم يعد يقرأها
+        // أحد، وكتابتها هنا كانت توهم أنها تفعل شيئًا.
+        $admin->roles()->sync($request->input('roles', []));
+
+        foreach ($request->input('sellers', []) as $item) {
             $adminseller = new AdminSeller;
             $adminseller->seller_id = $item;
             $adminseller->admin_id = $admin->id;
@@ -102,7 +97,9 @@ class AdminController extends Controller
 }
 public function list(Request $request)
 {
-    $admins = $this->admin->where('role', 'admin')->paginate(Helpers::pagination_limit());
+    $admins = $this->admin->where('role', 'admin')
+        ->with('roles:id,label')
+        ->paginate(Helpers::pagination_limit());
     return view('admin-views.admin.list', compact('admins'));
 }
     public function edit(Request $request)
@@ -110,8 +107,10 @@ public function list(Request $request)
         $regions = Region::all();
                 $sellers = $this->seller->get();
         $categories = Category::all();
-        $admin = $this->admin->where('id',$request->id)->first();
-        return view('admin-views.admin.edit',compact('admin', 'regions', 'categories','sellers'));
+        $admin = $this->admin->with('roles:id')->where('id',$request->id)->first();
+        $roles = Role::orderBy('label')->get();
+
+        return view('admin-views.admin.edit',compact('admin', 'regions', 'categories','sellers','roles'));
     }
 
 public function update(Request $request): RedirectResponse
@@ -135,20 +134,16 @@ public function update(Request $request): RedirectResponse
         $admin->longitude = $request->longitude;
         $admin->email = $request->email;
 
-        $permissions = [
-            'supplier', 'dashboard', 'pos', 'stock', 'store', 'cat', 'unit', 'product',
-            'stock_limit', 'coupons', 'customer', 'seller', 'admin', 'storage', 'setting',
-            'requests', 'notification', 'tracking', 'regions', 'reports', 'vehicle_stock','visit','rating','sectionsalary','accounts','sales','hr','attendance','production','install'
-        ];
-
-        foreach ($permissions as $permission) {
-            $admin->$permission = $request->has($permission) ? 1 : 0;
+        // السوبر أدمن يتجاوز الأدوار أصلًا، فلا تُغيَّر أدواره من هنا
+        // ولا يُترك بلا شيء بإرسال نموذج فارغ.
+        if (! $admin->is_super) {
+            $admin->roles()->sync($request->input('roles', []));
         }
 
         // Delete existing sellers associated with the admin to avoid duplicates
         AdminSeller::where('admin_id', $admin->id)->delete();
 
-        foreach ($request->sellers as $item) {
+        foreach ($request->input('sellers', []) as $item) {
             $adminseller = new AdminSeller;
             $adminseller->seller_id = $item;
             $adminseller->admin_id = $admin->id;

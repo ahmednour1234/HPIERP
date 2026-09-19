@@ -308,6 +308,58 @@ class PermissionsTest extends TestCase
         );
     }
 
+
+    public function test_updating_an_admin_syncs_its_roles(): void
+    {
+        $actor = $this->admin();
+        $actor->roles()->sync([$this->role([Permissions::SUPER])->id]);
+
+        $target = $this->admin(['email' => 'target@test.test']);
+        $before = $this->role(['accounts.view'], 'before');
+        $after  = $this->role(['reports.view'], 'after');
+
+        $target->roles()->sync([$before->id]);
+
+        $this->actingAs(Admin::find($actor->id), 'admin')
+            ->post(route('admin.admin.update', $target->id), [
+                'f_name'  => 'T',
+                'l_name'  => 'A',
+                'email'   => 'target@test.test',
+                'roles'   => [$after->id],
+                'sellers' => [],
+            ]);
+
+        $target = Admin::find($target->id);
+
+        $this->assertFalse($target->roles->contains('id', $before->id));
+        $this->assertTrue($target->roles->contains('id', $after->id));
+        $this->assertTrue($target->canAccessGroup('reports'));
+        $this->assertFalse($target->canAccessGroup('accounts'));
+    }
+
+
+    /** أدوار السوبر أدمن لا تُمسّ من هذا النموذج. */
+    public function test_updating_a_super_admin_keeps_its_roles(): void
+    {
+        $actor = $this->admin();
+        $actor->roles()->sync([$this->role([Permissions::SUPER])->id]);
+
+        $super = $this->admin(['email' => 'sup@test.test', 'is_super' => 1]);
+        $kept  = $this->role(['accounts.view'], 'kept');
+        $super->roles()->sync([$kept->id]);
+
+        $this->actingAs(Admin::find($actor->id), 'admin')
+            ->post(route('admin.admin.update', $super->id), [
+                'f_name'  => 'S',
+                'l_name'  => 'A',
+                'email'   => 'sup@test.test',
+                'sellers' => [],
+            ]);
+
+        $this->assertTrue(Admin::find($super->id)->roles->contains('id', $kept->id));
+    }
+
+
     private function admin(array $attributes = []): Admin
     {
         $id = (int) (DB::table('admins')->max('id') ?? 0) + 1;

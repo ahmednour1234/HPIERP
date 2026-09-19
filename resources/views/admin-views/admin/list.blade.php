@@ -5,6 +5,23 @@
 @push('css_or_js')
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/custom.css"/>
+    <style>
+        .role-pill {
+            display: inline-block;
+            font-size: .72rem;
+            font-weight: 600;
+            color: #14395c;
+            background: #f1f7fc;
+            border: 1px solid #dceaf6;
+            border-radius: 99px;
+            padding: .1rem .55rem;
+            margin: .1rem .1rem 0 0;
+        }
+
+        /* بلا دور = لا يرى شيئًا، وهي حالة صامتة تستحق أن تُرى. */
+        .role-pill.is-none  { background: #fdecec; color: #b3261e; border-color: #f6d3d1; }
+        .role-pill.is-super { background: #e6f7ef; color: #0f7a4d; border-color: #bfe8d4; }
+    </style>
 @endpush
 
 @section('content')
@@ -43,8 +60,7 @@
                                 <th>{{\App\CPU\translate('#')}}</th>
                                 <th>{{\App\CPU\translate('name')}}</th>
                                 <th>{{\App\CPU\translate('email')}}</th>
-                                <th>{{\App\CPU\translate('latitude')}}</th>
-                                <th>{{\App\CPU\translate('longitude')}}</th>
+                                <th>الأدوار</th>
                                 <th>{{\App\CPU\translate('action')}}</th>
                             </tr>
                             </thead>
@@ -59,11 +75,18 @@
                                     <td>
                                         {{ $admin->email }}
                                     </td>
-                                     <td>
-                                        {{ $admin->latitude }}
-                                    </td>
-                                     <td>
-                                        {{ $admin->longitude }}
+                                    <td>
+                                        {{-- الدور هو ما يحدّد ما يراه المستخدم، وهو أولى
+                                             بعمود من إحداثيات لا تُقرأ هنا. --}}
+                                        @if($admin->is_super)
+                                            <span class="role-pill is-super">سوبر أدمن</span>
+                                        @else
+                                            @forelse($admin->roles as $role)
+                                                <span class="role-pill">{{ $role->label }}</span>
+                                            @empty
+                                                <span class="role-pill is-none">بلا دور</span>
+                                            @endforelse
+                                        @endif
                                     </td>
                                     <td>
                                         {{-- <a class="btn btn-white mr-1" href="{{route('admin.admin.view',[$admin['id']])}}"><span class="tio-visible"></span></a> --}}
