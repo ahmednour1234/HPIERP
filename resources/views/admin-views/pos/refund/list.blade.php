@@ -43,19 +43,15 @@
             <!-- Region Select -->
             <div class="col-md-4">
                 <label class="form-label text-secondary fw-semibold">{{ \App\CPU\translate('المنطقة') }}</label>
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-white border-0">
-                        <i class="tio-map-making text-muted"></i>
-                    </span>
-                    <select name="region_id[]" class="custom-select border-0" multiple size="4" style="height:auto;">
-                        <option value="">{{ \App\CPU\translate('اختر المنطقة') }}</option>
-                        @foreach($regions as $region)
-                            <option value="{{ $region->id }}" @selected(in_array((string) $region->id, (array) $regionId))>{{ $region->name }}</option>
-                        @endforeach
-                    </select>
-
-                    
-                </div>
+                {{-- بلا input-group: الأيقونة كانت تدفع القائمة المتعددة
+                     خارج الحقل، و size="4" يفتحها صندوقًا بأربعة أسطر
+                     يطغى على الصف. التخطيط يحوّلها لمنتقي بحث تلقائيًا. --}}
+                <select name="region_id[]" class="form-control shadow-sm" multiple
+                        data-placeholder="{{ \App\CPU\translate('كل المناطق') }}">
+                    @foreach($regions as $region)
+                        <option value="{{ $region->id }}" @selected(in_array((string) $region->id, (array) $regionId))>{{ $region->name }}</option>
+                    @endforeach
+                </select>
             </div>
 
             <!-- Date Range From -->
@@ -70,22 +66,26 @@
                 <input type="date" name="to_date" class="form-control shadow-sm" value="{{ $toDate }}">
             </div>
 
-            <!-- Action Buttons -->
-            <div class="col-md-12 text-right">
-                <button type="submit" class="btn btn-primary mr-2 px-4 py-2 shadow-sm">
-                    <i class="tio-filter_list mr-1"></i> {{ \App\CPU\translate('تطبيق') }}
+            {{-- الأزرار في صف واحد: كانت موزّعة على صفّين، الطباعة فوق
+                 والتصدير تحت خط فاصل. --}}
+            <div class="col-12 d-flex flex-wrap align-items-center pt-3 mt-2 border-top" style="gap:.5rem;">
+                <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                    <i class="tio-filter-list mr-1"></i> {{ \App\CPU\translate('تطبيق') }}
                 </button>
-                <button type="button" class="btn btn-outline-secondary px-4 py-2 shadow-sm" onclick="printTable()">
-                    <i class="tio-print mr-1"></i> {{ \App\CPU\translate('طباعة') }}
-                </button>
-            </div>
-        
-            <div class="col-12 d-flex justify-content-end pt-2 border-top">
-                {{-- Carries the current filters, so the download matches the screen. --}}
+                <a href="{{ url()->current() }}" class="btn btn-outline-secondary px-4 shadow-sm">
+                    <i class="tio-refresh mr-1"></i> {{ \App\CPU\translate('إعادة تعيين') }}
+                </a>
+
+                <div class="ml-auto d-flex text-nowrap" style="gap:.5rem;">
+                    <button type="button" class="btn btn-outline-secondary px-4 shadow-sm" onclick="printTable()">
+                        <i class="tio-print mr-1"></i> {{ \App\CPU\translate('طباعة') }}
+                    </button>
+                    {{-- Carries the current filters, so the download matches the screen. --}}
                     <a href="{{ route('admin.pos.refunds.export', request()->query()) }}"
-                       class="btn btn-success mt-2">
-                        <i class="tio-file-outlined"></i> {{ \App\CPU\translate('تصدير CSV') }}
+                       class="btn btn-success px-4 shadow-sm">
+                        <i class="tio-file-outlined mr-1"></i> {{ \App\CPU\translate('تصدير Excel') }}
                     </a>
+                </div>
             </div>
         </form>
     </div>

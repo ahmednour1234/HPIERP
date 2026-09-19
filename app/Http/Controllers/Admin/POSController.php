@@ -1291,29 +1291,22 @@ public function order_list(Request $request): Factory|View|Application
 
 
 /**
- * Write rows out as CSV. maatwebsite/excel is not installed and Excel opens
- * CSV directly; the BOM keeps the Arabic headings readable.
+ * Write keyed rows out as a formatted xlsx.
+ *
+ * كان CSV لأن maatwebsite/excel لم تكن مثبّتة؛ صارت مثبّتة، فالملف الآن
+ * ورقة منسّقة. الاسم يبقى streamCsv لأن عدة تقارير تستدعيه.
  */
 private function streamCsv($rows, string $filename)
 {
-    return response()->streamDownload(function () use ($rows) {
-        $out = fopen('php://output', 'w');
-        fwrite($out, "\xEF\xBB\xBF");
+    // امتداد .csv في أسماء الملفات القديمة يصير .xlsx.
+    $filename = preg_replace('/\.csv$/i', '', $filename) . '.xlsx';
 
-        if ($rows->isNotEmpty()) {
-            fputcsv($out, array_keys($rows->first()));
-            foreach ($rows as $row) {
-                fputcsv($out, array_values($row));
-            }
-        } else {
-            fputcsv($out, ['لا توجد بيانات']);
-        }
+    $title = preg_replace('/-\d{4}-\d{2}-\d{2}.*$/', '', $filename);
 
-        fclose($out);
-    }, $filename, [
-        'Content-Type'        => 'text/csv; charset=UTF-8',
-        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-    ]);
+    return \Maatwebsite\Excel\Facades\Excel::download(
+        new \App\Exports\KeyedRowsExport($rows, $title ?: 'تقرير'),
+        $filename
+    );
 }
 
 /** Refunds matching the current filter, as CSV. */
