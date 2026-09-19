@@ -43,8 +43,10 @@ Route::group(['namespace'=>'Admin', 'as' => 'admin.', 'prefix'=>'admin'] ,functi
     // section.permission: يحرس كل مسار في المجموعة بصلاحية قسمه. كانت
     // الحماية على 26 مسارًا من 327، فبقية الأقسام تُفتح بكتابة الرابط.
     Route::group(['middleware' => ['admin', 'section.permission']], function(){
-Route::get('/', function () {
-    return view('admin-views.welcome');
+Route::get('/', function (\App\Services\AdminHomeSummary $summary) {
+    return view('admin-views.welcome', [
+        'summary' => $summary->for(auth()->guard('admin')->user()),
+    ]);
 })->name('welcome');
 Route::prefix('/factories')->name('factories.')->group(function () {
     Route::get('/', 'App\Http\Controllers\Admin\FactoryController@index')->name('index');
