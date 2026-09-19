@@ -396,18 +396,26 @@ body {
             </a>
         </li>
         @endif
-                     @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->pos == 1)
-                      
-                        <!-- Pos Pages -->
                                           @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->reports == 1)
-    <li class="nav-item">
-        <small class="tio-more-horizontal nav-subtitle-replacer"></small>
-        <a href="javascript:void(0);" class="nav-link" data-toggle="collapse" data-target="#reportsMenu" aria-expanded="false">
-            <span class="tio-circle nav-indicator-icon"></span>
-            <span class="text-truncate">{{ \App\CPU\translate('قسم التقارير') }}</span>
-        </a>
-    </li>
-    <ul id="reportsMenu" class="nav collapse">
+{{-- قسم مستقل بذاته كبقية الأقسام، لا بندًا داخل قائمة أخرى: كان
+     مطويًا تحت نقطة البيع فلا يجده من يبحث عن التقارير. --}}
+@php($reportsActive = Request::is('admin/product/getreportProducts')
+    || Request::is('admin/reports/*')
+    || Request::is('admin/visitors/indexresult*')
+    || Request::is('admin/product/listreportexpire')
+    || Request::is('admin/stock*')
+    || Request::is('admin/productsunlike'))
+
+<li class="navbar-vertical-aside-has-menu {{ $reportsActive ? 'active' : '' }}">
+    <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle"
+       href="javascript:void(0);" data-toggle="collapse" data-target="#reportsMenu" aria-expanded="{{ $reportsActive ? 'true' : 'false' }}">
+        <i class="tio-chart-bar-4 nav-icon"></i>
+        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
+            {{ \App\CPU\translate('قسم التقارير') }}
+        </span>
+    </a>
+
+    <ul id="reportsMenu" class="js-navbar-vertical-aside-submenu nav nav-sub collapse {{ $reportsActive ? 'show' : '' }}">
          <li class="nav-item {{ Request::is('admin/product/listreportexpire') ? 'active' : '' }}">
             <a class="nav-link" href="{{ route('admin.product.getreportProducts') }}" title="{{ \App\CPU\translate('getreportProducts') }}">
                 <span class="tio-circle nav-indicator-icon"></span>
@@ -447,10 +455,8 @@ body {
             </a>
         </li>
     </ul>
+</li>
 @endif
-            {{-- الإغلاق قبل @endif: كان بعده فتبقى القائمة مفتوحة
-                 لمن لا يملك صلاحية نقطة البيع. --}}
-            @endif
     </ul>
 </li>
                       @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->accounts == 1)
