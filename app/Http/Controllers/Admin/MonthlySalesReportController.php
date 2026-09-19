@@ -8,6 +8,7 @@ use App\Models\Installment;
 use App\Models\Order;
 use App\Models\Product;
 use App\Models\Region;
+use App\Models\Seller;
 use App\Models\Stock;
 use App\Models\StockHistory;
 use Carbon\Carbon;
@@ -38,6 +39,8 @@ class MonthlySalesReportController extends Controller
             'allRegions'  => Region::orderBy('name')->get(['id', 'name']),
             'selectedProductIds' => array_map('intval', (array) $request->input('product_ids', [])),
             'selectedRegionIds'  => array_map('intval', (array) $request->input('region_ids', [])),
+            'allSellers'         => $this->filterSellers(),
+            'selectedSellerIds'  => array_map('intval', (array) $request->input('seller_ids', [])),
         ]);
     }
 
@@ -50,6 +53,8 @@ class MonthlySalesReportController extends Controller
             'product_ids.*' => 'exists:products,id',
             'region_ids'    => 'nullable|array',
             'region_ids.*'  => 'exists:regions,id',
+            'seller_ids'    => 'nullable|array',
+            'seller_ids.*'  => 'exists:admins,id',
         ]);
 
         $month = $request->filled('month')
@@ -59,7 +64,7 @@ class MonthlySalesReportController extends Controller
         $start = $month->copy()->startOfMonth();
         $end   = $month->copy()->endOfMonth();
 
-        $sellerIds = $this->sellerIds();
+        $sellerIds = $this->sellerIds((array) $request->input('seller_ids', []));
         $products  = $this->columnProducts((array) $request->input('product_ids', []), $sellerIds, $start, $end);
         $regions   = $this->reportRegions((array) $request->input('region_ids', []));
 
@@ -122,15 +127,45 @@ class MonthlySalesReportController extends Controller
         );
     }
 
-    /** المناديب التابعون للإداري الحالي، بالإضافة إليه. */
-    private function sellerIds(): array
+    /**
+     * المناديب الداخلون في التقرير.
+     *
+     * نقطة واحدة تحكم النطاق: كل أقسام التقرير (المخزون والمبيعات
+     * والتحصيلات) تُبنى من هذه القائمة، فتضييقها بفلتر المندوب يضيّقها
+     * جميعًا دون أن يُضاف الفلتر في كل استعلام على حدة.
+     *
+     * @param array<int, int|string> $requested المختار من قائمة الفلتر
+     */
+    private function sellerIds(array $requested = []): array
     {
         $adminId = Auth::guard('admin')->id();
 
         $ids = AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
         $ids[] = $adminId;
+        $ids = array_values(array_unique($ids));
 
-        return array_values(array_unique($ids));
+        $requested = array_filter(array_map('intval', $requested));
+
+        if (empty($requested)) {
+            return $ids;
+        }
+
+        // تقاطع لا استبدال: مندوب خارج صلاحية هذا الأدمن لا يدخل التقرير
+        // حتى لو ورد رقمه في الرابط.
+        $allowed = array_values(array_intersect($ids, $requested));
+
+        // لا تطابق: قائمة فارغة تعني تقريرًا فارغًا، وهو الصحيح، لا
+        // الرجوع إلى كل المناديب فيبدو الفلتر كأنه لم يُطبَّق.
+        return $allowed;
+    }
+
+    /** مناديب هذا الأدمن لملء قائمة الفلتر. */
+    private function filterSellers()
+    {
+        return Seller::whereIn('id', $this->sellerIds())
+            ->where('role', 'seller')
+            ->orderBy('f_name')
+            ->get(['id', 'f_name', 'l_name']);
     }
 
     /**

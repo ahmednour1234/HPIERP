@@ -360,9 +360,25 @@
                        value="{{ request('month', $month->format('Y-m')) }}">
             </div>
 
-            <div class="col-md-4 mb-2">
+            <div class="col-md-3 mb-2">
+                <label class="font-weight-bold">المناديب (اتركها فارغة لعرض الجميع)</label>
+                {{-- بلا size: التخطيط يحوّل أي select متعدد إلى منتقي بحث
+                     مع "تحديد الكل"، وsize يفتحه صندوقًا ثابتًا بدلًا منه. --}}
+                <select name="seller_ids[]" class="form-control" multiple
+                        data-placeholder="كل المناديب">
+                    @foreach($allSellers as $seller)
+                        <option value="{{ $seller->id }}"
+                            {{ in_array($seller->id, $selectedSellerIds) ? 'selected' : '' }}>
+                            {{ trim($seller->f_name . ' ' . $seller->l_name) }}
+                        </option>
+                    @endforeach
+                </select>
+            </div>
+
+            <div class="col-md-3 mb-2">
                 <label class="font-weight-bold">المناطق (يمكن اختيار أكثر من منطقة)</label>
-                <select name="region_ids[]" class="form-control" multiple size="5">
+                <select name="region_ids[]" class="form-control" multiple
+                        data-placeholder="كل المناطق">
                     @foreach($allRegions as $region)
                         <option value="{{ $region->id }}"
                             {{ in_array($region->id, $selectedRegionIds) ? 'selected' : '' }}>
@@ -372,9 +388,10 @@
                 </select>
             </div>
 
-            <div class="col-md-4 mb-2">
+            <div class="col-md-3 mb-2">
                 <label class="font-weight-bold">المنتجات (اتركها فارغة لعرض منتجات الشهر)</label>
-                <select name="product_ids[]" class="form-control" multiple size="5">
+                <select name="product_ids[]" class="form-control" multiple
+                        data-placeholder="منتجات الشهر">
                     @foreach($allProducts as $product)
                         <option value="{{ $product->id }}"
                             {{ in_array($product->id, $selectedProductIds) ? 'selected' : '' }}>
