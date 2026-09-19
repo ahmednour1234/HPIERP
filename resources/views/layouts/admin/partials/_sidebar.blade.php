@@ -606,6 +606,7 @@ body {
                 <span class="text-truncate">{{\App\CPU\translate('قائمة المعاملات')}}</span>
             </a>
         </li>
+@cangroup('taxes')
             <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/taxes*') || Request::is('admin/taxes*') ? 'active' : '' }}">
         <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle">
             <i class="tio-premium-outlined nav-icon"></i>
@@ -622,6 +623,7 @@ body {
             </li>
         </ul>
     </li>
+@endcangroup
     
 @cangroup('storages')
 
@@ -682,6 +684,7 @@ body {
 @endif
                       @cangroup('production')
 
+@cangroup('production')
 <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/factories*')||Request::is('admin/materials*')||Request::is('admin/purchases*')||Request::is('admin/supply_orders*')|| Request::is('admin/production_orders*') ? 'active' : '' }}">
     <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:" data-bs-toggle="collapse" data-bs-target="#salesDropdownContent" aria-expanded="{{ Request::is('admin/factories*') ? 'true' : 'false' }}">
         <i class="tio-shopping nav-icon"></i>
@@ -783,6 +786,7 @@ body {
 </li>
  </ul>
 </li>
+@endcangroup
 @endif
 
                       @cangroup('hr')
@@ -943,6 +947,7 @@ body {
                             <small class="tio-more-horizontal nav-subtitle-replacer"></small>
                         </li>
                         <!-- Coupon End Pages -->
+@cangroup('coupons')
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/coupon*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link"
                                href="{{route('admin.coupon.add-new')}}">
@@ -951,6 +956,7 @@ body {
                                     class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{\App\CPU\translate('كوبونات الخصومات')}}</span>
                             </a>
                         </li>
+@endcangroup
                         <!--@endif-->
  
 

@@ -11,7 +11,7 @@
 | إضافة صلاحية = هجرة جديدة | صف في `permissions` |
 | لا تجميع: كل أدمن يُضبط وحده | دور يُعاد استعماله |
 | قسم كامل يُمنح أو يُمنع | فعل بفعل: عرض / إضافة / تعديل / حذف / تصدير |
-| **26 مسارًا محميًا من 327** | كل مسارات اللوحة |
+| **26 مسارًا محميًا من 327** | **320 مسارًا، كلها** |
 
 الأخطر أن الحماية كانت في القائمة الجانبية وحدها: الروابط تُخفى، لكن
 كتابة `admin/account/list` تفتح الحسابات لأي أدمن مسجَّل. أُثبت ذلك قبل
@@ -20,7 +20,7 @@
 ## البنية
 
 ```
-permissions        الصلاحيات المتاحة (119)، مزروعة من App\Support\Permissions
+permissions        الصلاحيات المتاحة (155)، مزروعة من App\Support\Permissions
 roles              الأدوار
 permission_role    صلاحيات كل دور
 role_admin         أدوار كل مستخدم
@@ -43,10 +43,21 @@ Route::post('x', ...)->middleware('permission:accounts.create,accounts.update');
 
 كل مسارات `admin/` محروسة تلقائيًا بـ `section.permission`، الذي يستنتج
 القسم من بادئة الرابط (`admin/account/**` ← `accounts`). الأخص يسبق الأعم،
-فـ `admin/pos/installments` تخص التحصيلات لا الفواتير.
+فـ `admin/pos/installments` تخص التحصيلات لا الفواتير، و`admin/admin/salaries`
+تخص المرتبات لا المستخدمين.
 
-ما لا بادئة له يمرّ: الغرض سدّ الأقسام المعروفة لا قفل اللوحة وكسر شاشات
-لم تُصنَّف. البادئات في `EnforceSectionPermission::PREFIX_MAP`.
+**كل المسارات مصنَّفة** — 320 مسارًا على 38 قسمًا، ولا يمرّ بلا فحص إلا
+تسجيل الدخول والخروج والصفحة الترحيبية. ما لا تصنيف له **يُمنع**: مسار
+جديد نُسي تصنيفه يظهر فورًا بدل أن يبقى مفتوحًا بصمت.
+
+البادئات في `EnforceSectionPermission::PREFIX_MAP`. عند إضافة قسم جديد:
+
+1. أضف المجموعة إلى `App\Support\Permissions::groups()`
+2. أضف بادئة الرابط إلى `PREFIX_MAP`
+3. `php artisan db:seed --class=RolesPermissionsSeeder` لزرع الصلاحيات
+4. احرس القسم في القائمة الجانبية بـ `@cangroup`
+
+`RouteCoverageTest` يسقط إن نُسيت الخطوة الثانية.
 
 ### في القوالب
 
@@ -111,5 +122,8 @@ php artisan db:seed --class=RolesPermissionsSeeder
 ## الاختبار
 
 ```bash
-./vendor/bin/phpunit tests/Feature/Admin/PermissionsTest.php
+./vendor/bin/phpunit tests/Feature/Admin
 ```
+
+- `PermissionsTest` — الأدوار والمنح والمنع
+- `RouteCoverageTest` — يسقط إن أُضيف مسار بلا تصنيف

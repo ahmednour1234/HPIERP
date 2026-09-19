@@ -174,6 +174,44 @@ class PermissionsTest extends TestCase
         $this->assertTrue($role->permissions()->where('name', Permissions::SUPER)->exists());
     }
 
+    /**
+     * كل مسارات اللوحة مصنَّفة، فمسار جديد بلا تصنيف يُمنع لا يُفتح.
+     *
+     * الافتراض المعاكس هو ما ترك 300 مسار مكشوفة من قبل.
+     */
+    public function test_an_unclassified_path_is_refused(): void
+    {
+        $admin = $this->admin();
+        $admin->roles()->sync([$this->role(['accounts.view'])->id]);
+
+        $middleware = new \App\Http\Middleware\EnforceSectionPermission();
+        $method = new \ReflectionMethod($middleware, 'groupFor');
+        $method->setAccessible(true);
+
+        $group = $method->invoke(
+            $middleware,
+            \Illuminate\Http\Request::create('/admin/some-new-screen', 'GET')
+        );
+
+        $this->assertSame('__unclassified__', $group);
+        $this->assertFalse(Admin::find($admin->id)->canAccessGroup($group));
+    }
+
+    /** تسجيل الدخول والصفحة الرئيسية لا تُحرسان، وإلا تعذّر الدخول. */
+    public function test_auth_and_welcome_paths_stay_open(): void
+    {
+        $middleware = new \App\Http\Middleware\EnforceSectionPermission();
+        $method = new \ReflectionMethod($middleware, 'groupFor');
+        $method->setAccessible(true);
+
+        foreach (['/admin', '/admin/auth/login'] as $path) {
+            $this->assertNull(
+                $method->invoke($middleware, \Illuminate\Http\Request::create($path, 'GET')),
+                $path . ' should not be guarded'
+            );
+        }
+    }
+
     public function test_a_role_in_use_is_not_deleted(): void
     {
         $super = $this->admin(['is_super' => 1]);

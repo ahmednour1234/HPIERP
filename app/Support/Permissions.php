@@ -109,6 +109,17 @@ class Permissions
             'admins'        => ['label' => 'المستخدمين',         'actions' => $crud],
             'roles'         => ['label' => 'الأدوار والصلاحيات', 'actions' => $crud],
             'settings'      => ['label' => 'الإعدادات',          'actions' => $viewOnly + ['update' => 'تعديل']],
+
+            // أقسام لم تكن لها أعمدة، فكانت مفتوحة لكل من يدخل اللوحة.
+            'brands'        => ['label' => 'الماركات',           'actions' => $crud],
+            'taxes'         => ['label' => 'الضرائب',            'actions' => $crud],
+            'shifts'        => ['label' => 'الورديات',           'actions' => $crud],
+            'factories'     => ['label' => 'المصانع',            'actions' => $crud],
+            'materials'     => ['label' => 'المواد الخام',       'actions' => $crud],
+            'purchases'     => ['label' => 'المشتريات',          'actions' => $crud],
+            'supply_orders' => ['label' => 'أوامر التوريد',      'actions' => $crud + ['approve' => 'اعتماد']],
+            'deposits'      => ['label' => 'تحويلات المناديب',   'actions' => $crud + ['approve' => 'اعتماد']],
+            'stock_returns' => ['label' => 'طلبات إرجاع البضاعة', 'actions' => $viewOnly + ['approve' => 'اعتماد']],
         ];
     }
 

@@ -17,6 +17,18 @@ use Illuminate\Support\Facades\Schema;
  */
 class RolesPermissionsSeeder extends Seeder
 {
+    /**
+     * أقسام لم يكن لها عمود على admins، فكان يفتحها كل من يدخل اللوحة.
+     *
+     * تُمنح للأدوار المرحَّلة حتى لا تنقلب الحماية الجديدة حرمانًا ممن
+     * كان يستعملها بالأمس.
+     */
+    private const PREVIOUSLY_OPEN_GROUPS = [
+        'documents', 'brands', 'taxes', 'shifts', 'factories',
+        'materials', 'purchases', 'supply_orders', 'deposits',
+        'stock_returns',
+    ];
+
     public function run(): void
     {
         $this->syncPermissions();
@@ -135,9 +147,9 @@ class RolesPermissionsSeeder extends Seeder
                 continue;
             }
 
-            // الوثائق لم يكن لها عمود، فكانت مفتوحة لكل من يدخل اللوحة.
+            // أقسام لم يكن لها أعمدة، فكانت مفتوحة لكل من يدخل اللوحة.
             // منحها للأدوار المرحَّلة يمنع أن يفقدها من كان يستعملها.
-            $groups[] = 'documents';
+            $groups = array_merge($groups, self::PREVIOUSLY_OPEN_GROUPS);
 
             $name = 'legacy-admin-' . $admin->id;
 
