@@ -144,6 +144,9 @@
 </div>
 @endsection
 
+@push('script_2')
+{{-- كان خارج أي قسم بعد @endsection، فيُطبع في جسم الصفحة
+     الخام ويدفع المحتوى كله لأسفل. --}}
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/toastr.js/latest/toastr.min.js"></script>
 <script>
@@ -271,3 +274,4 @@ $(function(){
   });
 });
 </script>
+@endpush

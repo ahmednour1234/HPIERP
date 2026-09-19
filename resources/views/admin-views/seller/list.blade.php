@@ -244,6 +244,45 @@
     </div>
 </div>
 @endsection
+
+@push('script_2')
+    <script src={{asset("public/assets/admin/js/global.js")}}></script>
+        <!-- jQuery -->
+
+<!-- Bootstrap JS -->
+
+    <script>     
+    function update_seller_balance_cl(sellerId) {
+    document.getElementById('seller_id').value = sellerId; // For balance modal
+}
+
+function update_seller_credit_cl(sellerId) {
+    document.getElementById('seller_credit_id').value = sellerId; // For credit modal
+}
+
+    
+    document.addEventListener('DOMContentLoaded', function () {
+    const accountSelect = document.getElementById('account_id');
+    const balanceDisplay = document.getElementById('account_balance');
+
+    accountSelect.addEventListener('change', function () {
+        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+        const balance = selectedOption.getAttribute('data-balance');
+        balanceDisplay.textContent = balance ? balance : '0';
+    });
+
+    // Initialize the balance display for the default selected option
+    if (accountSelect.value) {
+        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+        const balance = selectedOption.getAttribute('data-balance');
+        balanceDisplay.textContent = balance ? balance : '0';
+    }
+});
+
+</script>
+
+{{-- كان خارج أي قسم بعد @endsection، فيُطبع في جسم الصفحة
+     الخام ويدفع المحتوى كله لأسفل. --}}
 <div class="modal fade" id="update-seller-balance" tabindex="-1">
     <div class="modal-dialog">
         <div class="modal-content">
@@ -355,40 +394,4 @@
         </div>
     </div>
 </div>
-
-@push('script_2')
-    <script src={{asset("public/assets/admin/js/global.js")}}></script>
-        <!-- jQuery -->
-
-<!-- Bootstrap JS -->
-
-    <script>     
-    function update_seller_balance_cl(sellerId) {
-    document.getElementById('seller_id').value = sellerId; // For balance modal
-}
-
-function update_seller_credit_cl(sellerId) {
-    document.getElementById('seller_credit_id').value = sellerId; // For credit modal
-}
-
-    
-    document.addEventListener('DOMContentLoaded', function () {
-    const accountSelect = document.getElementById('account_id');
-    const balanceDisplay = document.getElementById('account_balance');
-
-    accountSelect.addEventListener('change', function () {
-        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
-        const balance = selectedOption.getAttribute('data-balance');
-        balanceDisplay.textContent = balance ? balance : '0';
-    });
-
-    // Initialize the balance display for the default selected option
-    if (accountSelect.value) {
-        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
-        const balance = selectedOption.getAttribute('data-balance');
-        balanceDisplay.textContent = balance ? balance : '0';
-    }
-});
-
-</script>
 @endpush

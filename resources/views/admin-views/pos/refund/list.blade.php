@@ -229,6 +229,8 @@
         </div>
     </div>
 @endsection
+
+@push('script_2')
 <script>
     function printTable() {
         const tableContent = document.getElementById('product-table').innerHTML;
@@ -406,8 +408,6 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
         printWindow.document.close();
     }
 </script>
-
-@push('script_2')
     <script>
         "use strict";
         function print_invoice(order_id) {

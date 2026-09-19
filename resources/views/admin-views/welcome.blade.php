@@ -42,9 +42,12 @@
     }
 
     .home-hero h1 {
+        position: relative;   /* فوق القوس الزخرفي، وإلا ابتلع النص */
+        z-index: 1;
         font-size: clamp(1.4rem, 2.2vw, 2rem);
         font-weight: 800;
         margin: 0 0 .35rem;
+        color: #fff;
     }
 
     .home-hero p { margin: 0; color: rgba(255,255,255,.76); font-size: .95rem; }

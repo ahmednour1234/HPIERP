@@ -22,6 +22,18 @@ class AdminHomeSummary
     /** ثوانٍ. قصيرة بما يكفي لتبقى الأرقام ذات معنى. */
     private const TTL = 120;
 
+    /**
+     * أسماء الشهور عربية.
+     *
+     * translatedFormat يتبع لغة التطبيق وهي en، فيكتب "September" في
+     * صفحة عربية.
+     */
+    private const MONTHS = [
+        1 => 'يناير', 2 => 'فبراير', 3 => 'مارس', 4 => 'أبريل',
+        5 => 'مايو', 6 => 'يونيو', 7 => 'يوليو', 8 => 'أغسطس',
+        9 => 'سبتمبر', 10 => 'أكتوبر', 11 => 'نوفمبر', 12 => 'ديسمبر',
+    ];
+
     public function for(Admin $admin): array
     {
         return Cache::remember(

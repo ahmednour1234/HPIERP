@@ -98,7 +98,10 @@
     </div>
 @endsection
 
-    <script>
+@push('script_2')
+{{-- كان خارج أي قسم بعد @endsection، فيُطبع في جسم الصفحة
+     الخام ويدفع المحتوى كله لأسفل. --}}
+<script>
         $(document).ready(function () {
             function toggleDivided() {
                 if ($('#is_divided').is(':checked')) {
@@ -114,3 +117,4 @@
             toggleDivided();
         });
     </script>
+@endpush

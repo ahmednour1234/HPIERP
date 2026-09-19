@@ -754,6 +754,72 @@
 </div>
 
 @endsection
+
+@push('script_2')
+    <script>
+
+        // فتح قائمة المناطق يدويًا: القالب لا يحمّل bootstrap.js مستقلًا،
+        // فلا نعتمد على إضافة الـ dropdown وحدها.
+        document.addEventListener('DOMContentLoaded', function () {
+            var btn = document.getElementById('regionPicker');
+            if (!btn) { return; }
+
+            var menu = btn.parentElement.querySelector('.dropdown-menu');
+
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                e.stopPropagation();
+                menu.classList.toggle('show');
+            });
+
+            // الإبقاء على القائمة مفتوحة أثناء تعليم أكثر من منطقة.
+            menu.addEventListener('click', function (e) { e.stopPropagation(); });
+
+            document.addEventListener('click', function () {
+                menu.classList.remove('show');
+            });
+        });
+    </script>
+
+    <script src={{asset("public/assets/admin/js/global.js")}}>
+    </script>
+    <!-- jQuery -->
+
+<!-- Bootstrap JS -->
+<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
+
+    <script>     
+    function update_customer_balance_cl(customerId) {
+    document.getElementById('customer_id').value = customerId; // For balance modal
+}
+
+function update_customer_credit_cl(customerId) {
+    document.getElementById('customer_credit_id').value = customerId; // For credit modal
+}
+
+    
+    document.addEventListener('DOMContentLoaded', function () {
+    const accountSelect = document.getElementById('account_id');
+    const balanceDisplay = document.getElementById('account_balance');
+
+    accountSelect.addEventListener('change', function () {
+        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+        const balance = selectedOption.getAttribute('data-balance');
+        balanceDisplay.textContent = balance ? balance : '0';
+    });
+
+    // Initialize the balance display for the default selected option
+    if (accountSelect.value) {
+        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
+        const balance = selectedOption.getAttribute('data-balance');
+        balanceDisplay.textContent = balance ? balance : '0';
+    }
+});
+
+</script>
+
+{{-- كان خارج أي قسم بعد @endsection، فيُطبع في جسم الصفحة
+     الخام ويدفع المحتوى كله لأسفل. --}}
 <script>
     function printTable() {
         const tableContent = document.getElementById('product-table').innerHTML;
@@ -931,68 +997,4 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
         printWindow.document.close();
     }
 </script>
-
-@push('script_2')
-    <script>
-
-        // فتح قائمة المناطق يدويًا: القالب لا يحمّل bootstrap.js مستقلًا،
-        // فلا نعتمد على إضافة الـ dropdown وحدها.
-        document.addEventListener('DOMContentLoaded', function () {
-            var btn = document.getElementById('regionPicker');
-            if (!btn) { return; }
-
-            var menu = btn.parentElement.querySelector('.dropdown-menu');
-
-            btn.addEventListener('click', function (e) {
-                e.preventDefault();
-                e.stopPropagation();
-                menu.classList.toggle('show');
-            });
-
-            // الإبقاء على القائمة مفتوحة أثناء تعليم أكثر من منطقة.
-            menu.addEventListener('click', function (e) { e.stopPropagation(); });
-
-            document.addEventListener('click', function () {
-                menu.classList.remove('show');
-            });
-        });
-    </script>
-
-    <script src={{asset("public/assets/admin/js/global.js")}}>
-    </script>
-    <!-- jQuery -->
-
-<!-- Bootstrap JS -->
-<script src="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/js/bootstrap.min.js"></script>
-
-    <script>     
-    function update_customer_balance_cl(customerId) {
-    document.getElementById('customer_id').value = customerId; // For balance modal
-}
-
-function update_customer_credit_cl(customerId) {
-    document.getElementById('customer_credit_id').value = customerId; // For credit modal
-}
-
-    
-    document.addEventListener('DOMContentLoaded', function () {
-    const accountSelect = document.getElementById('account_id');
-    const balanceDisplay = document.getElementById('account_balance');
-
-    accountSelect.addEventListener('change', function () {
-        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
-        const balance = selectedOption.getAttribute('data-balance');
-        balanceDisplay.textContent = balance ? balance : '0';
-    });
-
-    // Initialize the balance display for the default selected option
-    if (accountSelect.value) {
-        const selectedOption = accountSelect.options[accountSelect.selectedIndex];
-        const balance = selectedOption.getAttribute('data-balance');
-        balanceDisplay.textContent = balance ? balance : '0';
-    }
-});
-
-</script>
 @endpush
-

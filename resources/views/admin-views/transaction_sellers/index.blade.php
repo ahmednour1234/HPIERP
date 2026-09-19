@@ -204,11 +204,13 @@
 </div>
 @endsection
 
+@push('script_2')
+    <script src="{{ asset('public/assets/admin/js/global.js') }}"></script>
+
+{{-- كان خارج أي قسم بعد @endsection، فيُطبع في جسم الصفحة
+     الخام ويدفع المحتوى كله لأسفل. --}}
 {{-- لو التخطيط (layout) لا يحتوي Bootstrap بالفعل، أبقي على هذه الروابط؛
     إن كان يحتوي، يمكنك حذف الأسطر التالية لتفادي التكرار. --}}
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
-@push('script_2')
-    <script src="{{ asset('public/assets/admin/js/global.js') }}"></script>
 @endpush

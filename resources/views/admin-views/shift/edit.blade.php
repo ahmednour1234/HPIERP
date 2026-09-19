@@ -110,6 +110,9 @@
 </div>
 @endsection
 
+@push('script_2')
+{{-- كان خارج أي قسم بعد @endsection، فيُطبع في جسم الصفحة
+     الخام ويدفع المحتوى كله لأسفل. --}}
 <script>
     document.addEventListener('DOMContentLoaded', function() {
         const isDivided = document.getElementById('is_divided');
@@ -137,3 +140,4 @@
         }
     });
 </script>
+@endpush

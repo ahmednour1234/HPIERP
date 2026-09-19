@@ -272,6 +272,36 @@
     </div>
 </div>
 @endsection
+
+@push('script_2')
+    <script>
+        "use strict";
+        function print_invoice(order_id) {
+            $.get({
+                url: '{{url('admin/pos/installments/invoice')}}/' + order_id,
+                dataType: 'json',
+                beforeSend: function () {
+                    $('#loading').show();
+                },
+                success: function (data) {
+                    //console.log("success...")
+                    $('#print-invoice').modal('show');
+                    $('#printableArea').empty().html(data.view);
+                },
+                complete: function () {
+                    $('#loading').hide();
+                },
+                error: function (error) {
+                    console.log(error.responseText);
+                },
+            });
+        }
+    </script>
+
+    <script src={{asset("public/assets/admin/js/global.js")}}></script>
+
+{{-- كان خارج أي قسم بعد @endsection، فيُطبع في جسم الصفحة
+     الخام ويدفع المحتوى كله لأسفل. --}}
 <script>
     function printTable() {
         const tableContent = document.getElementById('product-table').innerHTML;
@@ -449,31 +479,4 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
         printWindow.document.close();
     }
 </script>
-
-@push('script_2')
-    <script>
-        "use strict";
-        function print_invoice(order_id) {
-            $.get({
-                url: '{{url('admin/pos/installments/invoice')}}/' + order_id,
-                dataType: 'json',
-                beforeSend: function () {
-                    $('#loading').show();
-                },
-                success: function (data) {
-                    //console.log("success...")
-                    $('#print-invoice').modal('show');
-                    $('#printableArea').empty().html(data.view);
-                },
-                complete: function () {
-                    $('#loading').hide();
-                },
-                error: function (error) {
-                    console.log(error.responseText);
-                },
-            });
-        }
-    </script>
-
-    <script src={{asset("public/assets/admin/js/global.js")}}></script>
 @endpush
