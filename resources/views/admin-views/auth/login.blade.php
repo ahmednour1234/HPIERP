@@ -34,39 +34,37 @@
 
         * { box-sizing: border-box; }
 
+        html, body { height: 100%; }
+
         body {
             font-family: 'Bahij', 'Segoe UI', sans-serif;
             margin: 0;
-            min-height: 100vh;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 24px;
             color: var(--hpi-ink);
-            background: linear-gradient(135deg, #eaf4fb 0%, #f7fbfe 45%, #e4eff9 100%);
+            background: #fff;
         }
 
+        /* الصفحة كلها لا بطاقة عائمة: البطاقة كانت تترك فراغًا واسعًا
+           حولها على الشاشات الكبيرة. */
         .auth-shell {
-            width: 100%;
-            max-width: 1180px;
-            min-height: 640px;
+            min-height: 100vh;
+            min-height: 100dvh;   /* شريط المتصفح على الجوال يقتطع من vh */
             display: grid;
             /* اللوحة الجانبية أعرض من النموذج لتحمل الصورة دون اقتطاع. */
-            grid-template-columns: 1.15fr 0.85fr;
+            grid-template-columns: minmax(420px, 1fr) minmax(360px, 520px);
             background: #fff;
-            border-radius: 26px;
-            overflow: hidden;
-            box-shadow: 0 30px 70px rgba(20, 57, 92, .16);
         }
 
         /* ---------- اللوحة الجانبية ---------- */
 
         .auth-aside {
             position: relative;
-            padding: 52px 48px;
+            /* clamp: الحشو يتبع عرض الشاشة بدل أن يبقى ثابتًا فيزدحم على
+               اللابتوب ويتبعثر على الشاشة الكبيرة. */
+            padding: clamp(32px, 4vw, 64px);
             display: flex;
             flex-direction: column;
             justify-content: space-between;
+            overflow: hidden;
             /* الشعار فاتح على شفاف، فيحتاج أرضية داكنة ليظهر أصلًا. */
             background:
                 linear-gradient(150deg, rgba(13, 40, 64, .88) 0%, rgba(20, 57, 92, .72) 50%, rgba(30, 82, 128, .52) 100%),
@@ -111,7 +109,7 @@
         .aside-body { position: relative; z-index: 1; }
 
         .aside-body h1 {
-            font-size: 2.45rem;
+            font-size: clamp(1.8rem, 2.6vw, 2.6rem);
             line-height: 1.32;
             font-weight: 700;
             margin: 0 0 14px;
@@ -160,13 +158,21 @@
         /* ---------- النموذج ---------- */
 
         .auth-main {
-            padding: 56px 52px;
+            padding: clamp(28px, 3vw, 56px) clamp(24px, 3vw, 52px);
             display: flex;
             flex-direction: column;
             justify-content: center;
-            /* عمود الشبكة لا يصغر دون محتواه افتراضيًا، فيدفع البطاقة
+            /* عمود الشبكة لا يصغر دون محتواه افتراضيًا، فيدفع المحتوى
                خارج الشاشة الضيقة. */
             min-width: 0;
+            overflow-y: auto;
+        }
+
+        /* النموذج لا يتمدد مع العمود: حقل بعرض 500px يصعب مسحه بالعين. */
+        .auth-main > * {
+            width: 100%;
+            max-width: 400px;
+            margin-inline: auto;
         }
 
         .auth-head { text-align: center; margin-bottom: 34px; }
@@ -308,17 +314,29 @@
 
         /* ---------- الشاشات الصغيرة ---------- */
 
-        @media (max-width: 960px) {
-            .auth-shell { grid-template-columns: 1fr; max-width: 520px; min-height: 0; }
-            /* اللوحة الجانبية زينة: تُخفى قبل أن تدفع النموذج خارج الشاشة. */
+        /* اللوحة تضيق قبل النموذج، فالنموذج هو المهم. */
+        @media (max-width: 1100px) {
+            .auth-shell { grid-template-columns: 1fr minmax(340px, 440px); }
+            .aside-body h1 { font-size: 2rem; }
+            .aside-features { grid-template-columns: repeat(2, 1fr); }
+        }
+
+        @media (max-width: 860px) {
+            /* اللوحة الجانبية زينة: تُخفى قبل أن تضغط النموذج. */
+            .auth-shell { grid-template-columns: 1fr; }
             .auth-aside { display: none; }
-            .auth-main { padding: 44px 30px; }
+        }
+
+        /* شاشة قصيرة: التوسيط يقصّ أعلى النموذج، فيبدأ من فوق ويُمرَّر. */
+        @media (max-height: 700px) {
+            .auth-main { justify-content: flex-start; }
+            .auth-head { margin-bottom: 22px; }
         }
 
         @media (max-width: 420px) {
-            body { padding: 14px; }
-            .auth-main { padding: 34px 20px; }
+            .auth-main { padding: 28px 18px; }
             .auth-head h2 { font-size: 1.35rem; }
+            .auth-head .logo-badge { width: 68px; height: 68px; }
         }
     </style>
 </head>
