@@ -72,14 +72,16 @@
             </div>
 
             <div class="col-12 col-lg-2">
-                <div class="d-flex g-2" style="gap:.5rem;">
-                    <button type="submit" class="btn btn-primary flex-grow-1">
+                {{-- text-nowrap: "تصدير Excel" كانت تنكسر على سطرين
+                     فيطول الزر عن جاره. --}}
+                <div class="d-flex text-nowrap" style="gap:.5rem;">
+                    <button type="submit" class="btn btn-primary">
                         <i class="tio-search mr-1"></i> {{ \App\CPU\translate('بحث') }}
                     </button>
                     {{-- رابط لا نموذج ثانٍ: يحمل الفلاتر الحالية كما هي،
                          فيصدّر ما على الشاشة بالضبط. --}}
                     <a href="{{ route('admin.visitor.export', request()->query()) }}"
-                       class="btn btn-success flex-grow-1">
+                       class="btn btn-success">
                         <i class="tio-file-outlined mr-1"></i> {{ \App\CPU\translate('تصدير Excel') }}
                     </a>
                 </div>
