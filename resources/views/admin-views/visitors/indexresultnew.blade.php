@@ -32,6 +32,12 @@
             overflow: hidden;
         }
 
+        /* بطاقة الفلاتر تحمل قوائم منسدلة، و overflow:hidden كان يقصّ
+           المنسدلة عند فتحها فتظهر نصف قائمة. */
+        .visitor-results-filter {
+            overflow: visible;
+        }
+
         .visitor-results-hero {
             display: flex;
             align-items: center;
@@ -232,9 +238,41 @@
             border-radius: 8px;
         }
 
+        /* أعمدة بعروض ثابتة: table-nowrap كان يمنع لفّ الملاحظة، فتفيض
+           على عمودي الموقع والتاريخ ويركب النص بعضه فوق بعض. */
         .visitor-results-table {
-            min-width: 78rem;
+            width: 100%;
+            min-width: 58rem;
             margin: 0;
+            table-layout: fixed;
+        }
+
+        .visitor-results-table th:nth-child(1),
+        .visitor-results-table td:nth-child(1) { width: 4rem; }
+
+        .visitor-results-table th:nth-child(2),
+        .visitor-results-table td:nth-child(2) { width: 16rem; }
+
+        .visitor-results-table th:nth-child(3),
+        .visitor-results-table td:nth-child(3) { width: 11rem; }
+
+        /* الملاحظة تأخذ ما تبقّى. */
+        .visitor-results-table th:nth-child(5),
+        .visitor-results-table td:nth-child(5) { width: 9rem; }
+
+        .visitor-results-table th:nth-child(6),
+        .visitor-results-table td:nth-child(6) { width: 10rem; }
+
+        /* الاسم الطويل يُلَفّ بدل أن يمدّ العمود. */
+        .visitor-results-table td:nth-child(2),
+        .visitor-results-table td:nth-child(3) {
+            white-space: normal;
+            word-break: break-word;
+        }
+
+        .visitor-results-table td:nth-child(6) {
+            white-space: nowrap;
+            font-size: .82rem;
         }
 
         .visitor-results-table thead th {
@@ -272,9 +310,16 @@
         }
 
         .visitor-results-note {
-            max-width: 32rem;
-            white-space: normal;
+            white-space: normal !important;
+            word-break: break-word;
             line-height: 1.8;
+            font-weight: 600;
+            /* الملاحظات تصل لفقرات كاملة؛ ثلاثة أسطر تكفي للتصفّح
+               والنص الكامل في title. */
+            display: -webkit-box;
+            -webkit-line-clamp: 3;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
         }
 
         .visitor-results-map-btn {
@@ -487,7 +532,10 @@
                     </div>
 
                     <div class="table-responsive visitor-results-table-wrap">
-                        <table class="table table-hover table-borderless table-thead-bordered table-nowrap table-align-middle card-table visitor-results-table">
+                        {{-- بلا table-nowrap ولا card-table: كلاهما يضبط
+                             width:max-content فيتمدد الجدول بطول أطول
+                             ملاحظة ويُخرج عمودي الموقع والتاريخ. --}}
+                        <table class="table table-hover table-borderless table-thead-bordered table-align-middle visitor-results-table">
                             <thead>
                             <tr>
                                 <th>#</th>
@@ -504,7 +552,8 @@
                                     <td><span class="visitor-results-index">{{ $index + $visitors->firstItem() }}</span></td>
                                     <td>{{ $v->customer->name ?? '-' }}</td>
                                     <td>{{ trim(optional($v->seller)->f_name . ' ' . optional($v->seller)->l_name) ?: '-' }}</td>
-                                    <td class="visitor-results-note">{{ $v->note ?: '-' }}</td>
+                                    {{-- title: النص مقصوص لثلاثة أسطر، فيُقرأ كاملًا بالوقوف عليه. --}}
+                                    <td class="visitor-results-note" title="{{ $v->note }}">{{ $v->note ?: '-' }}</td>
                                     <td>
                                         @if($v->lat && $v->lang)
                                             <a href="https://www.google.com/maps?q={{ $v->lat }},{{ $v->lang }}"
