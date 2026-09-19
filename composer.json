@@ -10,6 +10,8 @@
     "require": {
         "php": "^8.0",
         "ext-curl": "*",
+        "ext-json": "*",
+        "ext-mysqli": "*",
         "barryvdh/laravel-dompdf": "*",
         "brian2694/laravel-toastr": "^5.56",
         "doctrine/dbal": "^3.3",
@@ -19,11 +21,10 @@
         "laravel/passport": "^10.4",
         "laravel/sanctum": "^2.11",
         "laravel/tinker": "^2.5",
+        "maatwebsite/excel": "^3.1",
         "madnest/madzipper": "^1.1",
         "milon/barcode": "^9.0",
-        "rap2hpoutre/fast-excel": "^3.1",
-        "ext-json": "*",
-        "ext-mysqli": "*"
+        "rap2hpoutre/fast-excel": "^3.1"
     },
     "require-dev": {
         "barryvdh/laravel-debugbar": "^3.6",

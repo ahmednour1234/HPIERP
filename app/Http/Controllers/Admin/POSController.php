@@ -27,6 +27,8 @@ use App\Models\ReserveProduct;
 use App\Models\CurrentReserveProduct;
 use App\Models\ReserveProductNotification;
 use App\Models\StockOrder;
+use App\Exports\DispatchOrdersExport;
+use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Seller;
 use App\Models\Stock;
 use App\Models\SellerPrice;
@@ -2876,40 +2878,23 @@ public function reservation_export_notification(Request $request, $type, $active
             $names[] = ($line['product_name'] ?? '') . ' (' . (float) ($line['stock'] ?? 0) . ')';
         }
 
+        // مصفوفة مرتّبة لا مفتاحية: العناوين تأتي من DispatchOrdersExport.
         return [
-            'رقم الأمر'       => $r->id,
-            'المندوب'         => trim(($r->seller->f_name ?? '') . ' ' . ($r->seller->l_name ?? '')),
-            'كود المندوب'     => $r->seller->mandob_code ?? '',
-            'العميل'          => $r->customer->name ?? '',
-            'عدد الأصناف'     => count($lines),
-            'الأصناف'         => implode(' | ', $names),
-            'الإجمالي'        => round($total, 2),
-            'ملاحظات المندوب' => $r->note,
-            'التاريخ'         => optional($r->created_at)->format('Y-m-d H:i'),
+            $r->id,
+            trim(($r->seller->f_name ?? '') . ' ' . ($r->seller->l_name ?? '')),
+            $r->seller->mandob_code ?? '',
+            $r->customer->name ?? '',
+            count($lines),
+            implode(' | ', $names),
+            round($total, 2),
+            $r->note,
+            optional($r->created_at)->format('Y-m-d H:i'),
         ];
-    });
+    })->values();
 
-    $filename = 'dispatch-orders-' . now()->format('Y-m-d-His') . '.csv';
+    $filename = 'dispatch-orders-' . now()->format('Y-m-d-His') . '.xlsx';
 
-    return response()->streamDownload(function () use ($rows) {
-        $out = fopen('php://output', 'w');
-        // BOM: بدونه يقرأ Excel العربية حروفًا مشوّهة.
-        fwrite($out, "﻿");
-
-        if ($rows->isNotEmpty()) {
-            fputcsv($out, array_keys($rows->first()));
-            foreach ($rows as $row) {
-                fputcsv($out, array_values($row));
-            }
-        } else {
-            fputcsv($out, ['لا توجد بيانات']);
-        }
-
-        fclose($out);
-    }, $filename, [
-        'Content-Type'        => 'text/csv; charset=UTF-8',
-        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
-    ]);
+    return Excel::download(new DispatchOrdersExport($rows), $filename);
 }
 
 
