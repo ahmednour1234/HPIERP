@@ -20,7 +20,12 @@ class DocumentController extends Controller
 {
     public function index(): View|Factory|Application
     {
-        $documents = Document::with('attachments')->latest()->paginate(20);
+        // sellers: القائمة تعرض المسند لهم، وبدون التحميل المسبق يصير
+        // كل صف استعلامًا إضافيًا.
+        $documents = Document::with(['attachments', 'sellers:id,f_name,l_name'])
+            ->latest()
+            ->paginate(20);
+
         return view('admin-views.documents.index', compact('documents'));
     }
 

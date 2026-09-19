@@ -17,6 +17,7 @@
     <tr>
       <th>#</th>
       <th>الاسم</th>
+      <th>المناديب</th>
       <th>عدد المرفقات</th>
       <th>الإجراءات</th>
     </tr>
@@ -26,6 +27,16 @@
       <tr>
         <td>{{ $doc->id }}</td>
         <td>{{ $doc->name }}</td>
+        <td style="max-width:22rem;">
+          {{-- وثيقة بلا إسناد عامة يراها الجميع، وهي ليست حالة خطأ. --}}
+          @forelse($doc->sellers as $seller)
+            <span class="badge badge-soft-info mr-1 mb-1">
+              {{ trim($seller->f_name . ' ' . $seller->l_name) }}
+            </span>
+          @empty
+            <span class="badge badge-soft-secondary">عامة — كل المناديب</span>
+          @endforelse
+        </td>
         <td>{{ $doc->attachments->count() }}</td>
         <td>
           <a href="{{ route('admin.documents.show', $doc) }}"
@@ -45,7 +56,7 @@
       </tr>
     @empty
       <tr>
-        <td colspan="4" class="text-center">لا توجد مستندات</td>
+        <td colspan="5" class="text-center">لا توجد مستندات</td>
       </tr>
     @endforelse
   </tbody>
