@@ -114,17 +114,18 @@
             <form action="{{ url()->current() }}" method="GET">
                 <div class="row g-3">
                     <div class="col-md-4">
-                        <label class="form-label">{{ \App\CPU\translate('بحث باسم المندوب') }}</label>
-                        <div class="input-group input-group-merged">
-                            <span class="input-group-prepend">
-                                <div class="input-group-text">
-                                    <i class="tio-search"></i>
-                                </div>
-                            </span>
-                            <input type="search" name="search" class="form-control" 
-                                   placeholder="{{ \App\CPU\translate('ابحث بالمندوب...') }}" 
-                                   value="{{ $search }}">
-                        </div>
+                        <label class="form-label">{{ \App\CPU\translate('المندوب') }}</label>
+                        {{-- قائمة بدل كتابة الاسم: الاسم مقسوم على عمودين
+                             (f_name / l_name) فالبحث بالاسم الكامل لا
+                             يطابق شيئًا، وأي فرق في التهجئة يُفشله. --}}
+                        <select name="seller_id" class="form-control">
+                            <option value="">{{ \App\CPU\translate('كل المناديب') }}</option>
+                            @foreach($sellers as $seller)
+                                <option value="{{ $seller->id }}" @selected((string) $sellerId === (string) $seller->id)>
+                                    {{ trim($seller->f_name . ' ' . $seller->l_name) }}
+                                </option>
+                            @endforeach
+                        </select>
                     </div>
 
               
@@ -143,6 +144,14 @@
                         <button type="submit" class="btn btn-primary btn-block">
                             <i class="tio-filter-list mr-1"></i> {{ \App\CPU\translate('فلتر') }}
                         </button>
+                    </div>
+
+                    <div class="col-md-2 d-flex align-items-end">
+                        {{-- يصدّر ما تطابقه الفلاتر الحالية لا الصفحة المعروضة. --}}
+                        <a href="{{ route('admin.pos.reservation_export_notification', array_merge(['type' => $type, 'active' => $active], request()->query())) }}"
+                           class="btn btn-success btn-block">
+                            <i class="tio-file-outlined mr-1"></i> {{ \App\CPU\translate('تصدير Excel') }}
+                        </a>
                     </div>
                 </div>
             </form>

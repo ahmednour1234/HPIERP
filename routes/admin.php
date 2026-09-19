@@ -216,6 +216,7 @@ Route::group(['prefix' => 'pos', 'as' => 'pos.', 'middleware' => 'check.pos.acce
            // Export honours the same filters as the listing.
            Route::get('reservations/export/{type}/{active}','POSController@reservation_export')->name('reservations.export');
             Route::get('reservations_notification/{type}/{active}', 'POSController@reservation_list_notification')->name('reservation_list_notification');
+            Route::get('reservations_notification/export/{type}/{active}', 'POSController@reservation_export_notification')->name('reservation_export_notification');
             Route::get('invoice/{id}', 'POSController@generate_invoice');
                         Route::get('generate_invoice_purchase/{id}', 'POSController@generate_invoice_purchase');
             Route::get('refund/invoice/{id}', 'POSController@refund_generate_invoice');

@@ -1097,6 +1097,42 @@ if ($request->type == 4) { // Increase stock, decrease product quantity
             $product->save();
         }
 
+        // اعتماد حجز المندوب صرفٌ فعلي للبضاعة إلى عربيته، فيُسجَّل أمر
+        // صرف مثل ما تكتبه شاشة "إضافة مخزون للعربية" (type 3 / active 2).
+        // بدونه كان الحجز المعتمد يختفي من شاشة أوامر الصرف رغم أن
+        // الكميات انتقلت فعلًا.
+        if ($request->type == 4) {
+            $issued = [];
+
+            foreach ($request->cart as $item) {
+                $product = Product::find($item['id']);
+
+                if (!$product) {
+                    continue;
+                }
+
+                $issued[] = [
+                    'product_name' => $product->name,
+                    'product_id'   => $product->id,
+                    'stock'        => $item['quantity'],
+                    // الرصيد بعد الخصم، وقد حُفظ المنتج قبل هذه النقطة.
+                    'balance'      => $product->quantity,
+                    'price'        => $product->selling_price,
+                ];
+            }
+
+            if (!empty($issued)) {
+                DB::table('reserve_products')->insert([
+                    'seller_id'  => $request->owner_id,
+                    'data'       => json_encode($issued, JSON_UNESCAPED_UNICODE),
+                    'type'       => 3,
+                    'active'     => 2,
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ]);
+            }
+        }
+
         DB::commit();
      $reserved_product_ids = $request->reservation_id; // Collect IDs from cart
         $this->reserveProduct->where('id', $reserved_product_ids)->update(['active' => 0]);
@@ -2736,6 +2772,7 @@ public function generate_invoice_purchase($id)
 
     // بيانات البحث والتصفية
     $search = $request->input('search');
+    $sellerId = $request->input('seller_id');
     $fromDate = $request->input('from_date');
     $toDate = $request->input('to_date');
     $branch_id = $request->input('branch_id');
@@ -2744,6 +2781,12 @@ public function generate_invoice_purchase($id)
 
     // استرجاع الـ seller_id المرتبط بالمشرف
     $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id');
+
+    // مناديب هذا المشرف لملء قائمة الاختيار.
+    $sellers = Seller::whereIn('id', $sellerIds)
+        ->orWhere('id', $adminId)
+        ->orderBy('f_name')
+        ->get(['id', 'f_name', 'l_name']);
 
     // استعلام الحجزات
     $reservations = ReserveProduct::where('type', $type)
@@ -2755,32 +2798,118 @@ public function generate_invoice_purchase($id)
         ->latest()
         ->with(['customer', 'seller']); // العلاقات المفترضة
 
-    // تطبيق البحث
-    if ($search) {
-        $reservations->where(function ($query) use ($search) {
-            $query->whereHas('customer', function ($query) use ($search) {
-                $query->where('name', 'like', "%{$search}%");
-            })->orWhereHas('seller', function ($query) use ($search) {
-                $query->where('f_name', 'like', "%{$search}%")
-                      ->orWhere('l_name', 'like', "%{$search}%");
-            });
-        });
-    }
-
-    // تطبيق التصفية حسب التواريخ
-    if ($fromDate && $toNewDate) {
-        $reservations->whereBetween('created_at', [$fromDate, $toNewDate]);
-    }
-
-    // تصفية حسب الفرع
+    $this->applyNotificationFilters($reservations, $request);
 
     // تنفيذ الاستعلام مع الترقيم
     $reservations = $reservations->paginate(Helpers::pagination_limit())
                                  ->appends($request->query());
 
     return view('admin-views.pos.reservations.list_notification', compact(
-        'reservations', 'search', 'fromDate', 'toDate', 'type'
+        'reservations', 'search', 'fromDate', 'toDate', 'type', 'active', 'sellers', 'sellerId'
     ));
+}
+
+/**
+ * فلاتر شاشة أوامر الصرف، مشتركة بين العرض والتصدير.
+ *
+ * بدونها يصدّر الزر ما لا تعرضه الشاشة، فيقرأ المستخدم أرقامًا لا تطابق
+ * ما أمامه.
+ */
+private function applyNotificationFilters($query, Request $request)
+{
+    $sellerId = $request->input('seller_id');
+    $search   = $request->input('search');
+    $fromDate = $request->input('from_date');
+    $toDate   = $request->input('to_date');
+
+    // المندوب يُختار من قائمة الآن لا يُكتب اسمه: الاسم مقسوم على
+    // عمودين فالبحث بالاسم الكامل لا يطابق شيئًا.
+    if ($sellerId) {
+        $query->where('seller_id', $sellerId);
+    } elseif ($search) {
+        // يبقى البحث الحر لروابط قديمة تحمل ?search=
+        $query->where(function ($q) use ($search) {
+            $q->whereHas('customer', function ($c) use ($search) {
+                $c->where('name', 'like', "%{$search}%");
+            })->orWhereHas('seller', function ($sl) use ($search) {
+                $sl->where('f_name', 'like', "%{$search}%")
+                   ->orWhere('l_name', 'like', "%{$search}%");
+            });
+        });
+    }
+
+    if ($fromDate) {
+        $query->whereDate('created_at', '>=', $fromDate);
+    }
+
+    if ($toDate) {
+        $query->whereDate('created_at', '<=', $toDate);
+    }
+
+    return $query;
+}
+
+/** تصدير أوامر الصرف المطابقة للفلاتر الحالية إلى ملف يفتحه Excel. */
+public function reservation_export_notification(Request $request, $type, $active)
+{
+    $adminId   = Auth::guard('admin')->id();
+    $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id');
+
+    $query = ReserveProduct::where('type', $type)
+        ->where(function ($q) use ($sellerIds, $adminId) {
+            $q->whereIn('seller_id', $sellerIds)->orWhere('seller_id', $adminId);
+        })
+        ->where('active', $active)
+        ->with(['customer', 'seller'])
+        ->latest();
+
+    $this->applyNotificationFilters($query, $request);
+
+    $rows = $query->get()->map(function ($r) {
+        // الأصناف محفوظة JSON في عمود data لا في جدول مستقل.
+        $lines = json_decode($r->data, true) ?: [];
+
+        $total = 0;
+        $names = [];
+        foreach ($lines as $line) {
+            $total  += (float) ($line['price'] ?? 0) * (float) ($line['stock'] ?? 0);
+            $names[] = ($line['product_name'] ?? '') . ' (' . (float) ($line['stock'] ?? 0) . ')';
+        }
+
+        return [
+            'رقم الأمر'       => $r->id,
+            'المندوب'         => trim(($r->seller->f_name ?? '') . ' ' . ($r->seller->l_name ?? '')),
+            'كود المندوب'     => $r->seller->mandob_code ?? '',
+            'العميل'          => $r->customer->name ?? '',
+            'عدد الأصناف'     => count($lines),
+            'الأصناف'         => implode(' | ', $names),
+            'الإجمالي'        => round($total, 2),
+            'ملاحظات المندوب' => $r->note,
+            'التاريخ'         => optional($r->created_at)->format('Y-m-d H:i'),
+        ];
+    });
+
+    $filename = 'dispatch-orders-' . now()->format('Y-m-d-His') . '.csv';
+
+    return response()->streamDownload(function () use ($rows) {
+        $out = fopen('php://output', 'w');
+        // BOM: بدونه يقرأ Excel العربية حروفًا مشوّهة.
+        fwrite($out, "﻿");
+
+        if ($rows->isNotEmpty()) {
+            fputcsv($out, array_keys($rows->first()));
+            foreach ($rows as $row) {
+                fputcsv($out, array_values($row));
+            }
+        } else {
+            fputcsv($out, ['لا توجد بيانات']);
+        }
+
+        fclose($out);
+    }, $filename, [
+        'Content-Type'        => 'text/csv; charset=UTF-8',
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+    ]);
 }
 
 
