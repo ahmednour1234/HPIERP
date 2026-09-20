@@ -17,11 +17,55 @@ body {
   }
 /* ===== مظهر القائمة الجانبية ===== */
 
+/* الترويسة على أرض القائمة نفسها بدل شريط أبيض يقطعها من أعلى.
+   القالب يلوّنها بـbg-light، فيلزم !important ليغلبه. */
+.navbar-brand-wrapper,
+.navbar-vertical .navbar-brand-wrapper {
+    background: transparent !important;
+    background-color: transparent !important;
+    padding-top: 1.15rem !important;
+    padding-bottom: 1.15rem !important;
+    border-bottom: 1px solid rgba(255,255,255,.08);
+}
+
+.navbar-brand-wrapper .brand-name {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #fff;
+    line-height: 1.3;
+}
+
+.navbar-brand-wrapper .brand-tag {
+    font-size: .72rem;
+    color: rgba(255,255,255,.55);
+    line-height: 1.3;
+}
+
+/* الشعار على أرض داكنة: مربّع فاتح خلفه ليبقى مقروءًا، وإلا ذاب فيها. */
+.navbar-brand-logo {
+    background: #fff;
+    padding: 4px;
+    border-radius: 9px;
+}
+
+/* القائمة تُمرَّر دون شريط ظاهر: الشريط كان يقطع حافة الترويسة. */
+.navbar-vertical-content {
+    scrollbar-width: none;      /* Firefox */
+    -ms-overflow-style: none;   /* Edge القديم */
+}
+
+.navbar-vertical-content::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none;
+}
+
 /* العنصر النشط: مستطيل أزرق كامل بدل تلوين النص وحده. */
 .navbar-vertical .nav-link {
-    border-radius: 8px;
-    padding: 0.55rem 0.9rem;
-    margin: 0 0.5rem;
+    border-radius: 10px;
+    padding: 0.6rem 0.9rem;
+    margin: 0 0.6rem;
+    font-size: .88rem;
     transition: background-color .15s ease, color .15s ease;
 }
 
@@ -81,6 +125,42 @@ body {
     width: 1.4rem;
     text-align: center;
     margin-left: 0.5rem;
+    font-size: 1.05rem;
+    opacity: .9;
+}
+
+/* القوائم الفرعية أخف من أصولها. */
+.navbar-vertical .nav-sub .nav-link {
+    font-size: .82rem;
+    padding-top: .45rem;
+    padding-bottom: .45rem;
+    opacity: .85;
+}
+
+.navbar-vertical .nav-sub .nav-link:hover { opacity: 1; }
+
+/* التذييل: الإعدادات والخروج مفصولان عن بنود التنقّل. المساحة السفلية
+   الزائدة لأن إضافات المتصفح تطفو فوق هذه الزاوية فتغطّي آخر بند. */
+.side-foot {
+    margin-top: auto;
+    padding: .75rem 0 3.25rem;
+    border-top: 1px solid rgba(255,255,255,.08);
+}
+
+.side-foot .nav-link { color: rgba(255,255,255,.72); }
+
+.side-foot .nav-link:hover { color: #fff; }
+
+.side-foot .is-exit:hover {
+    background-color: rgba(220, 53, 69, .16);
+    color: #ffb4ad;
+}
+
+/* المحتوى عمود كامل حتى يهبط التذييل إلى أسفل القائمة. */
+.navbar-vertical-content {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
 }
 
 </style>
@@ -88,7 +168,7 @@ body {
     <aside class="aside-back js-navbar-vertical-aside navbar navbar-vertical-aside navbar-vertical navbar-vertical-fixed navbar-expand-xl navbar-bordered  ">
         <div class="navbar-vertical-container text-capitalize">
             <div class="navbar-vertical-footer-offset">
-<div class="navbar-brand-wrapper d-flex align-items-center justify-content-between px-3 bg-light">
+<div class="navbar-brand-wrapper d-flex align-items-center justify-content-between px-3">
     <!-- الشعار والنص -->
     <div class="d-flex align-items-center gap-2">
         <a class="navbar-brand d-flex align-items-center" href="{{ route('admin.dashboard') }}" aria-label="Front">
