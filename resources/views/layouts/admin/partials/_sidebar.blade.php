@@ -47,18 +47,40 @@ body {
 /* الشعار شفاف ومصمَّم للأرض الداكنة، فلا مربّع أبيض خلفه. */
 .navbar-brand-logo {
     background: transparent;
+    flex: none;
 }
 
+/* الترويسة عمودان: النص يتمدّد والشعار ثابت، فلا يتزاحمان. */
+.navbar-brand-wrapper .navbar-brand {
+    display: flex;
+    align-items: center;
+    gap: .8rem;
+    width: 100%;
+    padding: 0;
+}
+
+.navbar-brand-wrapper .brand-text { flex: 1; min-width: 0; }
+
 /* القائمة تُمرَّر دون شريط ظاهر: الشريط كان يقطع حافة الترويسة. */
+/* القائمة تُمرَّر دون شريط ظاهر. القاعدة العامة في custom.css ترسم
+   مسارًا بظلّ داخلي رمادي، فيبقى خطّ على الحافة ولو أُخفي المقبض. */
+.navbar-vertical-aside,
 .navbar-vertical-content {
     scrollbar-width: none;      /* Firefox */
     -ms-overflow-style: none;   /* Edge القديم */
 }
 
-.navbar-vertical-content::-webkit-scrollbar {
+.navbar-vertical-aside::-webkit-scrollbar,
+.navbar-vertical-content::-webkit-scrollbar,
+.navbar-vertical-aside::-webkit-scrollbar-track,
+.navbar-vertical-content::-webkit-scrollbar-track,
+.navbar-vertical-aside::-webkit-scrollbar-thumb,
+.navbar-vertical-content::-webkit-scrollbar-thumb {
     width: 0 !important;
     height: 0 !important;
-    display: none;
+    background: transparent !important;
+    box-shadow: none !important;
+    display: none !important;
 }
 
 /* العنصر النشط: مستطيل أزرق كامل بدل تلوين النص وحده. */
@@ -179,7 +201,7 @@ body {
                 $shop_logo = $badgeService->setting('shop_logo');
             @endphp
 
-            <span class="d-flex flex-column">
+            <span class="brand-text d-flex flex-column">
                 <span class="brand-name">{{ \App\CPU\translate('نظام الإدارة') }}</span>
                 <span class="brand-tag">{{ \App\CPU\translate('إدارة أعمالك بسهولة') }}</span>
             </span>
@@ -190,7 +212,7 @@ body {
                  src="{{ $shop_logo ? asset('storage/shop/' . $shop_logo) : asset('public/assets/admin/img/brand/hpi-mark.png') }}"
                  onerror="this.src='{{ asset('public/assets/admin/img/brand/hpi-mark.png') }}'"
                  alt="{{ \App\CPU\translate('logo') }}"
-                 style="height: 40px; width: 40px; object-fit: contain; margin-right: auto;">
+                 style="height: 54px; width: 54px; object-fit: contain;">
         </a>
     </div>
 
