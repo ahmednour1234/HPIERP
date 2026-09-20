@@ -33,8 +33,7 @@
        فلا يُعرض حقل لا يؤدي إلى شيء. */
     #header .hd-search {
         position: relative;
-        flex: 1;
-        max-width: 420px;
+        width: min(420px, 38vw);
         margin: 0;
     }
 
@@ -148,18 +147,28 @@
 
     #header .hd-user .u-role { font-size: .7rem; color: #7c8ea1; line-height: 1.2; }
 
-    /* فجوة بين نصفَي الشريط حتى لا يلتصق البحث بأزرار اليمين. */
+    /* ثلاثة أعمدة: التاريخ يمينًا، البحث في المنتصف، الحساب يسارًا.
+       الطرفان بعرض متساوٍ (1fr) فيبقى البحث في وسط الشريط فعليًّا لا
+       في وسط ما تبقّى منه. */
     #header .navbar-nav-wrap {
-        display: flex;
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
         align-items: center;
         gap: 1rem;
         width: 100%;
     }
 
+    #header .hd-start { justify-self: start; }
+    #header .hd-mid   { justify-self: center; }
+    #header .hd-end   { justify-self: end; }
+
+    /* ضيّقًا: يختفي التاريخ واسم المستخدم، ويأخذ البحث ما تبقّى. */
     @media (max-width: 767.98px) {
         #header .hd-date,
         #header .hd-user .u-meta { display: none; }
-        #header .hd-search { max-width: none; }
+
+        #header .navbar-nav-wrap { grid-template-columns: auto 1fr auto; }
+        #header .hd-search { width: 100%; }
     }
 </style>
 
@@ -167,7 +176,8 @@
     <header id="header" class="navbar navbar-expand-lg navbar-fixed navbar-height navbar-flush navbar-container navbar-bordered header-style">
         <div class="navbar-nav-wrap">
 
-            <div class="navbar-nav-wrap-content-left d-flex align-items-center" style="gap: .75rem; flex: 1;">
+            {{-- العمود الأول: زرّ الطيّ والتاريخ، في أقصى جهة البداية. --}}
+            <div class="hd-start d-flex align-items-center" style="gap: .75rem;">
                 <!-- Navbar Vertical Toggle -->
                 <button type="button" class="js-navbar-vertical-aside-toggle-invoker close mr-2">
                     <i class="tio-first-page navbar-vertical-aside-toggle-short-align" data-toggle="tooltip" data-placement="right" title="Collapse"></i>
@@ -184,19 +194,20 @@
                     {{ $HD_MONTHS[(int) now()->format('n')] }}
                     {{ now()->format('Y') }}
                 </span>
-
-                <form class="hd-search" action="{{ route('admin.pos.orders') }}" method="GET" role="search">
-                    <i class="tio-search s-icon"></i>
-                    <input type="search" name="search" id="hdSearch"
-                           value="{{ request('search') }}"
-                           placeholder="{{ \App\CPU\translate('ابحث عن عميل، فاتورة، منتج') }}…"
-                           autocomplete="off">
-                    <span class="hd-kbd">Ctrl K</span>
-                </form>
             </div>
 
+            {{-- العمود الأوسط: البحث وحده، فيبقى في منتصف الشريط. --}}
+            <form class="hd-search hd-mid" action="{{ route('admin.pos.orders') }}" method="GET" role="search">
+                <i class="tio-search s-icon"></i>
+                <input type="search" name="search" id="hdSearch"
+                       value="{{ request('search') }}"
+                       placeholder="{{ \App\CPU\translate('ابحث عن عميل، فاتورة، منتج') }}…"
+                       autocomplete="off">
+                <span class="hd-kbd">Ctrl K</span>
+            </form>
+
             <!-- Secondary Content -->
-            <div class="navbar-nav-wrap-content-right">
+            <div class="navbar-nav-wrap-content-right hd-end">
                 <!-- Navbar -->
                 <ul class="navbar-nav align-items-center flex-row" style="gap: .4rem;">
         @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->notification == 1)
