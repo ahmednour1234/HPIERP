@@ -1,146 +1,275 @@
 @extends('layouts.admin.app')
 
-@section('title',\App\CPU\translate('stock_list'))
+@section('title',\App\CPU\translate('vehicle_stocks'))
 
 @push('css_or_js')
     <meta name="csrf-token" content="{{ csrf_token() }}">
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/custom.css"/>
+    @include('admin-views.roles._tokens')
+    <style>
+        .vs-search {
+            display: flex;
+            gap: .4rem;
+            align-items: center;
+            min-width: 240px;
+        }
+
+        .vs-search input {
+            flex: 1;
+            border: 1px solid rgba(255,255,255,.28);
+            background: rgba(255,255,255,.12);
+            color: #fff;
+            border-radius: 99px;
+            padding: .4rem .85rem;
+            font-size: .84rem;
+        }
+
+        .vs-search input:focus { outline: 0; background: rgba(255,255,255,.2); }
+
+        /* ---------- الشبكة ---------- */
+
+        .vs-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(310px, 1fr));
+            gap: 1rem;
+        }
+
+        .vs-card {
+            display: flex;
+            flex-direction: column;
+            background: #fff;
+            border: 1px solid var(--hpi-line);
+            border-radius: 14px;
+            color: inherit;
+            transition: transform .15s ease, box-shadow .15s ease, border-color .15s ease;
+        }
+
+        .vs-card:hover {
+            text-decoration: none;
+            color: inherit;
+            transform: translateY(-2px);
+            border-color: var(--hpi-blue);
+            box-shadow: 0 12px 26px rgba(20,57,92,.10);
+        }
+
+        .vs-head {
+            display: flex;
+            align-items: center;
+            gap: .7rem;
+            padding: .9rem 1.05rem;
+            border-bottom: 1px solid var(--hpi-line);
+            background: #f9fcfe;
+            border-top-left-radius: 14px;
+            border-top-right-radius: 14px;
+        }
+
+        .vs-avatar {
+            width: 38px;
+            height: 38px;
+            flex: none;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.05rem;
+            background: #eaf4fb;
+            color: var(--hpi-navy);
+        }
+
+        .vs-name { font-size: .9rem; font-weight: 700; color: var(--hpi-ink); margin: 0; }
+
+        .vs-code {
+            font-size: .72rem;
+            color: var(--hpi-muted);
+            direction: ltr;
+            text-align: start;
+        }
+
+        .vs-car {
+            font-size: .7rem;
+            font-weight: 700;
+            color: var(--hpi-navy);
+            background: #eaf4fb;
+            border-radius: 99px;
+            padding: .1rem .5rem;
+            white-space: nowrap;
+        }
+
+        /* ---------- الأرقام ---------- */
+
+        .vs-money {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: .1rem .8rem;
+            padding: .8rem 1.05rem;
+        }
+
+        .vs-money .m-row {
+            display: flex;
+            align-items: baseline;
+            justify-content: space-between;
+            gap: .5rem;
+            padding: .22rem 0;
+            font-size: .8rem;
+        }
+
+        .vs-money .m-label { color: var(--hpi-muted); white-space: nowrap; }
+
+        .vs-money .m-value {
+            font-weight: 700;
+            color: var(--hpi-ink);
+            direction: ltr;
+            white-space: nowrap;
+        }
+
+        .vs-money .m-value.is-refund { color: #b3261e; }
+
+        .vs-counts {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            border-top: 1px solid var(--hpi-line);
+            background: #fbfdff;
+            border-bottom-left-radius: 14px;
+            border-bottom-right-radius: 14px;
+        }
+
+        .vs-counts .c {
+            padding: .6rem .3rem;
+            text-align: center;
+            border-inline-start: 1px solid var(--hpi-line);
+        }
+
+        .vs-counts .c:first-child { border-inline-start: 0; }
+
+        .vs-counts .c-value {
+            font-size: 1rem;
+            font-weight: 800;
+            color: var(--hpi-ink);
+            line-height: 1.2;
+            direction: ltr;
+        }
+
+        /* المتبقي معه هو ما يهم أمين المخزن، فيُميَّز. */
+        .vs-counts .c.is-stock .c-value { color: #0f7a4d; }
+
+        .vs-counts .c-label {
+            font-size: .66rem;
+            color: var(--hpi-muted);
+            margin-top: .1rem;
+        }
+
+        .vs-empty {
+            grid-column: 1 / -1;
+            padding: 3rem 1rem;
+            text-align: center;
+            color: var(--hpi-muted);
+            background: #fff;
+            border: 1px dashed var(--hpi-line);
+            border-radius: 14px;
+        }
+
+        @media (max-width: 400px) {
+            .vs-money { grid-template-columns: 1fr; }
+        }
+    </style>
 @endpush
 
 @section('content')
-    <div class="content container-fluid">
-        <div class="card mb-3 bg-white">
-            <div class="card-body">
-                <div class="row mb-4">
-                    <div class="col-md-12">
-                        <h4 class="card-header">
-                            <div class="row justify-content-between align-items-center flex-grow-1">
-                                <div class="col-12 col-sm-5">
-                                    <span>{{\App\CPU\translate('vehicle_stocks')}}</span>
-                                </div>
-                                <div class="col-12 col-sm-7 col-md-6 col-lg-4 col-xl-6 mb-3 mb-sm-0">
-                                    <form action="{{url()->current()}}" method="GET">
-                                        <!-- Search -->
-                                        <div class="input-group input-group-merge input-group-flush">
-                                            <div class="input-group-prepend">
-                                                <div class="input-group-text">
-                                                    <i class="tio-search"></i>
-                                                </div>
-                                            </div>
-                                            <input type="date" name="search" class="form-control" aria-label="Search" value="{{ $date }}" required>
-                                            <button type="submit" class="btn btn-primary">{{\App\CPU\translate('search')}} </button>
+<div class="roles-wrap">
 
-                                        </div>
-                                        <!-- End Search -->
-                                    </form>
-                                </div>
-                            </div>
-                        </h4>
+    <div class="roles-hero">
+        <div class="hero-text">
+            <h1><i class="tio-truck mr-1"></i> {{\App\CPU\translate('vehicle_stocks')}}</h1>
+            <p>
+                {{ $cards->count() }} {{ \App\CPU\translate('عربية') }}
+                @if($date) &middot; {{ $date }} @endif
+            </p>
+        </div>
+
+        <form action="{{ url()->current() }}" method="GET" class="hero-actions">
+            <div class="vs-search">
+                <input type="date" name="search" value="{{ $date }}" required>
+                <button type="submit" class="btn btn-solid">
+                    <i class="tio-search mr-1"></i> {{\App\CPU\translate('search')}}
+                </button>
+            </div>
+
+            @if($date)
+                <a href="{{ url()->current() }}" class="btn btn-ghost">{{ \App\CPU\translate('reset') }}</a>
+            @endif
+        </form>
+    </div>
+
+    <div class="vs-grid">
+        @forelse($cards as $card)
+            @php($seller = $card['seller'])
+
+            <a class="vs-card" href="{{ route('admin.stock.products', $seller->id) }}">
+                <div class="vs-head">
+                    <div class="vs-avatar"><i class="tio-truck"></i></div>
+
+                    <div class="flex-grow-1" style="min-width:0;">
+                        <p class="vs-name">{{ trim($seller->f_name . ' ' . $seller->l_name) }}</p>
+                        <div class="vs-code">{{ $seller->mandob_code ?: '—' }}</div>
+                    </div>
+
+                    @if($card['store_code'])
+                        <span class="vs-car" title="{{ $card['store_name'] }}">{{ $card['store_code'] }}</span>
+                    @endif
+                </div>
+
+                <div class="vs-money">
+                    <div class="m-row">
+                        <span class="m-label">{{ \App\CPU\translate('total_cash') }}</span>
+                        <span class="m-value">{{ number_format($card['cash'], 2) }}</span>
+                    </div>
+
+                    <div class="m-row">
+                        <span class="m-label">{{ \App\CPU\translate('total_credit') }}</span>
+                        <span class="m-value">{{ number_format($card['credit'], 2) }}</span>
+                    </div>
+
+                    <div class="m-row">
+                        <span class="m-label">{{ \App\CPU\translate('refund_total') }}</span>
+                        <span class="m-value is-refund">{{ number_format($card['refunds'], 2) }}</span>
+                    </div>
+
+                    <div class="m-row">
+                        <span class="m-label">{{ \App\CPU\translate('installment_total') }}</span>
+                        <span class="m-value">{{ number_format($card['installment'], 2) }}</span>
                     </div>
                 </div>
-                <div class="row mb-4">
-                    @foreach($sellers as $seller)
-                        @php
-                            if (Request::has('search'))
-                            {
-                                $stocks = \App\Models\ConfirmStock::where('seller_id', $seller->id)->where('created_at', 'LIKE', Request::get('search') . '%')->whereRaw('stock != 0');
-                                $remain_stocks = \App\Models\ConfirmStock::where('seller_id', $seller->id)->whereRaw('stock = 0');
-                            }
-                            else {
-                                $stocks = \App\Models\ConfirmStock::where('seller_id', $seller->id)->whereRaw('stock != 0');
-                                $remain_stocks = \App\Models\ConfirmStock::where('seller_id', $seller->id)->whereRaw('stock = 0');
-                            }
-                            $orders = \App\Models\Order::where('owner_id', $seller->id);
-                        @endphp
-                        @if ($stocks->count() > 0 || $remain_stocks->count() > 0)
-                            @php 
-                                $remain_stock = 0;
-                                $total_stock = 0;
-                                $total_cash = 0;
-                                $refund_total = 0;
-                                $total_credit = 0;
-                                $order_count = 0;
-                                $installment_total = 0;
-                                $product_count = $stocks->count();
-                                $remain_product_count = $remain_stocks->count();
-                                
-                                foreach($stocks->get() as $st) {
-                                    $remain_stock += $st->main_stock - $st->stock;
-                                    $total_stock += $st->stock;
-                                }
-                                
-                                foreach ($remain_stocks->get() as $st) {
-                                    $remain_stock += $st->main_stock;
-                                }
-                                
-                                
-                                $order_ids = \App\Models\Order::where('owner_id', $seller->id)->pluck('id');
-                                
-                        $total_cash = \App\Models\Transection::where('seller_id', $seller->id)->where('tran_type', 4)->where('cash',1)->where('active',1)->sum('amount');
-                                $total_credit = \App\Models\Transection::where('seller_id', $seller->id)->where('tran_type', 4)->where('cash',2)->where('active',1)->sum('amount');
-                                $refund_total = \App\Models\Transection::where('seller_id', $seller->id)->where('tran_type', 7)->where('active',1)->sum('amount');
-                                $installment_total = \App\Models\HistoryInstallment::where('seller_id', $seller->id)->sum('total_price');
-                                
-                            @endphp
-                            <div class="col-sm-12 col-lg-4 mb-3 mt-3 mb-lg-5"><!-- Card -->
-                                <a class="card card-hover-shadow h-100 color-one" 
-                                    href="{{ route('admin.stock.products', $seller->id) }}">
-                                    <div class="card-body">
-                                        <div class="flex-between align-items-center mb-1">
-                                            <div>
-                                                <h6 class="card-subtitle text-white">Seller Name: {{ $seller->f_name . ' ' . $seller->l_name }}</h6>
-                                                <h6 class="card-subtitle text-white">Seller Code: {{ $seller->mandob_code }}</h6>
-                                                
-                                                <span class="card-title text-white">
-                                                    Car Code: {{ optional(\App\Models\Store::where('store_id', $seller->vehicle_code)->first())->store_code }}
-                                                </span>
-                                                <span class="card-title text-white">
-                                                    Car Name: {{ optional(\App\Models\Store::where('store_id', $seller->vehicle_code)->first())->store_name1 }}
-                                                </span>
-                                                
-                                               <span class="card-title text-white">
-                                                    Cash Sales: {{ number_format($total_cash, 2) }}
-                                                </span>
-                                                <span class="card-title text-white">
-                                                    Credit Sales: {{ number_format($total_credit, 2) }}
-                                                </span>
-                                                <span class="card-title text-white">
-                                                    Refunds Sales: {{ number_format($refund_total, 2) }}
-                                                </span>
-                                                <span class="card-title text-white">
-                                                    Installment: {{ number_format($installment_total, 2) }}
-                                                </span>
-                                                <span class="card-title text-white">
-                                                    Orders Count: {{ $orders->count() }}
-                                                </span>
 
-                                                <span class="card-title text-white">
-                                                    Item Sale Count: {{ $product_count }}
-                                                </span>
-                                                <span class="card-title text-white">
-                                                    Remain Sale Count: {{ $remain_product_count }}
-                                                </span>
-                                                <span class="card-title text-white">
-                                                    Qty Sale Count: {{ $total_stock }}
-                                                </span>
-                                                <span class="card-title text-white">
-                                                    Remain Stock: {{ $remain_stock }}
-                                                </span>
-                                            </div>
-                                        </div>
-                                        <!-- End Row -->
-                                    </div>
-                                </a>
-                                <!-- End Card -->
-                            </div>
-                        @else
-                            @continue
-                        @endif
-                    @endforeach
+                <div class="vs-counts">
+                    <div class="c">
+                        <div class="c-value">{{ number_format($card['orders']) }}</div>
+                        <div class="c-label">{{ \App\CPU\translate('order_count') }}</div>
+                    </div>
+
+                    <div class="c">
+                        <div class="c-value">{{ number_format($card['lines_held']) }}</div>
+                        <div class="c-label">{{ \App\CPU\translate('product_count') }}</div>
+                    </div>
+
+                    <div class="c">
+                        <div class="c-value">{{ number_format($card['sold']) }}</div>
+                        <div class="c-label">{{ \App\CPU\translate('المباع') }}</div>
+                    </div>
+
+                    <div class="c is-stock">
+                        <div class="c-value">{{ number_format($card['in_hand']) }}</div>
+                        <div class="c-label">{{ \App\CPU\translate('remain_stock') }}</div>
+                    </div>
                 </div>
+            </a>
+        @empty
+            <div class="vs-empty">
+                <i class="tio-truck" style="font-size:2rem;opacity:.4"></i>
+                <p class="mt-2 mb-0">{{ \App\CPU\translate('No_data_to_show') }}</p>
             </div>
-        </div>
+        @endforelse
     </div>
+</div>
 @endsection
 
 @push('script_2')

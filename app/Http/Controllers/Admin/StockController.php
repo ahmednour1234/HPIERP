@@ -11,6 +11,8 @@ use Illuminate\Http\Request;
 use App\CPU\Helpers;
 use App\Models\ConfirmStock;
 use App\Models\CurrentOrder;
+use App\Models\HistoryInstallment;
+use App\Models\Order;
 use App\Models\Installment;
 use App\Models\StockOrder;
 use App\Models\Product;
@@ -199,21 +201,103 @@ class StockController extends Controller
 
         return back();
     }
-  public function vehicles(Request $request): Factory|View|Application
+  /**
+     * مخزون العربيات: بطاقة لكل مندوب.
+     *
+     * كانت الأرقام تُحسب داخل القالب، تسعة استعلامات لكل مندوب، فثلاثة
+     * عشر مندوبًا تعني أكثر من تسعين استعلامًا في فتح الصفحة الواحدة.
+     * تُجمع هنا دفعةً واحدة لكل مقياس.
+     */
+    public function vehicles(Request $request): Factory|View|Application
 {
-    // Get the authenticated admin's ID
     $adminId = Auth::guard('admin')->id();
 
-    // Get the sellers associated with the authenticated admin
     $sellers = Seller::whereHas('adminSellers', function ($query) use ($adminId) {
-        $query->where('admin_id', $adminId); // Filter by admin_id in admin_sellers table
+        $query->where('admin_id', $adminId);
     })->get();
 
-    // Get the search date if provided
     $date = $request['search'];
 
-    // Pass the filtered sellers and the search date to the view
-    return view('admin-views.vehicle_stocks.vehicles', compact('sellers', 'date'));
+    $sellerIds = $sellers->pluck('id');
+
+    // ما زال معه منه شيء، مقابل ما نفد تمامًا.
+    $carrying = ConfirmStock::whereIn('seller_id', $sellerIds)
+        ->whereRaw('stock != 0')
+        ->when($date, fn ($q) => $q->where('created_at', 'LIKE', $date . '%'))
+        ->selectRaw('seller_id,
+                     COUNT(*)                       as lines,
+                     COALESCE(SUM(stock), 0)        as in_hand,
+                     COALESCE(SUM(main_stock - stock), 0) as sold')
+        ->groupBy('seller_id')
+        ->get()
+        ->keyBy('seller_id');
+
+    $emptied = ConfirmStock::whereIn('seller_id', $sellerIds)
+        ->whereRaw('stock = 0')
+        ->selectRaw('seller_id, COUNT(*) as lines, COALESCE(SUM(main_stock), 0) as sold')
+        ->groupBy('seller_id')
+        ->get()
+        ->keyBy('seller_id');
+
+    // النقدي والآجل والمرتجع من جدول واحد، فيُقرأ مرة واحدة.
+    $money = Transection::whereIn('seller_id', $sellerIds)
+        ->where('active', 1)
+        ->whereIn('tran_type', [4, 7])
+        ->selectRaw("seller_id,
+                     COALESCE(SUM(CASE WHEN tran_type = 4 AND cash = 1 THEN amount ELSE 0 END), 0) as cash,
+                     COALESCE(SUM(CASE WHEN tran_type = 4 AND cash = 2 THEN amount ELSE 0 END), 0) as credit,
+                     COALESCE(SUM(CASE WHEN tran_type = 7 THEN amount ELSE 0 END), 0)              as refunds")
+        ->groupBy('seller_id')
+        ->get()
+        ->keyBy('seller_id');
+
+    $installments = HistoryInstallment::whereIn('seller_id', $sellerIds)
+        ->selectRaw('seller_id, COALESCE(SUM(total_price), 0) as total')
+        ->groupBy('seller_id')
+        ->get()
+        ->keyBy('seller_id');
+
+    $orderCounts = Order::whereIn('owner_id', $sellerIds)
+        ->selectRaw('owner_id, COUNT(*) as c')
+        ->groupBy('owner_id')
+        ->pluck('c', 'owner_id');
+
+    // كود العربية واسمها: استعلام واحد بدل اثنين لكل بطاقة.
+    $stores = Store::whereIn('store_id', $sellers->pluck('vehicle_code')->filter())
+        ->get(['store_id', 'store_code', 'store_name1'])
+        ->keyBy('store_id');
+
+    $cards = $sellers->map(function (Seller $seller) use (
+        $carrying, $emptied, $money, $installments, $orderCounts, $stores
+    ) {
+        $held = $carrying->get($seller->id);
+        $gone = $emptied->get($seller->id);
+
+        // بطاقة بلا أي سطر مخزون لا تُعرض، كما كان القالب يفعل.
+        if (! $held && ! $gone) {
+            return null;
+        }
+
+        $cash = $money->get($seller->id);
+        $store = $stores->get($seller->vehicle_code);
+
+        return [
+            'seller'      => $seller,
+            'store_code'  => $store->store_code ?? null,
+            'store_name'  => $store->store_name1 ?? null,
+            'cash'        => (float) ($cash->cash ?? 0),
+            'credit'      => (float) ($cash->credit ?? 0),
+            'refunds'     => (float) ($cash->refunds ?? 0),
+            'installment' => (float) ($installments->get($seller->id)->total ?? 0),
+            'orders'      => (int) ($orderCounts[$seller->id] ?? 0),
+            'lines_held'  => (int) ($held->lines ?? 0),
+            'lines_gone'  => (int) ($gone->lines ?? 0),
+            'in_hand'     => (int) ($held->in_hand ?? 0),
+            'sold'        => (int) ($held->sold ?? 0) + (int) ($gone->sold ?? 0),
+        ];
+    })->filter()->values();
+
+    return view('admin-views.vehicle_stocks.vehicles', compact('cards', 'date'));
 }
 
     
