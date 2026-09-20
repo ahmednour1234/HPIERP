@@ -695,67 +695,6 @@ body > .width-inone {
           padding-inline-start: 0 !important;
 }
 
-.direction-toggle {
-  background: #161853;
-  color: #ffffff;
-  padding: 8px 0;
-  -webkit-padding-end: 18px;
-  padding-inline-end: 18px;
-  -webkit-padding-start: 10px;
-  padding-inline-start: 10px;
-  cursor: pointer;
-  position: fixed;
-  top: 30%;
-  border-radius: 5px;
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 10px;
-  transition: all ease 0.3s;
-  white-space: nowrap;
-  inset-inline-start: 100%;
-  transform: translateX(calc(-100% + 3px));
-}
-
-.direction-toggle:not(:hover) {
-  transform: translateX(-39px);
-}
-
-.direction-toggle i {
-  width: 22px;
-  height: 22px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  -webkit-animation: cogs 1s linear infinite;
-  animation: cogs 1s linear infinite;
-}
-
-@-webkit-keyframes cogs {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-@keyframes cogs {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
-}
-[dir=rtl] .direction-toggle {
-  transform: translateX(calc(100% - 3px));
-}
-
-[dir=rtl] .direction-toggle:not(:hover) {
-  transform: translateX(39px);
-}
-
 [dir=rtl] .input-group .btn {
   border-radius: 5px 0 0 5px !important;
 }

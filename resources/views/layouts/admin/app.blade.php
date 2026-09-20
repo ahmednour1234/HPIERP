@@ -28,12 +28,8 @@
 
 <body class="footer-offset">
 
-    <!-- Toggler -->
-    <div class="direction-toggle">
-        <i class="tio-settings"></i>
-        <span></span>
-    </div>
-    <!-- Toggler -->
+    {{-- كان هنا مبدّل اتجاه عائم يطفو فوق زاوية الصفحة. اللوحة عربية
+         RTL فحسب، فلا معنى لتبديل الاتجاه. --}}
 
 {{--loader--}}
 <div class="container">
@@ -161,38 +157,10 @@
         @endforeach
     </script>
 @endif
-<!-- Toggle Direction Init -->
+{{-- حُذف سكربت تبديل الاتجاه: كان يقرأ localStorage ويضع dir=ltr عند
+     غياب القيمة، فتُعرض أول زيارة بالاتجاه الخاطئ قبل أن يلمس المستخدم
+     شيئًا. الاتجاه مثبَّت على وسم html. --}}
 <script>
-    $(document).on('ready', function(){
-
-        $(".direction-toggle").on("click", function () {
-            setDirection(localStorage.getItem("direction"));
-        });
-
-        function setDirection(direction) {
-            if (direction == "rtl") {
-                localStorage.setItem("direction", "ltr");
-                $("html").attr('dir', 'ltr');
-            $(".direction-toggle").find('span').text('Toggle RTL')
-            } else {
-                localStorage.setItem("direction", "rtl");
-                $("html").attr('dir', 'rtl');
-            $(".direction-toggle").find('span').text('Toggle LTR')
-            }
-        }
-
-        if (localStorage.getItem("direction") == "rtl") {
-            $("html").attr('dir', "rtl");
-            $(".direction-toggle").find('span').text('Toggle LTR')
-        } else {
-            $("html").attr('dir', "ltr");
-            $(".direction-toggle").find('span').text('Toggle RTL')
-        }
-
-    })
-
-
-
     $(document).ready(function () {
         if ($(".navbar-vertical-content li.active").length) {
             $('.navbar-vertical-content').animate({
