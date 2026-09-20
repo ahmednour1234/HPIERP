@@ -94,24 +94,9 @@
 
     /* الأيقونات كانت بيضاء على شريط كحلي، فتختفي على الأبيض. */
     #header .btn-ghost-secondary,
-    #header .tio-notifications,
-    #header .tio-shopping-basket { color: #4a6076 !important; }
+    #header .tio-notifications { color: #4a6076 !important; }
 
     #header .btn-ghost-secondary:hover { background: #eaf4fb; }
-
-    #header .hd-pos {
-        display: inline-flex;
-        align-items: center;
-        height: 34px;
-        font-size: .8rem;
-        font-weight: 700;
-        color: #14395c !important;
-        background: #eaf4fb;
-        border-radius: 9px;
-        padding: 0 .85rem;
-    }
-
-    #header .hd-pos:hover { background: #dbeafb; text-decoration: none; }
 
     #header .btn-icon {
         width: 34px;
@@ -214,25 +199,6 @@
             <div class="navbar-nav-wrap-content-right">
                 <!-- Navbar -->
                 <ul class="navbar-nav align-items-center flex-row" style="gap: .4rem;">
-                    <li class="nav-item d-none d-sm-inline-block">
-                        <div class="hs-unfold">
-                            <a class="js-hs-unfold-invoker hd-pos"
-                               href="{{ route('admin.pos.index', ['type' => 4]) }}" target="_blank">
-                                {{ \App\CPU\translate('POS') }}
-                            </a>
-                        </div>
-                    </li>
-
-                    <li class="nav-item d-none d-sm-inline-block">
-                        <div class="hs-unfold">
-                            <a class="js-hs-unfold-invoker btn btn-icon btn-ghost-secondary rounded-circle"
-                               href="{{ route('admin.pos.orders') }}"
-                               title="{{ \App\CPU\translate('الفواتير') }}">
-                                <i class="tio-shopping-basket"></i>
-                            </a>
-                        </div>
-                    </li>
-
         @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->notification == 1)
 <li class="nav-item">
     <div class="hs-unfold">

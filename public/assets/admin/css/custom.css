@@ -912,7 +912,9 @@ body {
     display: block;
     width: 100%;
     max-width: 100%;
-    overflow-x: scroll !important;
+    /* auto لا scroll: كان الشريط يظهر على كل جدول ولو كان أضيق من
+       حاويته، فيرسم خطًّا أسفل صفحات لا تحتاجه أصلًا. */
+    overflow-x: auto;
     overflow-y: hidden;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior-x: contain;
