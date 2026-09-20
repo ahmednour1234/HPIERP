@@ -24,6 +24,10 @@
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/custom.css"/>
 
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/toastr.css">
+
+    {{-- بعد custom.css لا قبله: القاعدة المتأخّرة هي التي تغلب عند تساوي
+         الخصوصية، فتنطبق هذه على الشاشات القياسية دون !important. --}}
+    @include('layouts.admin.partials._page_polish')
 </head>
 
 <body class="footer-offset">
