@@ -92,14 +92,20 @@ body {
     <!-- الشعار والنص -->
     <div class="d-flex align-items-center gap-2">
         <a class="navbar-brand d-flex align-items-center" href="{{ route('admin.dashboard') }}" aria-label="Front">
-            @php($shop_logo = $badgeService->setting('shop_logo'))
-                        <span class="fw-bold ms-2" style="font-size: 20px; color: #333;margin-right:15px;">نظام الإدارة</span>
+            @php
+                $shop_logo = $badgeService->setting('shop_logo');
+            @endphp
+
+            <span class="d-flex flex-column">
+                <span class="brand-name">{{ \App\CPU\translate('نظام الإدارة') }}</span>
+                <span class="brand-tag">{{ \App\CPU\translate('إدارة أعمالك بسهولة') }}</span>
+            </span>
 
             <img class="navbar-brand-logo"
                  src="{{ asset('storage/shop/' . $shop_logo) }}"
                  onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
                  alt="{{ \App\CPU\translate('logo') }}"
-                 style="height: 40px; width: auto; border-radius: 6px; margin-right:50px;">
+                 style="height: 38px; width: auto; border-radius: 8px; margin-right: auto;">
         </a>
     </div>
 
@@ -1127,16 +1133,38 @@ body {
                                             @endif
 
                     </ul>
+
+                    {{-- التذييل: الإعدادات والخروج في أسفل القائمة، بعيدًا
+                         عن بنود التنقّل حتى لا يُضغط أحدهما سهوًا. --}}
+                    <ul class="navbar-nav navbar-nav-lg nav-tabs side-foot">
+                        @cangroup('settings')
+                            <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/business-settings*') ? 'active' : '' }}">
+                                <a class="js-navbar-vertical-aside-menu-link nav-link"
+                                   href="{{ route('admin.business-settings.shop-setup') }}">
+                                    <i class="tio-settings nav-icon"></i>
+                                    <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
+                                        {{ \App\CPU\translate('الاعدادات') }}
+                                    </span>
+                                </a>
+                            </li>
+                        @endcangroup
+
+                        <li class="navbar-vertical-aside-has-menu">
+                            <a class="js-navbar-vertical-aside-menu-link nav-link is-exit"
+                               href="{{ route('admin.auth.logout') }}">
+                                <i class="tio-sign-out nav-icon"></i>
+                                <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
+                                    {{ \App\CPU\translate('تسجيل الخروج') }}
+                                </span>
+                            </a>
+                        </li>
+                    </ul>
                 </div>
                 <!-- End Content -->
             </div>
         </div>
     </aside>
 </div>
-
-
-
-/div>
 
 
 
