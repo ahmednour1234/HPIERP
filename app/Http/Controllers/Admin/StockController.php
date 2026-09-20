@@ -225,7 +225,7 @@ class StockController extends Controller
         ->whereRaw('stock != 0')
         ->when($date, fn ($q) => $q->where('created_at', 'LIKE', $date . '%'))
         ->selectRaw('seller_id,
-                     COUNT(*)                       as lines,
+                     COUNT(*)                       as line_count,
                      COALESCE(SUM(stock), 0)        as in_hand,
                      COALESCE(SUM(main_stock - stock), 0) as sold')
         ->groupBy('seller_id')
@@ -234,7 +234,7 @@ class StockController extends Controller
 
     $emptied = ConfirmStock::whereIn('seller_id', $sellerIds)
         ->whereRaw('stock = 0')
-        ->selectRaw('seller_id, COUNT(*) as lines, COALESCE(SUM(main_stock), 0) as sold')
+        ->selectRaw('seller_id, COUNT(*) as line_count, COALESCE(SUM(main_stock), 0) as sold')
         ->groupBy('seller_id')
         ->get()
         ->keyBy('seller_id');
@@ -244,8 +244,8 @@ class StockController extends Controller
         ->where('active', 1)
         ->whereIn('tran_type', [4, 7])
         ->selectRaw("seller_id,
-                     COALESCE(SUM(CASE WHEN tran_type = 4 AND cash = 1 THEN amount ELSE 0 END), 0) as cash,
-                     COALESCE(SUM(CASE WHEN tran_type = 4 AND cash = 2 THEN amount ELSE 0 END), 0) as credit,
+                     COALESCE(SUM(CASE WHEN tran_type = 4 AND cash = 1 THEN amount ELSE 0 END), 0) as cash_total,
+                     COALESCE(SUM(CASE WHEN tran_type = 4 AND cash = 2 THEN amount ELSE 0 END), 0) as credit_total,
                      COALESCE(SUM(CASE WHEN tran_type = 7 THEN amount ELSE 0 END), 0)              as refunds")
         ->groupBy('seller_id')
         ->get()
@@ -285,13 +285,13 @@ class StockController extends Controller
             'seller'      => $seller,
             'store_code'  => $store->store_code ?? null,
             'store_name'  => $store->store_name1 ?? null,
-            'cash'        => (float) ($cash->cash ?? 0),
-            'credit'      => (float) ($cash->credit ?? 0),
+            'cash'        => (float) ($cash->cash_total ?? 0),
+            'credit'      => (float) ($cash->credit_total ?? 0),
             'refunds'     => (float) ($cash->refunds ?? 0),
             'installment' => (float) ($installments->get($seller->id)->total ?? 0),
             'orders'      => (int) ($orderCounts[$seller->id] ?? 0),
-            'lines_held'  => (int) ($held->lines ?? 0),
-            'lines_gone'  => (int) ($gone->lines ?? 0),
+            'lines_held'  => (int) ($held->line_count ?? 0),
+            'lines_gone'  => (int) ($gone->line_count ?? 0),
             'in_hand'     => (int) ($held->in_hand ?? 0),
             'sold'        => (int) ($held->sold ?? 0) + (int) ($gone->sold ?? 0),
         ];
