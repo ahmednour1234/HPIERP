@@ -1,163 +1,299 @@
 @extends('layouts.admin.app')
-@section('title','installments List')
+
+@section('title', \App\CPU\translate('التحصيلات'))
+
 @push('css_or_js')
-    {{-- <meta name="csrf-token" content="{{ csrf_token() }}"> --}}
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/custom.css"/>
+    @include('admin-views.roles._tokens')
+    <style>
+        /* ---------- الفلاتر ---------- */
+
+        .in-filters {
+            display: grid;
+            grid-template-columns: minmax(200px, 1.6fr) minmax(170px, 1fr) repeat(2, minmax(140px, .9fr));
+            gap: .7rem;
+            align-items: start;
+        }
+
+        .in-filters .f-label {
+            font-size: .74rem;
+            font-weight: 700;
+            color: var(--hpi-muted);
+            margin-bottom: .25rem;
+            display: block;
+        }
+
+        .in-filters .form-control,
+        .in-filters select {
+            border: 1px solid var(--hpi-line);
+            border-radius: 10px;
+            padding: .45rem .7rem;
+            font-size: .85rem;
+            height: auto;
+            width: 100%;
+        }
+
+        .in-filters .form-control:focus,
+        .in-filters select:focus {
+            outline: 0;
+            border-color: var(--hpi-blue);
+            box-shadow: 0 0 0 .18rem rgba(142,197,239,.28);
+        }
+
+        .in-actions {
+            display: flex;
+            flex-wrap: wrap;
+            gap: .4rem;
+            margin-top: .9rem;
+            padding-top: .9rem;
+            border-top: 1px solid var(--hpi-line);
+        }
+
+        @media (max-width: 991.98px) { .in-filters { grid-template-columns: repeat(2, 1fr); } }
+        @media (max-width: 575.98px) { .in-filters { grid-template-columns: 1fr; } }
+
+        /* ---------- الملخّص ---------- */
+
+        .in-stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 1rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .in-stat {
+            background: #fff;
+            border: 1px solid var(--hpi-line);
+            border-radius: 14px;
+            padding: 1rem 1.15rem;
+            display: flex;
+            align-items: center;
+            gap: .85rem;
+        }
+
+        .in-stat .s-icon {
+            width: 42px;
+            height: 42px;
+            flex: none;
+            border-radius: 11px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            background: #e6f7ef;
+            color: #0f7a4d;
+        }
+
+        .in-stat .s-icon.is-blue { background: #eaf4fb; color: var(--hpi-navy); }
+
+        .in-stat .s-label { font-size: .76rem; color: var(--hpi-muted); margin-bottom: .1rem; }
+
+        .in-stat .s-value {
+            font-size: 1.25rem;
+            font-weight: 800;
+            color: var(--hpi-ink);
+            line-height: 1.2;
+            direction: ltr;
+            text-align: start;
+        }
+
+        .in-stat .s-value .unit { font-size: .76rem; font-weight: 600; color: var(--hpi-muted); }
+
+        /* ---------- الجدول ---------- */
+
+        .in-table { width: 100%; margin: 0; }
+
+        .in-table thead th {
+            background: #f6fafd;
+            font-size: .75rem;
+            font-weight: 700;
+            color: var(--hpi-muted);
+            border: 0;
+            border-bottom: 1px solid var(--hpi-line);
+            padding: .65rem .7rem;
+            white-space: nowrap;
+        }
+
+        .in-table tbody td {
+            padding: .6rem .7rem;
+            border-top: 1px solid var(--hpi-line);
+            font-size: .84rem;
+            vertical-align: middle;
+            white-space: nowrap;
+        }
+
+        .in-table tbody tr:hover { background: #fbfdff; }
+
+        .in-table .col-num { direction: ltr; text-align: start; font-variant-numeric: tabular-nums; }
+
+        .in-table .col-price {
+            font-weight: 800;
+            color: var(--hpi-ink);
+            direction: ltr;
+            text-align: start;
+        }
+
+        /* الملاحظة وحدها تلتف؛ بقية الأعمدة سطر واحد. */
+        .in-table .col-note {
+            white-space: normal;
+            max-width: 16rem;
+            font-size: .8rem;
+            color: var(--hpi-muted);
+        }
+
+        .in-thumb {
+            width: 42px;
+            height: 42px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid var(--hpi-line);
+            cursor: pointer;
+            background: #f3f6f9;
+            transition: transform .15s ease;
+        }
+
+        .in-thumb:hover { transform: scale(1.08); border-color: var(--hpi-blue); }
+
+        .in-noimg {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 42px;
+            height: 42px;
+            border-radius: 8px;
+            border: 1px dashed var(--hpi-line);
+            color: var(--hpi-muted);
+        }
+
+        .in-row-actions { display: flex; gap: .3rem; white-space: nowrap; }
+
+        .in-order {
+            font-size: .78rem;
+            font-weight: 700;
+            color: var(--hpi-navy);
+            direction: ltr;
+        }
+
+        .in-order:hover { text-decoration: underline; }
+
+        .in-empty { padding: 3rem 1rem; text-align: center; color: var(--hpi-muted); }
+
+        .in-pager {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: space-between;
+            gap: .75rem;
+            padding: .9rem 1.2rem;
+            border-top: 1px solid var(--hpi-line);
+        }
+
+        @media print {
+            .roles-hero, .roles-panel > .head, .in-actions, .in-pager,
+            .in-row-actions { display: none !important; }
+        }
+    </style>
 @endpush
 
 @section('content')
-<style>
-    /* Custom styling for POS Installments page */
-    .filter-card, .summary-card, .table-card {
-        border-radius: 12px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
-    }
-    .filter-card .form-label {
-        font-weight: 600;
-        color: #4a4a4a;
-    }
-    .summary-card {
-        background-color: #ffffff;
-        padding: 1rem 1.5rem;
-        margin-bottom: 1rem;
-    }
-    .summary-card .summary-item {
-        font-size: 1rem;
-        color: #333333;
-    }
-    .summary-card .summary-value {
-        font-size: 1.25rem;
-        font-weight: bold;
-        color: #0056b3;
-    }
-    .table-card {
-        background-color: #ffffff;
-    }
-    .table-card .table thead {
-        background-color: #0056b3;
-    }
-    .table-card .table thead th {
-        color: #ffffff;
-    }
-    .modal-content1 {
-        border-radius: 8px;
-    }
-</style>
-<div class="content container-fluid">
-    <!-- رأس الصفحة -->
-    <div class="row align-items-center mb-4">
-        <div class="col">
-            <h1 class="page-header-title">
-                {{ \App\CPU\translate('') }} {{ \App\CPU\translate('التحصيلات') }}
-                <span class="badge bg-white ms-2">{{ $installments->total() }}</span>
-            </h1>
+<div class="roles-wrap">
+
+    <div class="roles-hero">
+        <div class="hero-text">
+            <h1><i class="tio-wallet mr-1"></i> {{ \App\CPU\translate('التحصيلات') }}</h1>
+            <p>{{ number_format($installments->total()) }} {{ \App\CPU\translate('عملية تحصيل') }}</p>
         </div>
     </div>
 
-    <!-- بطاقة البحث والتصفية -->
-{{-- بطاقة الفلاتر --}}
-<div class="card border-0 shadow-sm mb-4">
-    {{-- رأس مُلوَّن بتدرج خفيف --}}
-    <div class="card-header bg-primary bg-gradient text-white rounded-2 py-3 d-flex align-items-center">
-                <h5 class="mb-0 fw-bold text-white">{{ \App\CPU\translate('بحث وتصفية') }}</h5>
+    <div class="roles-panel">
+        <div class="head" style="display:block;">
+            <form action="{{ url()->current() }}" method="GET">
+                <div class="in-filters">
+                    <div>
+                        <label class="f-label" for="in-search">{{ \App\CPU\translate('بحث') }}</label>
+                        <input type="search" id="in-search" name="search" class="form-control"
+                               placeholder="{{ \App\CPU\translate('رقم الفاتورة، اسم العميل أو البائع') }}"
+                               value="{{ $search }}">
+                    </div>
 
-        <i class="tio-filter_list fs-4 mr-2"></i>
-    </div>
+                    <div>
+                        <label class="f-label" for="in-region">{{ \App\CPU\translate('المنطقة') }}</label>
+                        <select name="region_id[]" id="in-region" multiple
+                                data-placeholder="{{ \App\CPU\translate('اختر المنطقة') }}">
+                            @foreach($regions as $region)
+                                <option value="{{ $region->id }}"
+                                    @selected(in_array((string) $region->id, (array) $regionId))>
+                                    {{ $region->name }}
+                                </option>
+                            @endforeach
+                        </select>
+                    </div>
 
-    <div class="card-body">
-        <form action="{{ url()->current() }}" method="GET" class="row g-3 align-items-start">
+                    <div>
+                        <label class="f-label" for="in-from">{{ \App\CPU\translate('من تاريخ') }}</label>
+                        <input type="date" id="in-from" name="from_date" class="form-control" value="{{ $fromDate }}">
+                    </div>
 
-            {{-- حقل البحث العام --}}
-            <div class="col-12 col-lg-4">
-                <label class="form-label fw-semibold">{{ \App\CPU\translate('بحث') }}</label>
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-white border-0">
-                        <i class="tio-search text-muted"></i>
-                    </span>
-                    <input type="search"
-                           name="search"
-                           class="form-control border-0"
-                           placeholder="{{ \App\CPU\translate('رقم الفاتورة، اسم العميل أو البائع') }}"
-                           value="{{ $search }}">
+                    <div>
+                        <label class="f-label" for="in-to">{{ \App\CPU\translate('إلى تاريخ') }}</label>
+                        <input type="date" id="in-to" name="to_date" class="form-control" value="{{ $toDate }}">
+                    </div>
                 </div>
-            </div>
 
-            {{-- المنطقة --}}
-            <div class="col-12 col-md-6 col-lg-3">
-                <label class="form-label fw-semibold">{{ \App\CPU\translate('المنطقة') }}</label>
-                <div class="input-group shadow-sm">
-                    <span class="input-group-text bg-white border-0">
-                        <i class="tio-map-making text-muted"></i>
-                    </span>
-                    <select name="region_id[]" class="custom-select border-0" multiple size="4" style="height:auto;">
-                        <option value="">{{ \App\CPU\translate('اختر المنطقة') }}</option>
-                        @foreach($regions as $region)
-                            <option value="{{ $region->id }}" @selected(in_array((string) $region->id, (array) $regionId))>
-                                {{ $region->name }}
-                            </option>
-                        @endforeach
-                    </select>
-
-                    
-                </div>
-            </div>
-
-            {{-- الفترة الزمنية --}}
-            <div class="col-6 col-md-3 col-lg-2">
-                <label class="form-label fw-semibold">{{ \App\CPU\translate('من تاريخ') }}</label>
-                <input type="date"
-                       name="from_date"
-                       class="form-control shadow-sm"
-                       value="{{ $fromDate }}">
-            </div>
-
-            <div class="col-6 col-md-3 col-lg-2">
-                <label class="form-label fw-semibold">{{ \App\CPU\translate('إلى تاريخ') }}</label>
-                <input type="date"
-                       name="to_date"
-                       class="form-control shadow-sm"
-                       value="{{ $toDate }}">
-            </div>
-</div>
-<div class="row-12">
-            {{-- أزرار الإجراءات --}}
-            <div class="col-12 d-flex align-items-end">
-                <div class="btn-group w-100">
-                    <button type="submit" class="btn btn-primary w-50">
-                        <i class="tio-checkmark-circle mr-1"></i>
-                        {{ \App\CPU\translate('تطبيق') }}
+                <div class="in-actions">
+                    <button type="submit" class="btn btn-primary">
+                        <i class="tio-filter-list mr-1"></i> {{ \App\CPU\translate('تطبيق') }}
                     </button>
-                    <button type="button" class="btn btn-outline-secondary w-50" onclick="printTable()">
-                        <i class="tio-print mr-1"></i>
-                        {{ \App\CPU\translate('طباعة') }}
+
+                    @if(request()->hasAny(['search', 'region_id', 'from_date', 'to_date']))
+                        <a href="{{ url()->current() }}" class="btn btn-outline-secondary">
+                            {{ \App\CPU\translate('reset') }}
+                        </a>
+                    @endif
+
+                    <span class="flex-grow-1"></span>
+
+                    {{-- يحمل الفلاتر الحالية، فيطابق التصدير ما تعرضه الشاشة.
+                         كان داخل نموذج «عكس التحصيل» في كل صف، فيتكرّر بعدد
+                         الصفوف ويقع داخل خلية جدول. --}}
+                    <a href="{{ route('admin.pos.installments.export', request()->query()) }}"
+                       class="btn btn-success">
+                        <i class="tio-file-outlined mr-1"></i> {{ \App\CPU\translate('تصدير CSV') }}
+                    </a>
+
+                    <button type="button" class="btn btn-outline-secondary" onclick="window.print()">
+                        <i class="tio-print mr-1"></i> {{ \App\CPU\translate('طباعة') }}
                     </button>
                 </div>
-            </div>
-            </div>
-
-        </form>
-</div>
-
-    <!-- بطاقة الملخص -->
-    <div class="card summary-card row mb-4" >
-        <div class="col-md-4 summary-item">
-            {{ \App\CPU\translate('إجمالي المبالغ المحصلة') }}:
-            <span class="summary-value">{{ number_format($totalAmount, 2) }}</span>
-        </div>
-            <div class="col-md-4 summary-item">
-            {{ \App\CPU\translate('إجمالي الفواتير  الكاش') }}:
-            <span class="summary-value">{{ number_format($collectedCashSum, 2) }}</span>
+            </form>
         </div>
     </div>
 
-    <!-- بطاقة الجدول -->
-    <div class="card table-card" id="product-table">
-        <div class="card-body p-0">
+    <div class="in-stats">
+        <div class="in-stat">
+            <div class="s-icon"><i class="tio-wallet"></i></div>
+            <div>
+                <div class="s-label">{{ \App\CPU\translate('إجمالي المبالغ المحصلة') }}</div>
+                <div class="s-value">{{ number_format($totalAmount, 2) }} <span class="unit">ج.م</span></div>
+            </div>
+        </div>
+
+        <div class="in-stat">
+            <div class="s-icon is-blue"><i class="tio-receipt"></i></div>
+            <div>
+                <div class="s-label">{{ \App\CPU\translate('إجمالي الفواتير الكاش') }}</div>
+                <div class="s-value">{{ number_format($collectedCashSum, 2) }} <span class="unit">ج.م</span></div>
+            </div>
+        </div>
+    </div>
+
+    <div class="roles-panel">
+        <div class="body p-0">
             <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle mb-0">
+                <table class="in-table">
                     <thead>
-                        <tr class="text-center">
-                            <th>{{ \App\CPU\translate('#') }}</th>
+                        <tr>
+                            <th>#</th>
                             <th>{{ \App\CPU\translate('اسم البائع') }}</th>
                             <th>{{ \App\CPU\translate('اسم العميل') }}</th>
                             <th>{{ \App\CPU\translate('المنطقة') }}</th>
@@ -169,98 +305,138 @@
                             <th>{{ \App\CPU\translate('الإجراءات') }}</th>
                         </tr>
                     </thead>
+
                     <tbody>
-                        @foreach($installments as $key => $installment)
-                            <tr class="text-center">
-                                <td>{{ $key + $installments->firstItem() }}</td>
-                                <td>{{ optional($installment->seller)->f_name }} {{ optional($installment->seller)->l_name }}</td>
-                                <td>{{ optional($installment->customer)->name }}</td>
-                                <td>{{ $installment->customer->regions->name ?? '-' }}</td>
-                                <td>{{ number_format($installment->total_price, 2) }}</td>
-                                <td>{{ $installment->note }}</td>
-                                <td>{{ \Carbon\Carbon::parse($installment->created_at)->format('d M Y') }}</td>
-                                <td>{{ $installment->order_id }}<a class="nav-link"
-   href="{{ route('admin.pos.orders', ['search' => $installment->order_id]) }}"
-   title="{{ \App\CPU\translate('orders') }}">
-    ...
-</a>
-</td>
-                              <td class="none">
-    <img 
-        src="{{ asset('storage/shop/'.$installment['img']) }}" 
-        alt="Image Description" 
-        style="width: 50px; height: auto; cursor: pointer;" 
-        data-toggle="modal" 
-        data-target="#imageModal{{ $installment['id'] }}">
-</td>
-                                <td>
-                                    <button class="btn btn-sm btn-outline-success" onclick="print_invoice('{{ $installment->id }}')">
+                    @forelse($installments as $key => $installment)
+                        @php
+                            // عمود img يحمل البادئة "shop/" أصلًا، فإضافتها
+                            // مرة أخرى تنتج storage/shop/shop/... ولا تُحمَّل.
+                            $img = $installment->img
+                                ? asset('storage/' . ltrim($installment->img, '/'))
+                                : null;
+                        @endphp
+
+                        <tr>
+                            <td class="col-num">{{ $key + $installments->firstItem() }}</td>
+
+                            <td>{{ trim(optional($installment->seller)->f_name . ' ' . optional($installment->seller)->l_name) ?: '—' }}</td>
+                            <td>{{ optional($installment->customer)->name ?: '—' }}</td>
+                            <td>{{ $installment->customer->regions->name ?? '—' }}</td>
+
+                            <td class="col-price">{{ number_format($installment->total_price, 2) }}</td>
+                            <td class="col-note">{{ $installment->note ?: '—' }}</td>
+
+                            <td class="col-num">
+                                {{ \Carbon\Carbon::parse($installment->created_at)->format('Y-m-d') }}
+                            </td>
+
+                            <td>
+                                @if($installment->order_id)
+                                    <a class="in-order"
+                                       href="{{ route('admin.pos.orders', ['search' => $installment->order_id]) }}"
+                                       title="{{ \App\CPU\translate('orders') }}">{{ $installment->order_id }}</a>
+                                @else
+                                    —
+                                @endif
+                            </td>
+
+                            <td>
+                                @if($img)
+                                    <img src="{{ $img }}" alt="{{ \App\CPU\translate('الصورة') }}"
+                                         class="in-thumb" loading="lazy"
+                                         data-toggle="modal" data-target="#imageModal{{ $installment->id }}"
+                                         onerror="this.outerHTML='&lt;span class=\'in-noimg\'&gt;&lt;i class=\'tio-image\'&gt;&lt;/i&gt;&lt;/span&gt;'">
+                                @else
+                                    <span class="in-noimg"><i class="tio-image"></i></span>
+                                @endif
+                            </td>
+
+                            <td>
+                                <div class="in-row-actions">
+                                    <button type="button" class="btn btn-sm btn-outline-primary"
+                                            onclick="print_invoice('{{ $installment->id }}')">
                                         <i class="tio-download"></i> {{ \App\CPU\translate('فاتورة') }}
                                     </button>
-                                       <form
-        action="{{ route('admin.pos.cancelInstallment', ['id' => $installment->id]) }}"
-        method="POST"
-        class="d-inline"
-        onsubmit="return confirm('هل أنت متأكد من عكس عملية التحصيل لهذه القسط؟');"
-    >
-        @csrf
-        <button type="submit" class="btn btn-sm btn-outline-danger">
-            <i class="tio-history"></i> {{ \App\CPU\translate('عكس التحصيل') }}
-        </button>
-    
-            <div class="col-12 d-flex justify-content-end pt-2 border-top">
-                {{-- Carries the current filters, so the download matches the screen. --}}
-                    <a href="{{ route('admin.pos.installments.export', request()->query()) }}"
-                       class="btn btn-success mt-2">
-                        <i class="tio-file-outlined"></i> {{ \App\CPU\translate('تصدير CSV') }}
-                    </a>
-            </div>
-        </form>
-                                </td>
-                            </tr>
-                                    <!-- Modal -->
-<div class="modal fade none" id="imageModal{{ $installment['id'] }}" tabindex="-1" role="dialog" aria-labelledby="imageModalLabel{{ $installment['id'] }}" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered" role="document">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="imageModalLabel{{ $installment['id'] }}">Image Preview</h5>
-                <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                    <span aria-hidden="true">&times;</span>
-                </button>
-            </div>
-            <div class="modal-body text-center">
-                <img 
-                    src="{{ asset('storage/shop/'.$installment['img']) }}" 
-                    alt="Image Description" 
-                    style="max-width: 100%; height: auto;">
-            </div>
-        </div>
-    </div>
-</div>
-                        @endforeach
+
+                                    <form action="{{ route('admin.pos.cancelInstallment', ['id' => $installment->id]) }}"
+                                          method="POST" class="d-inline"
+                                          onsubmit="return confirm('هل أنت متأكد من عكس عملية التحصيل لهذا القسط؟');">
+                                        @csrf
+                                        <button type="submit" class="btn btn-sm btn-outline-danger">
+                                            <i class="tio-history"></i> {{ \App\CPU\translate('عكس التحصيل') }}
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                    @empty
+                        <tr>
+                            <td colspan="10">
+                                <div class="in-empty">
+                                    <i class="tio-wallet" style="font-size:2rem;opacity:.4"></i>
+                                    <p class="mt-2 mb-0">{{ \App\CPU\translate('No_data_to_show') }}</p>
+                                </div>
+                            </td>
+                        </tr>
+                    @endforelse
                     </tbody>
                 </table>
             </div>
-            <div class="p-4">
-                {{ $installments->withQueryString()->links() }}
-            </div>
+
+            @if($installments->hasPages())
+                <div class="in-pager">
+                    <span class="text-muted small">
+                        {{ \App\CPU\translate('عرض') }} {{ $installments->firstItem() }} -
+                        {{ $installments->lastItem() }}
+                        {{ \App\CPU\translate('من أصل') }} {{ number_format($installments->total()) }}
+                    </span>
+
+                    {{ $installments->withQueryString()->links() }}
+                </div>
+            @endif
         </div>
     </div>
 
+    {{-- النوافذ خارج الجدول: <div> داخل <tbody> ترميز غير صالح فينقله
+         المتصفح خارج الجدول. --}}
+    @foreach($installments as $installment)
+        @if($installment->img)
+            <div class="modal fade" id="imageModal{{ $installment->id }}" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog modal-dialog-centered">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">{{ \App\CPU\translate('الصورة') }}</h5>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                        <div class="modal-body text-center">
+                            <img src="{{ asset('storage/' . ltrim($installment->img, '/')) }}"
+                                 alt="{{ \App\CPU\translate('الصورة') }}"
+                                 style="max-width: 100%; height: auto;">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        @endif
+    @endforeach
+
     <!-- مودال طباعة الفاتورة -->
     <div class="modal fade" id="print-invoice" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content modal-content1">
-                <div class="modal-header bg-primary text-white">
+                <div class="modal-header">
                     <h5 class="modal-title">{{ \App\CPU\translate('طباعة الفاتورة') }}</h5>
-                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
                 </div>
                 <div class="modal-body p-4">
                     <div class="text-center mb-3">
-                        <button type="button" class="btn btn-light mr-2" onclick="printDiv('printableArea')">
+                        <button type="button" class="btn btn-primary mr-2" onclick="printDiv('printableArea')">
                             {{ \App\CPU\translate('إجراء الطباعة إذا كانت الطابعة الحرارية جاهزة') }}
                         </button>
-                        <button type="button" class="btn btn-outline-danger" data-bs-dismiss="modal">
+                        <button type="button" class="btn btn-outline-secondary" data-dismiss="modal">
                             {{ \App\CPU\translate('عودة') }}
                         </button>
                     </div>
@@ -274,8 +450,10 @@
 @endsection
 
 @push('script_2')
+    <script src={{asset("public/assets/admin/js/global.js")}}></script>
     <script>
         "use strict";
+
         function print_invoice(order_id) {
             $.get({
                 url: '{{url('admin/pos/installments/invoice')}}/' + order_id,
@@ -284,7 +462,6 @@
                     $('#loading').show();
                 },
                 success: function (data) {
-                    //console.log("success...")
                     $('#print-invoice').modal('show');
                     $('#printableArea').empty().html(data.view);
                 },
@@ -293,190 +470,8 @@
                 },
                 error: function (error) {
                     console.log(error.responseText);
-                },
+                }
             });
         }
     </script>
-
-    <script src={{asset("public/assets/admin/js/global.js")}}></script>
-
-{{-- كان خارج أي قسم بعد @endsection، فيُطبع في جسم الصفحة
-     الخام ويدفع المحتوى كله لأسفل. --}}
-<script>
-    function printTable() {
-        const tableContent = document.getElementById('product-table').innerHTML;
-
-
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html lang="en">
-            <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>{{ \App\CPU\translate('تقرير التحصيلات') }}</title>
-                <style>
-                
-                    body {
-                        font-family: Arial, sans-serif;
-                        margin: 20px;
-                    }
-                     body {
-                            font-family: 'Cairo', Arial, sans-serif;
-                            margin: 0;
-                            background-color: #f9f9f9;
-                            color: #333;
-                            direction: rtl;
-                        }
-
-                        h1 {
-                            text-align: center;
-                            color: #003366;
-                            font-weight: bold;
-                            font-size: 28px;
-                            margin-bottom: 20px;
-                        }
-
-                        .header-section {
-                            display: flex;
-                            justify-content: space-between;
-                            align-items: center;
-                            border-bottom: 2px solid #003366;
-                            padding: 10px 0;
-                            margin-bottom: 30px;
-                            flex-wrap: wrap;
-                        }
-
-                        .header-section .left,
-                        .header-section .right,
-                        .header-section .logo {
-                            width: 32%;
-                            text-align: center;
-                        }
-
-                        .header-section p {
-                            margin: 5px 0;
-                            line-height: 1.6;
-                            font-size: 16px;
-                        }
-
-                        .logo img {
-                            max-width: 150px;
-                            height: auto;
-                        }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        margin-bottom: 20px;
-                    }
-                    table th, table td {
-                        border: 1px solid #ddd;
-                        padding: 8px;
-                        text-align: left;
-                    }
-                    table th {
-                        background-color: #f2f2f2;
-                        font-weight: bold;
-                    }
-                    .row {
-                        display: flex;
-                        flex-wrap: wrap;
-                        margin-bottom: 10px;
-                    }
-                    .col-md-3 {
-                        flex: 0 0 25%;
-                        max-width: 25%;
-                        padding: 5px;
-                        box-sizing: border-box;
-                    }
-                    .none{
-                        display:none;
-                    }
-                    strong {
-                        font-weight: bold;
-                    }
-                    input[type="search"][aria-controls="DataTables_Table_0"] {
-    display: none;
-}
-label:has(input[type="search"][aria-controls="DataTables_Table_0"]) {
-    display: none;
-}
-label:has(input[type="search"][aria-controls="DataTables_Table_1"]) {
-    display: none;
-}
-label:has(input[type="search"][aria-controls="DataTables_Table_2"]) {
-    display: none;
-}
-label:has(input[type="search"][aria-controls="DataTables_Table_3"]) {
-    display: none;
-}
-label:has(input[type="search"][aria-controls="DataTables_Table_4"]) {
-    display: none;
-}
-label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
-    display: none;
-}
-#DataTables_Table_0_info{
-        display: none;
-
-}
-#DataTables_Table_1_info{
-            display: none;
-
-}
-#DataTables_Table_2_info{
-            display: none;
-
-}
-#DataTables_Table_3_info{
-            display: none;
-
-}
-#DataTables_Table_4_info{
-            display: none;
-
-}
-#DataTables_Table_5_info{
-            display: none;
-
-}
-#links{
-    display: block;
-}
-                </style>
-            </head>
-            <body>
-            <div class="header-section">
-                        <div class="left">
-                            <p><strong>رقم السجل التجاري:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "vat_reg_no"])->first())->value??'' }}</p>
-                            <p><strong>الرقم الضريبي:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "number_tax"])->first())->value ??''}}</p>
-                            <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
-                        </div>
-                        <div class="logo">
-                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
-                        </div>
-                        <div class="right">
-                            <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>
-                            <p><strong>العنوان:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_address"])->first())->value }}</p>
-                            <p><strong>رقم الجوال:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_phone"])->first())->value }}</p>
-                        </div>
-                    </div>
-                    
-                <h2>{{ \App\CPU\translate('تقرير   التحصيلات') }}</h2>
-                
-                ${tableContent}
-                <hr>
-                <script>
-                    window.onload = function() {
-                        window.print();
-                        window.close();
-                    };
-                <\/script>
-            </body>
-            </html>
-        `);
-
-        printWindow.document.close();
-    }
-</script>
 @endpush
