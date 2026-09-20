@@ -41,8 +41,17 @@ class SqlAliasTest extends TestCase
         foreach ($this->phpFiles() as $file) {
             $code = file_get_contents($file);
 
-            // كل "as <اسم>" داخل selectRaw أو ما يشبهه.
-            preg_match_all('/\bas\s+([a-z_][a-z0-9_]*)\b/i', $code, $matches);
+            // داخل استدعاءات SQL وحدها: البحث في الملف كلّه يلتقط
+            // تعليقات إنجليزية مثل "Mark the notification as read".
+            preg_match_all(
+                '/(?:selectRaw|whereRaw|havingRaw|orderByRaw|raw|from)\s*\(\s*([\'"])(.*?)\1/is',
+                $code,
+                $calls
+            );
+
+            $sql = implode(' ', $calls[2] ?? []);
+
+            preg_match_all('/\bas\s+([a-z_][a-z0-9_]*)\b/i', $sql, $matches);
 
             foreach ($matches[1] as $alias) {
                 if (in_array(strtolower($alias), self::RESERVED, true)) {
