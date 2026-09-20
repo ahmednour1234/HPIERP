@@ -1,10 +1,25 @@
 @import url('https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;500;600&family=Roboto+Mono:wght@400;500;600&display=swap');
+/* الشريط العلوي يبدأ بعد القائمة الجانبية لا فوقها.
+   كان inset-inline-start:3px فيمتدّ بعرض الشاشة كاملًا ويركب على
+   القائمة، فيبدو الاثنان كتلة واحدة مزدحمة. */
 .header-style {
-    border-radius: 10px;
-    top: 3px;
-    inset-inline-end: 3px;
-    inset-inline-start: 3px;
-    background: #161853;
+    border-radius: 12px;
+    top: 8px;
+    inset-inline-end: 8px;
+    inset-inline-start: calc(16.25rem + 8px);
+    background: #ffffff;
+}
+
+/* القائمة مطويّة: عرضها 5.25rem فيتبعها الشريط. */
+.navbar-vertical-aside-mini-mode .header-style {
+    inset-inline-start: calc(5.25rem + 8px);
+}
+
+/* تحت نقطة انهيار القائمة تختفي الجانبية، فيعود الشريط بعرض الشاشة. */
+@media (max-width: 1199.98px) {
+    .header-style {
+        inset-inline-start: 8px;
+    }
 }
 .hs-unfold-content{
     width: 16rem;
@@ -90,12 +105,15 @@ body{
     background-color: #F7F8FA;
 }
 
+/* القوائم الفرعية أغمق قليلًا من أرض القائمة لا بلون آخر. */
 .nav-sub {
-    background-color: #161853 !important;
+    background-color: rgba(0, 0, 0, .16) !important;
 }
 
+/* لون القائمة من لوحة HPI نفسها (#14395c) لا #161853 البنفسجي:
+   بقية الشاشات بُنيت على الأولى، فكان الشريطان من عائلتين مختلفتين. */
 .aside-back{
-    background: #161853!important;
+    background: linear-gradient(180deg, #0d2840 0%, #14395c 100%) !important;
 }
 
 .nav-brand-back{

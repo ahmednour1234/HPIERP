@@ -18,9 +18,11 @@ body {
 /* ===== مظهر القائمة الجانبية ===== */
 
 /* الترويسة على أرض القائمة نفسها بدل شريط أبيض يقطعها من أعلى.
-   القالب يلوّنها بـbg-light، فيلزم !important ليغلبه. */
-.navbar-brand-wrapper,
-.navbar-vertical .navbar-brand-wrapper {
+   القالب يلوّنها بـbg-light، فيلزم !important ليغلبه.
+
+   مقصورة على القائمة الجانبية: الشريط العلوي يحمل الصنف نفسه، وقاعدة
+   غير مقيّدة كانت تُفرغ خلفيته أيضًا. */
+.navbar-vertical-aside .navbar-brand-wrapper {
     background: transparent !important;
     background-color: transparent !important;
     padding-top: 1.15rem !important;
@@ -71,7 +73,7 @@ body {
 
 .navbar-vertical .active > .nav-link,
 .navbar-vertical .nav-link.active {
-    background-color: #2563eb;
+    background-color: #1e5280;
     color: #ffffff !important;
     font-weight: 600;
 }
