@@ -121,6 +121,43 @@
 
     .content .btn-sm { font-size: .78rem; padding: .25rem .6rem; }
 
+    /* ---------- النماذج ---------- */
+
+    .content .form-group { margin-bottom: 1.1rem; }
+
+    .content .form-group > .input-label,
+    .content .form-group > label {
+        display: block;
+        margin-bottom: .4rem;
+    }
+
+    /* النجمة علامة إلزام، فتُقرأ كعلامة لا كنصّ بحجم التسمية. */
+    .content .input-label-secondary.text-danger {
+        font-size: .9em;
+        margin-inline-start: .15rem;
+    }
+
+    .content .form-control::placeholder { color: #a8b7c6; }
+
+    /* الحقل الرقمي يُقرأ يسارًا حتى في صفحة عربية. */
+    .content input[type="number"],
+    .content input[type="date"],
+    .content input[type="tel"],
+    .content input[name*="amount"],
+    .content input[name*="balance"],
+    .content input[name*="price"] {
+        direction: ltr;
+        text-align: start;
+    }
+
+    /* شريط الحفظ: الفاصل ثم الزرّ، بدل <hr> وزرّ ملتصق بالحافة. */
+    .content form > hr:last-of-type {
+        margin: 1.4rem -1.25rem 1.1rem;
+        border-top: 1px solid var(--hpi-line);
+    }
+
+    .content .card-body > form > .btn:last-child { min-width: 7rem; }
+
     /* ---------- الجداول ---------- */
 
     .content .table thead th,
