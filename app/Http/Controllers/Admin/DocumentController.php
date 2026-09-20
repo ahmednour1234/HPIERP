@@ -172,7 +172,10 @@ public function store(Request $request): RedirectResponse
                 DocumentAttachment::create([
                     'document_id' => $document->id,
                     'type'        => $file->extension() === 'pdf' ? 'pdf' : 'image',
-                    'url'         => Storage::url($path),
+                    // مسار نسبي كما في الإنشاء: getSrcAttribute يبني
+                    // الرابط. كان هذا يحفظ "/storage/..." والإنشاء يحفظ
+                    // المسار وحده، فيختلف العرض بحسب أيّ شاشة أنشأته.
+                    'url'         => $path,
                 ]);
             }
         }
