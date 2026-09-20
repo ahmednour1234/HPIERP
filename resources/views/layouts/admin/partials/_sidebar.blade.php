@@ -44,10 +44,9 @@ body {
 }
 
 /* الشعار على أرض داكنة: مربّع فاتح خلفه ليبقى مقروءًا، وإلا ذاب فيها. */
+/* الشعار شفاف ومصمَّم للأرض الداكنة، فلا مربّع أبيض خلفه. */
 .navbar-brand-logo {
-    background: #fff;
-    padding: 4px;
-    border-radius: 9px;
+    background: transparent;
 }
 
 /* القائمة تُمرَّر دون شريط ظاهر: الشريط كان يقطع حافة الترويسة. */
@@ -191,7 +190,7 @@ body {
                  src="{{ $shop_logo ? asset('storage/shop/' . $shop_logo) : asset('public/assets/admin/img/brand/hpi-mark.png') }}"
                  onerror="this.src='{{ asset('public/assets/admin/img/brand/hpi-mark.png') }}'"
                  alt="{{ \App\CPU\translate('logo') }}"
-                 style="height: 38px; width: auto; margin-right: auto;">
+                 style="height: 40px; width: 40px; object-fit: contain; margin-right: auto;">
         </a>
     </div>
 
