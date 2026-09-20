@@ -101,11 +101,13 @@ body {
                 <span class="brand-tag">{{ \App\CPU\translate('إدارة أعمالك بسهولة') }}</span>
             </span>
 
+            {{-- شعار المتجر إن رُفع، وإلا شعار HPI. البديل السابق كان صورة
+                 عامة من القالب تظهر كمربّع لا معنى له حين لا يوجد شعار. --}}
             <img class="navbar-brand-logo"
-                 src="{{ asset('storage/shop/' . $shop_logo) }}"
-                 onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
+                 src="{{ $shop_logo ? asset('storage/shop/' . $shop_logo) : asset('public/assets/admin/img/brand/hpi-mark.png') }}"
+                 onerror="this.src='{{ asset('public/assets/admin/img/brand/hpi-mark.png') }}'"
                  alt="{{ \App\CPU\translate('logo') }}"
-                 style="height: 38px; width: auto; border-radius: 8px; margin-right: auto;">
+                 style="height: 38px; width: auto; margin-right: auto;">
         </a>
     </div>
 
@@ -801,13 +803,13 @@ body {
                       @cangroup('hr')
                      
                         <!-- Admin Pages -->
-                        <li class="navbar-vertical-aside-has-menu {{Request::is('admin/salaries*')?'active':''}}">
+                        <li class="navbar-vertical-aside-has-menu {{Request::is('admin/salaries*') || Request::is('admin/attendance*') || Request::is('admin/shift*') ? 'active' : ''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
                                 <i class="tio-poi-user nav-icon"></i>
                                 <span
                                     class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">{{\App\CPU\translate('إدارة الموارد البشرية')}}</span>
                             </a>
-                            <ul class="js-navbar-vertical-aside-submenu nav nav-sub {{Request::is('admin/salaries*')?'d-block':''}}">
+                            <ul class="js-navbar-vertical-aside-submenu nav nav-sub {{Request::is('admin/salaries*') || Request::is('admin/attendance*') || Request::is('admin/shift*') ? 'd-block' : ''}}">
 
                                     <li class="nav-item {{Request::is('admin/salaries')?'active':''}}">
                                     <a class="nav-link " href="{{route('admin.salaries.createrating')}}"
@@ -857,20 +859,22 @@ body {
                                         <span class="text-truncate i">{{\App\CPU\translate('قائمة مواعيد العمل')}}</span>
                                     </a>
                                 </li>
-                                 
+
+                                {{-- الحضور بند من بنود الموارد البشرية، وكان
+                                     معلّقًا خارج القائمة بمظهر بند فرعي. --}}
+                                @cangroup('attendance')
+                                    <li class="nav-item {{Request::is('admin/attendance*')?'active':''}}">
+                                        <a class="nav-link" href="{{route('admin.attendance.index')}}"
+                                           title="{{\App\CPU\translate('سجلات الحضور والانصراف')}}">
+                                            <span class="tio-circle nav-indicator-icon"></span>
+                                            <span class="text-truncate">{{\App\CPU\translate('سجلات الحضور والانصراف')}}</span>
+                                        </a>
+                                    </li>
+                                @endcangroup
+
                             </ul>
                         </li>
                         @endif
-                      @cangroup('attendance')
-
-  <li class="nav-item {{Request::is('admin/attendance') ?'active':''}}">
-                                    <a class="nav-link " href="{{route('admin.attendance.index')}}"
-                                       title="{{\App\CPU\translate('list_of_seller')}}">
-                                        <span class="tio-circle nav-indicator-icon"></span>
-                                        <span class="text-truncate i">{{\App\CPU\translate('سجلات الحضور والانصراف ')}}</span>
-                                    </a>
-                                </li>
-@endif
                         <!-- Customer Pages -->
                         <li class="navbar-vertical-aside-has-menu {{Request::is('admin/documents*')?'active':''}}">
                             <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:"
