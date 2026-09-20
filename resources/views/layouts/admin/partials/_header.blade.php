@@ -105,21 +105,26 @@
 
     /* الشارة نقطة صغيرة فوق الجرس لا لوحة حمراء بجواره: العدد قد يبلغ
        أربعة أرقام فيدفع بقية العناصر. */
-    #header .nav-item .badge-danger {
+    #header .nav-item .badge.badge-pill.badge-danger {
         position: absolute;
-        top: .1rem;
-        inset-inline-end: .1rem;
-        min-width: 17px;
-        height: 17px;
-        padding: 0 4px;
-        font-size: .62rem;
+        top: -2px;
+        inset-inline-end: -2px;
+        min-width: 18px;
+        height: 18px;
+        /* .badge-pill يفرض حشوًا جانبيًّا أوسع، فيتمدّد العدد إلى لوحة
+           تغطّي الجرس. الصفر هنا يلغيه مع min-width للأرقام القصيرة. */
+        padding: 0 4px !important;
+        font-size: .6rem;
         font-weight: 700;
-        line-height: 17px;
+        line-height: 14px;
         text-align: center;
         background-color: #e5484d;
         color: #fff;
         border: 2px solid #fff;
         border-radius: 99px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
     }
 
     #header .nav-item .js-hs-unfold-invoker { position: relative; }
@@ -225,7 +230,11 @@
             {{-- العدد يأتي محسوبًا مرة واحدة من AdminBadgeCounts بدل ست
                  عمليات ->get()->count() متكررة هنا. --}}
             @if($badgeService->notificationTotal() > 0)
-                <span class="badge badge-pill badge-danger">{{ $badgeService->notificationTotal() }}</span>
+                @php($hdCount = $badgeService->notificationTotal())
+                {{-- ما زاد على 99 يُختصر: خمسة أرقام تحوّل النقطة إلى لوحة
+                     تغطّي الجرس، والعدد الدقيق في القائمة نفسها. --}}
+                <span class="badge badge-pill badge-danger"
+                      title="{{ number_format($hdCount) }}">{{ $hdCount > 99 ? '99+' : $hdCount }}</span>
             @endif
         </a>
 

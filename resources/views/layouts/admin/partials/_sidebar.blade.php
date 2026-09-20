@@ -95,7 +95,9 @@ body {
     color: #ffffff;
 }
 
-.badge-danger {
+/* مقصورة على القائمة: القالب يُدرج القائمة بعد الشريط العلوي، فقاعدة
+   غير مقيّدة كانت تغلب شارة الجرس هناك وتحوّلها إلى لوحة كبيرة. */
+.navbar-vertical-aside .badge-danger {
     color: #161853;
     background-color: #bee0ec;
 }
