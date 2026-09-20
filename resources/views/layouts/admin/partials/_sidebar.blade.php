@@ -557,6 +557,59 @@ body {
                       @cangroup('accounts')
 
              
+
+<li class="navbar-vertical-aside-has-menu {{Request::is('admin/account*')?'active':''}}">
+    <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
+        <i class="tio-wallet nav-icon"></i>
+        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
+            {{\App\CPU\translate('إدارة الحسابات')}}
+        </span>
+    </a>
+    <ul class="js-navbar-vertical-aside-submenu nav nav-sub {{Request::is('admin/account*')?'d-block':''}}">
+        <li class="nav-item {{Request::is('admin/account/add')?'active':''}}">
+            <a class="nav-link " href="{{route('admin.account.add')}}"
+               title="{{\App\CPU\translate('إضافة حساب جديد')}}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{\App\CPU\translate('إضافة حساب جديد')}}</span>
+            </a>
+        </li>
+
+        <li class="nav-item {{Request::is('admin/account/list')?'active':''}}">
+            <a class="nav-link " href="{{route('admin.account.list')}}"
+               title="{{\App\CPU\translate('قائمة الحسابات')}}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{\App\CPU\translate('الحسابات')}}</span>
+            </a>
+        </li>
+        <li class="nav-item {{Request::is('admin/account/add-expense')?'active':''}}">
+            <a class="nav-link " href="{{route('admin.account.add-expense')}}"
+               title="{{\App\CPU\translate('إضافة مصروف جديد')}}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{\App\CPU\translate('مصروف جديد')}}</span>
+            </a>
+        </li>
+        <li class="nav-item {{Request::is('admin/account/add-income')?'active':''}}">
+            <a class="nav-link " href="{{route('admin.account.add-income')}}"
+               title="{{\App\CPU\translate('إضافة دخل جديد')}}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{\App\CPU\translate('دخل جديد')}}</span>
+            </a>
+        </li>
+        <li class="nav-item {{Request::is('admin/account/add-transfer')?'active':''}}">
+            <a class="nav-link " href="{{route('admin.account.add-transfer')}}"
+               title="{{\App\CPU\translate('إضافة تحويل جديد')}}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{\App\CPU\translate('تحويل جديد')}}</span>
+            </a>
+        </li>
+    
+        <li class="nav-item {{Request::is('admin/account/list-transection')?'active':''}}">
+            <a class="nav-link " href="{{route('admin.account.list-transection')}}"
+               title="{{\App\CPU\translate('قائمة المعاملات')}}">
+                <span class="tio-circle nav-indicator-icon"></span>
+                <span class="text-truncate">{{\App\CPU\translate('قائمة المعاملات')}}</span>
+            </a>
+        </li>
 {{-- الفواتير تحت إدارة الحسابات: يقرأها المحاسب لا البائع. حارس pos
      يبقى معها، فثلاثة حسابات تملك pos دون accounts وكانت ستفقدها. --}}
 @cangroup('invoices')
@@ -648,59 +701,6 @@ body {
                             </ul>
                         </li>
 @endif
-
-<li class="navbar-vertical-aside-has-menu {{Request::is('admin/account*')?'active':''}}">
-    <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle" href="javascript:">
-        <i class="tio-wallet nav-icon"></i>
-        <span class="navbar-vertical-aside-mini-mode-hidden-elements text-truncate">
-            {{\App\CPU\translate('إدارة الحسابات')}}
-        </span>
-    </a>
-    <ul class="js-navbar-vertical-aside-submenu nav nav-sub {{Request::is('admin/account*')?'d-block':''}}">
-        <li class="nav-item {{Request::is('admin/account/add')?'active':''}}">
-            <a class="nav-link " href="{{route('admin.account.add')}}"
-               title="{{\App\CPU\translate('إضافة حساب جديد')}}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{\App\CPU\translate('إضافة حساب جديد')}}</span>
-            </a>
-        </li>
-
-        <li class="nav-item {{Request::is('admin/account/list')?'active':''}}">
-            <a class="nav-link " href="{{route('admin.account.list')}}"
-               title="{{\App\CPU\translate('قائمة الحسابات')}}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{\App\CPU\translate('الحسابات')}}</span>
-            </a>
-        </li>
-        <li class="nav-item {{Request::is('admin/account/add-expense')?'active':''}}">
-            <a class="nav-link " href="{{route('admin.account.add-expense')}}"
-               title="{{\App\CPU\translate('إضافة مصروف جديد')}}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{\App\CPU\translate('مصروف جديد')}}</span>
-            </a>
-        </li>
-        <li class="nav-item {{Request::is('admin/account/add-income')?'active':''}}">
-            <a class="nav-link " href="{{route('admin.account.add-income')}}"
-               title="{{\App\CPU\translate('إضافة دخل جديد')}}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{\App\CPU\translate('دخل جديد')}}</span>
-            </a>
-        </li>
-        <li class="nav-item {{Request::is('admin/account/add-transfer')?'active':''}}">
-            <a class="nav-link " href="{{route('admin.account.add-transfer')}}"
-               title="{{\App\CPU\translate('إضافة تحويل جديد')}}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{\App\CPU\translate('تحويل جديد')}}</span>
-            </a>
-        </li>
-    
-        <li class="nav-item {{Request::is('admin/account/list-transection')?'active':''}}">
-            <a class="nav-link " href="{{route('admin.account.list-transection')}}"
-               title="{{\App\CPU\translate('قائمة المعاملات')}}">
-                <span class="tio-circle nav-indicator-icon"></span>
-                <span class="text-truncate">{{\App\CPU\translate('قائمة المعاملات')}}</span>
-            </a>
-        </li>
 @cangroup('taxes')
             <li class="navbar-vertical-aside-has-menu {{ Request::is('admin/taxes*') || Request::is('admin/taxes*') ? 'active' : '' }}">
         <a class="js-navbar-vertical-aside-menu-link nav-link nav-link-toggle">
