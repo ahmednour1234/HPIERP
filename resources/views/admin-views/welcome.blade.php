@@ -52,6 +52,19 @@
 
     .home-hero p { margin: 0; color: rgba(255,255,255,.76); font-size: .95rem; }
 
+    .home-hero .hero-tag {
+        position: relative;
+        z-index: 1;
+        display: inline-block;
+        margin-top: .9rem;
+        font-size: .82rem;
+        color: rgba(255,255,255,.82);
+        background: rgba(255,255,255,.10);
+        border: 1px solid rgba(255,255,255,.18);
+        border-radius: 99px;
+        padding: .25rem .8rem;
+    }
+
     .home-hero .hero-mark {
         position: absolute;
         inset-inline-end: clamp(24px, 3vw, 48px);
@@ -75,13 +88,12 @@
         border: 1px solid var(--hpi-line);
         border-radius: 14px;
         padding: 1.15rem 1.25rem;
-        display: flex;
-        align-items: center;
-        gap: .9rem;
         transition: transform .15s ease, box-shadow .15s ease;
     }
 
     .stat:hover { transform: translateY(-2px); box-shadow: 0 12px 26px rgba(20,57,92,.10); }
+
+    .stat-top { display: flex; align-items: center; gap: .9rem; }
 
     .stat-icon {
         width: 46px;
@@ -114,6 +126,32 @@
 
     .stat-value .unit { font-size: .82rem; font-weight: 600; color: var(--hpi-muted); }
 
+    /* فرق الشهر: الرقم وحده لا يقول إن كان شهرًا جيدًا أم سيئًا. */
+    .stat-trend {
+        display: flex;
+        align-items: center;
+        gap: .3rem;
+        margin-top: .7rem;
+        padding-top: .6rem;
+        border-top: 1px solid var(--hpi-line);
+        font-size: .74rem;
+        color: var(--hpi-muted);
+    }
+
+    .trend-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: .15rem;
+        font-weight: 800;
+        border-radius: 99px;
+        padding: .05rem .4rem;
+        direction: ltr;
+    }
+
+    .trend-pill.is-up   { background: #e6f7ef; color: #0f7a4d; }
+    .trend-pill.is-down { background: #fdecec; color: #b3261e; }
+    .trend-pill.is-flat { background: #f1f4f7; color: var(--hpi-muted); }
+
     /* ---------- اللوحات ---------- */
 
     .home-panel {
@@ -139,10 +177,45 @@
         color: var(--hpi-navy);
     }
 
-    .home-panel table { margin: 0; }
+    .home-panel table { margin: 0; width: 100%; }
     .home-panel td, .home-panel th { padding: .7rem 1.15rem; vertical-align: middle; }
-    .home-panel thead th { background: #f6fafd; font-size: .78rem; color: var(--hpi-muted); font-weight: 700; border: 0; }
+    .home-panel thead th { background: #f6fafd; font-size: .78rem; color: var(--hpi-muted); font-weight: 700; border: 0; white-space: nowrap; }
     .home-panel tbody td { border-top: 1px solid var(--hpi-line); font-size: .87rem; }
+    .home-panel tbody tr:hover { background: #fbfdff; }
+
+    .cell-num { direction: ltr; text-align: start; font-variant-numeric: tabular-nums; white-space: nowrap; }
+
+    .cell-name {
+        max-width: 14rem;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    .pay-state {
+        display: inline-flex;
+        align-items: center;
+        gap: .25rem;
+        font-size: .72rem;
+        font-weight: 700;
+        border-radius: 99px;
+        padding: .1rem .5rem;
+        white-space: nowrap;
+    }
+
+    .pay-state::before {
+        content: '';
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background: currentColor;
+    }
+
+    .pay-state.is-paid     { background: #e6f7ef; color: #0f7a4d; }
+    .pay-state.is-part     { background: #eaf4fb; color: var(--hpi-navy); }
+    .pay-state.is-due      { background: #fef4e4; color: #a86412; }
+    .pay-state.is-returned { background: #f1f4f7; color: var(--hpi-muted); }
+    .pay-state.is-over     { background: #fdecec; color: #b3261e; }
 
     /* ---------- الوصول السريع ---------- */
 
@@ -174,76 +247,146 @@
     .quick i { font-size: 1.4rem; color: var(--hpi-navy); }
 
     .home-empty { padding: 2.5rem 1rem; text-align: center; color: var(--hpi-muted); font-size: .88rem; }
+
+    .home-foot {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        justify-content: space-between;
+        gap: .5rem;
+        margin-top: 1.5rem;
+        padding-top: 1rem;
+        border-top: 1px solid var(--hpi-line);
+        font-size: .78rem;
+        color: var(--hpi-muted);
+    }
 </style>
 @endpush
 
 @section('content')
 <div class="home-wrap">
 
-    @php($me = auth()->guard('admin')->user())
+    @php
+        $me = auth()->guard('admin')->user();
+    @endphp
+
 
     <div class="home-hero">
         <img class="hero-mark d-none d-md-block"
              src="{{ asset('public/assets/admin/img/brand/hpi-mark.png') }}" alt="">
         <h1>{{ \App\CPU\translate('أهلاً') }}، {{ trim(($me->f_name ?? '') . ' ' . ($me->l_name ?? '')) }}</h1>
         <p>{{ \App\CPU\translate('ملخص') }} {{ $summary['month_label'] }}</p>
+        <span class="hero-tag">{{ \App\CPU\translate('حلول متكاملة لنقاط البيع والإدارة') }}</span>
     </div>
 
     <div class="stat-grid">
+        @php
+            $t = $summary['trend']['sales'] ?? null;
+        @endphp
         <div class="stat">
-            <div class="stat-icon"><i class="tio-shopping-cart"></i></div>
-            <div>
-                <div class="stat-label">{{ \App\CPU\translate('مبيعات الشهر') }}</div>
-                <div class="stat-value">{{ number_format($summary['sales'], 2) }} <span class="unit">ج.م</span></div>
+            <div class="stat-top">
+                <div class="stat-icon"><i class="tio-shopping-cart"></i></div>
+                <div>
+                    <div class="stat-label">{{ \App\CPU\translate('مبيعات الشهر') }}</div>
+                    <div class="stat-value">{{ number_format($summary['sales'], 2) }} <span class="unit">ج.م</span></div>
+                </div>
+            </div>
+            @if($t)
+                <div class="stat-trend">
+                    <span class="trend-pill is-{{ $t['dir'] }}">{{ $t['icon'] }} {{ $t['text'] }}</span>
+                    {{ \App\CPU\translate('عن الشهر الماضي') }}
+                </div>
+            @endif
+        </div>
+
+        @php
+            $t = $summary['trend']['collected'] ?? null;
+        @endphp
+        <div class="stat">
+            <div class="stat-top">
+                <div class="stat-icon is-green"><i class="tio-wallet"></i></div>
+                <div>
+                    <div class="stat-label">{{ \App\CPU\translate('المحصَّل') }}</div>
+                    <div class="stat-value">{{ number_format($summary['collected'], 2) }} <span class="unit">ج.م</span></div>
+                </div>
+            </div>
+            @if($t)
+                <div class="stat-trend">
+                    <span class="trend-pill is-{{ $t['dir'] }}">{{ $t['icon'] }} {{ $t['text'] }}</span>
+                    {{ \App\CPU\translate('عن الشهر الماضي') }}
+                </div>
+            @endif
+        </div>
+
+        @php
+            $t = $summary['trend']['remaining'] ?? null;
+        @endphp
+        <div class="stat">
+            <div class="stat-top">
+                <div class="stat-icon is-amber"><i class="tio-time"></i></div>
+                <div>
+                    <div class="stat-label">{{ \App\CPU\translate('المتبقّي') }}</div>
+                    <div class="stat-value">{{ number_format($summary['remaining'], 2) }} <span class="unit">ج.م</span></div>
+                </div>
+            </div>
+            @if($t)
+                <div class="stat-trend">
+                    {{-- متبقٍّ أكبر ليس تحسّنًا، فالصعود هنا يُقرأ أحمر. --}}
+                    <span class="trend-pill is-{{ $t['dir'] === 'up' ? 'down' : ($t['dir'] === 'down' ? 'up' : 'flat') }}">
+                        {{ $t['icon'] }} {{ $t['text'] }}
+                    </span>
+                    {{ \App\CPU\translate('عن الشهر الماضي') }}
+                </div>
+            @endif
+        </div>
+
+        @php
+            $t = $summary['trend']['orders'] ?? null;
+        @endphp
+        <div class="stat">
+            <div class="stat-top">
+                <div class="stat-icon"><i class="tio-receipt"></i></div>
+                <div>
+                    <div class="stat-label">{{ \App\CPU\translate('عدد الفواتير') }}</div>
+                    <div class="stat-value">{{ number_format($summary['orders']) }}</div>
+                </div>
+            </div>
+            @if($t)
+                <div class="stat-trend">
+                    <span class="trend-pill is-{{ $t['dir'] }}">{{ $t['icon'] }} {{ $t['text'] }}</span>
+                    {{ \App\CPU\translate('عن الشهر الماضي') }}
+                </div>
+            @endif
+        </div>
+
+        <div class="stat">
+            <div class="stat-top">
+                <div class="stat-icon"><i class="tio-user-big"></i></div>
+                <div>
+                    <div class="stat-label">{{ \App\CPU\translate('العملاء') }}</div>
+                    <div class="stat-value">{{ number_format($summary['customers']) }}</div>
+                </div>
             </div>
         </div>
 
         <div class="stat">
-            <div class="stat-icon is-green"><i class="tio-wallet"></i></div>
-            <div>
-                <div class="stat-label">{{ \App\CPU\translate('المحصَّل') }}</div>
-                <div class="stat-value">{{ number_format($summary['collected'], 2) }} <span class="unit">ج.م</span></div>
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-icon is-amber"><i class="tio-time"></i></div>
-            <div>
-                <div class="stat-label">{{ \App\CPU\translate('المتبقّي') }}</div>
-                <div class="stat-value">{{ number_format($summary['remaining'], 2) }} <span class="unit">ج.م</span></div>
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-icon"><i class="tio-receipt"></i></div>
-            <div>
-                <div class="stat-label">{{ \App\CPU\translate('عدد الفواتير') }}</div>
-                <div class="stat-value">{{ number_format($summary['orders']) }}</div>
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-icon"><i class="tio-user-big"></i></div>
-            <div>
-                <div class="stat-label">{{ \App\CPU\translate('العملاء') }}</div>
-                <div class="stat-value">{{ number_format($summary['customers']) }}</div>
-            </div>
-        </div>
-
-        <div class="stat">
-            <div class="stat-icon"><i class="tio-group-equal"></i></div>
-            <div>
-                <div class="stat-label">{{ \App\CPU\translate('المناديب') }}</div>
-                <div class="stat-value">{{ number_format($summary['sellers']) }}</div>
+            <div class="stat-top">
+                <div class="stat-icon"><i class="tio-group-equal"></i></div>
+                <div>
+                    <div class="stat-label">{{ \App\CPU\translate('المناديب') }}</div>
+                    <div class="stat-value">{{ number_format($summary['sellers']) }}</div>
+                </div>
             </div>
         </div>
 
         @if($summary['low_stock'] > 0)
         <div class="stat">
-            <div class="stat-icon is-red"><i class="tio-warning"></i></div>
-            <div>
-                <div class="stat-label">{{ \App\CPU\translate('منتجات تحت الحد') }}</div>
-                <div class="stat-value">{{ number_format($summary['low_stock']) }}</div>
+            <div class="stat-top">
+                <div class="stat-icon is-red"><i class="tio-warning"></i></div>
+                <div>
+                    <div class="stat-label">{{ \App\CPU\translate('منتجات تحت الحد') }}</div>
+                    <div class="stat-value">{{ number_format($summary['low_stock']) }}</div>
+                </div>
             </div>
         </div>
         @endif
@@ -272,17 +415,50 @@
                                     <th>{{ \App\CPU\translate('العميل') }}</th>
                                     <th>{{ \App\CPU\translate('المندوب') }}</th>
                                     <th>{{ \App\CPU\translate('الإجمالي') }}</th>
+                                    <th>{{ \App\CPU\translate('الحالة') }}</th>
                                     <th>{{ \App\CPU\translate('التاريخ') }}</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 @foreach($summary['recent_orders'] as $order)
+                                    @php
+                                        // payment_status فارغ على هذه الصفوف، والمرتجع
+                                        // قد يغطّي جزءًا من الفاتورة، فتُشتق الحالة من
+                                        // المبلغ والمحصَّل والمرتجع معًا.
+                                        $amount   = (float) $order->order_amount;
+                                        $paid     = (float) $order->collected_cash;
+                                        $returned = (float) ($order->returned_amount ?? 0);
+                                        $net      = round($amount - $returned, 2);
+                                        $due      = round($net - $paid, 2);
+
+                                        if ($returned >= $amount && $amount > 0) {
+                                            $state = ['is-returned', 'مرتجعة'];
+                                        } elseif ($due < -0.01) {
+                                            $state = ['is-over', 'تحصيل زائد'];
+                                        } elseif (abs($due) <= 0.01) {
+                                            $state = ['is-paid', 'مدفوعة'];
+                                        } elseif ($paid > 0.01) {
+                                            $state = ['is-part', 'جزئية'];
+                                        } else {
+                                            $state = ['is-due', 'معلّقة'];
+                                        }
+                                    @endphp
+
                                     <tr>
-                                        <td>{{ $order->id }}</td>
-                                        <td>{{ optional($order->customer)->name ?: '-' }}</td>
-                                        <td>{{ trim(optional($order->seller)->f_name . ' ' . optional($order->seller)->l_name) ?: '-' }}</td>
-                                        <td dir="ltr">{{ number_format((float) $order->order_amount, 2) }}</td>
-                                        <td>{{ optional($order->created_at)->format('Y-m-d') }}</td>
+                                        <td class="cell-num">{{ $order->id }}</td>
+                                        <td class="cell-name" title="{{ optional($order->customer)->name }}">
+                                            {{ optional($order->customer)->name ?: '—' }}
+                                        </td>
+                                        <td class="cell-name">
+                                            {{ trim(optional($order->seller)->f_name . ' ' . optional($order->seller)->l_name) ?: '—' }}
+                                        </td>
+                                        <td class="cell-num">{{ number_format($amount, 2) }}</td>
+                                        <td>
+                                            <span class="pay-state {{ $state[0] }}">
+                                                {{ \App\CPU\translate($state[1]) }}
+                                            </span>
+                                        </td>
+                                        <td class="cell-num">{{ optional($order->created_at)->format('Y-m-d') }}</td>
                                     </tr>
                                 @endforeach
                             </tbody>
@@ -338,6 +514,10 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="home-foot">
+        <span>HPI &copy; {{ date('Y') }} — {{ \App\CPU\translate('جميع الحقوق محفوظة') }}</span>
     </div>
 </div>
 @endsection

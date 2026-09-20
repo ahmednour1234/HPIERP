@@ -43,6 +43,29 @@ class AdminHomeSummary
         );
     }
 
+    /**
+     * نسبة التغيّر عن الشهر الماضي.
+     *
+     * null حين لا يوجد ما يُقاس عليه: القسمة على صفر ليست زيادة بلا حدّ،
+     * وعرض «+100%» لشهر بدأ من لا شيء يضلّل.
+     */
+    private function change(float $now, float $before): ?array
+    {
+        if ($before <= 0.0) {
+            return null;
+        }
+
+        $pct = round((($now - $before) / $before) * 100, 1);
+
+        return [
+            'pct'  => $pct,
+            'dir'  => $pct > 0 ? 'up' : ($pct < 0 ? 'down' : 'flat'),
+            'icon' => $pct > 0 ? '↗' : ($pct < 0 ? '↘' : '→'),
+            'text' => ($pct > 0 ? '+' : '')
+                . rtrim(rtrim(number_format($pct, 1), '0'), '.') . '%',
+        ];
+    }
+
     private function build(Admin $admin): array
     {
         $sellerIds = AdminSeller::where('admin_id', $admin->id)->pluck('seller_id')->all();
@@ -64,7 +87,33 @@ class AdminHomeSummary
         $sales     = (float) ($month->total ?? 0);
         $collected = (float) ($month->collected ?? 0);
 
+        // الشهر الماضي، لقياس الفرق. بلا مقارنة يبقى الرقم مجرّدًا: 66 ألفًا
+        // قد تكون أفضل شهر أو أسوأه.
+        $prevStart = $start->copy()->subMonthNoOverflow()->startOfMonth();
+        $prevEnd   = $prevStart->copy()->endOfMonth();
+
+        $prev = Order::where('type', 4)
+            ->whereIn('owner_id', $sellerIds)
+            ->whereBetween('created_at', [$prevStart, $prevEnd])
+            ->selectRaw('COUNT(*) as orders,
+                         COALESCE(SUM(order_amount), 0)   as total,
+                         COALESCE(SUM(collected_cash), 0) as collected')
+            ->first();
+
+        $prevSales     = (float) ($prev->total ?? 0);
+        $prevCollected = (float) ($prev->collected ?? 0);
+
         return [
+            'trend' => [
+                'sales'     => $this->change($sales, $prevSales),
+                'collected' => $this->change($collected, $prevCollected),
+                'remaining' => $this->change(
+                    max($sales - $collected, 0),
+                    max($prevSales - $prevCollected, 0)
+                ),
+                'orders'    => $this->change((int) ($month->orders ?? 0), (int) ($prev->orders ?? 0)),
+            ],
+
             // أسماء الشهور عربية صراحةً: translatedFormat يتبع لغة التطبيق
             // وهي en هنا، فيخرج "September" في صفحة عربية.
             'month_label' => self::MONTHS[(int) $start->format('n')] . ' ' . $start->format('Y'),
@@ -88,9 +137,15 @@ class AdminHomeSummary
                 ->whereColumn('quantity', '<=', 'limit_stock')
                 ->count(),
 
+            // المرتجع يُقرأ كما تقرؤه شاشة الفواتير: صفوف type=7 معلّقة
+            // بـparent_id. payment_status فارغ هنا فلا يُعتمد عليه.
             'recent_orders' => Order::where('type', 4)
                 ->whereIn('owner_id', $sellerIds)
                 ->with(['customer:id,name', 'seller:id,f_name,l_name'])
+                ->addSelect(['returned_amount' => Order::selectRaw('COALESCE(SUM(returns.order_amount), 0)')
+                    ->from('orders as returns')
+                    ->whereColumn('returns.parent_id', 'orders.id')
+                    ->where('returns.type', 7)])
                 ->latest('id')
                 ->limit(6)
                 ->get(['id', 'user_id', 'owner_id', 'order_amount', 'collected_cash', 'created_at']),
