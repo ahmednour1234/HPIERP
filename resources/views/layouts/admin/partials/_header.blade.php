@@ -1,50 +1,190 @@
+@php
+    // أسماء الأيام والشهور عربية صراحةً: translatedFormat يتبع لغة
+    // التطبيق وهي en، فيكتب "Wednesday" و"September" في شريط عربي.
+    $HD_DAYS = ['الأحد', 'الإثنين', 'الثلاثاء', 'الأربعاء', 'الخميس', 'الجمعة', 'السبت'];
+    $HD_MONTHS = [
+        1 => 'يناير', 2 => 'فبراير', 3 => 'مارس', 4 => 'أبريل',
+        5 => 'مايو', 6 => 'يونيو', 7 => 'يوليو', 8 => 'أغسطس',
+        9 => 'سبتمبر', 10 => 'أكتوبر', 11 => 'نوفمبر', 12 => 'ديسمبر',
+    ];
+    $hdUser = auth('admin')->user();
+@endphp
+
+<style>
+    /* شريط علوي فاتح: كان كحليًّا يكرّر لون القائمة الجانبية فيبتلعها. */
+    #header.header-style {
+        background: #ffffff;
+        border: 1px solid #e3ecf4;
+        box-shadow: 0 2px 10px rgba(20, 57, 92, .05);
+    }
+
+    #header .hd-date {
+        display: inline-flex;
+        align-items: center;
+        gap: .4rem;
+        font-size: .82rem;
+        font-weight: 600;
+        color: #7c8ea1;
+        white-space: nowrap;
+    }
+
+    /* البحث يذهب إلى قائمة الفواتير، وهي الشاشة التي تملك بحثًا فعليًّا،
+       فلا يُعرض حقل لا يؤدي إلى شيء. */
+    #header .hd-search {
+        position: relative;
+        flex: 1;
+        max-width: 420px;
+        margin: 0;
+    }
+
+    #header .hd-search input {
+        width: 100%;
+        border: 1px solid #e3ecf4;
+        background: #f6fafd;
+        border-radius: 10px;
+        padding: .45rem 2.2rem .45rem 3.2rem;
+        font-size: .84rem;
+        color: #1c2b3a;
+    }
+
+    #header .hd-search input:focus {
+        outline: 0;
+        background: #fff;
+        border-color: #8ec5ef;
+        box-shadow: 0 0 0 .18rem rgba(142, 197, 239, .28);
+    }
+
+    #header .hd-search .s-icon {
+        position: absolute;
+        inset-inline-start: .7rem;
+        top: 50%;
+        transform: translateY(-50%);
+        color: #7c8ea1;
+        font-size: .95rem;
+        pointer-events: none;
+    }
+
+    #header .hd-kbd {
+        position: absolute;
+        inset-inline-end: .55rem;
+        top: 50%;
+        transform: translateY(-50%);
+        font-size: .68rem;
+        font-weight: 700;
+        color: #7c8ea1;
+        background: #fff;
+        border: 1px solid #e3ecf4;
+        border-radius: 6px;
+        padding: .05rem .35rem;
+        direction: ltr;
+        pointer-events: none;
+    }
+
+    /* الأيقونات كانت بيضاء على شريط كحلي، فتختفي على الأبيض. */
+    #header .btn-ghost-secondary,
+    #header .tio-notifications,
+    #header .tio-shopping-basket { color: #4a6076 !important; }
+
+    #header .btn-ghost-secondary:hover { background: #eaf4fb; }
+
+    #header .hd-pos {
+        font-size: .82rem;
+        font-weight: 700;
+        color: #14395c !important;
+        background: #eaf4fb;
+        border-radius: 8px;
+        padding: .35rem .75rem;
+    }
+
+    #header .badge-danger {
+        background-color: #dc3545;
+        color: #fff;
+    }
+
+    /* بطاقة المستخدم: الاسم والدور بدل صورة مجرّدة. */
+    #header .hd-user {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        padding: .25rem .75rem .25rem .25rem;
+        border: 1px solid #e3ecf4;
+        border-radius: 99px;
+        background: #fff;
+    }
+
+    #header .hd-user:hover { background: #f6fafd; text-decoration: none; }
+
+    #header .hd-user .u-name {
+        font-size: .82rem;
+        font-weight: 700;
+        color: #1c2b3a;
+        line-height: 1.2;
+    }
+
+    #header .hd-user .u-role { font-size: .7rem; color: #7c8ea1; line-height: 1.2; }
+
+    @media (max-width: 767.98px) {
+        #header .hd-date,
+        #header .hd-user .u-meta { display: none; }
+        #header .hd-search { max-width: none; }
+    }
+</style>
+
 <div id="headerMain" class="d-none">
     <header id="header" class="navbar navbar-expand-lg navbar-fixed navbar-height navbar-flush navbar-container navbar-bordered header-style">
         <div class="navbar-nav-wrap">
-            <div class="navbar-brand-wrapper">
-                <!-- Logo -->
-                @php($shop_logo = $badgeService->setting('shop_logo'))
-                <a class="navbar-brand" href="{{ route('admin.dashboard') }}" aria-label="">
-                    <img class="navbar-brand-logo"
-                         onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
-                         src="{{ asset('storage/shop/' . $shop_logo) }}" alt="Logo">
-                </a>
-                <!-- End Logo -->
-            </div>
 
-            <div class="navbar-nav-wrap-content-left">
+            <div class="navbar-nav-wrap-content-left d-flex align-items-center" style="gap: .75rem; flex: 1;">
                 <!-- Navbar Vertical Toggle -->
-                <button type="button" class="js-navbar-vertical-aside-toggle-invoker close mr-3">
+                <button type="button" class="js-navbar-vertical-aside-toggle-invoker close mr-2">
                     <i class="tio-first-page navbar-vertical-aside-toggle-short-align" data-toggle="tooltip" data-placement="right" title="Collapse"></i>
                     <i class="tio-last-page navbar-vertical-aside-toggle-full-align"
                        data-template='<div class="tooltip d-none d-sm-block" role="tooltip"><div class="arrow"></div><div class="tooltip-inner"></div></div>'
                        data-toggle="tooltip" data-placement="right" title="Expand"></i>
                 </button>
                 <!-- End Navbar Vertical Toggle -->
+
+                <span class="hd-date">
+                    <i class="tio-calendar"></i>
+                    {{ $HD_DAYS[(int) now()->format('w')] }}
+                    {{ now()->format('j') }}
+                    {{ $HD_MONTHS[(int) now()->format('n')] }}
+                    {{ now()->format('Y') }}
+                </span>
+
+                <form class="hd-search" action="{{ route('admin.pos.orders') }}" method="GET" role="search">
+                    <i class="tio-search s-icon"></i>
+                    <input type="search" name="search" id="hdSearch"
+                           value="{{ request('search') }}"
+                           placeholder="{{ \App\CPU\translate('ابحث عن عميل، فاتورة، منتج') }}…"
+                           autocomplete="off">
+                    <span class="hd-kbd">Ctrl K</span>
+                </form>
             </div>
 
             <!-- Secondary Content -->
             <div class="navbar-nav-wrap-content-right">
                 <!-- Navbar -->
                 <ul class="navbar-nav align-items-center flex-row">
-                    <li class="nav-item d-sm-inline-block">
+                    <li class="nav-item d-none d-sm-inline-block">
                         <div class="hs-unfold">
-                            <a class="js-hs-unfold-invoker btn btn-icon btn-ghost-secondary"
+                            <a class="js-hs-unfold-invoker hd-pos"
                                href="{{ route('admin.pos.index', ['type' => 4]) }}" target="_blank">
-                                <span class="m-3 text-white">{{ \App\CPU\translate('POS') }}</span>
+                                {{ \App\CPU\translate('POS') }}
                             </a>
                         </div>
                     </li>
 
-                    <li class="nav-item d-sm-inline-block">
+                    <li class="nav-item d-none d-sm-inline-block">
                         <div class="hs-unfold">
                             <a class="js-hs-unfold-invoker btn btn-icon btn-ghost-secondary rounded-circle"
-                               href="{{ route('admin.pos.orders') }}">
-                                <i class="tio-shopping-basket text-white"></i>
+                               href="{{ route('admin.pos.orders') }}"
+                               title="{{ \App\CPU\translate('الفواتير') }}">
+                                <i class="tio-shopping-basket"></i>
                             </a>
                         </div>
                     </li>
-                    
+
         @if(auth()->guard('admin')->check() && auth()->guard('admin')->user()->notification == 1)
 <li class="nav-item">
     <div class="hs-unfold">
@@ -55,7 +195,7 @@
                 "target": "#notificationDropdown",
                 "type": "css-animation"
             }'>
-            <i class="tio-notifications text-white"></i>
+            <i class="tio-notifications"></i>
 
             {{-- العدد يأتي محسوبًا مرة واحدة من AdminBadgeCounts بدل ست
                  عمليات ->get()->count() متكررة هنا. --}}
@@ -72,7 +212,6 @@
             <div class="dropdown-divider"></div>
 
             <!-- Installments Notifications -->
-           <!-- Installments Notifications -->
 @foreach ($badgeService->notifications()['installments'] as $installment)
     <a href="{{ route('admin.admin.notifications.show', ['id' => $installment->id, 'type' => 'installment']) }}">
         <div class="media align-items-center">
@@ -116,7 +255,7 @@
 
             <!-- View All Notifications -->
             <a class="dropdown-item text-center" href="{{ route('admin.admin.notifications.listItems') }}">
-                View all notifications
+                {{ \App\CPU\translate('عرض كل الاشعارات') }}
             </a>
         </div>
     </div>
@@ -124,7 +263,7 @@
 @endif
                     <li class="nav-item">
                         <div class="hs-unfold">
-                            <a class="js-hs-unfold-invoker navbar-dropdown-account-wrapper" href="javascript:;"
+                            <a class="js-hs-unfold-invoker hd-user" href="javascript:;"
                                data-hs-unfold-options='{
                                      "target": "#accountNavbarDropdown",
                                      "type": "css-animation"
@@ -132,10 +271,22 @@
                                 <div class="avatar avatar-sm avatar-circle">
                                     <img class="avatar-img"
                                          onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
-                                         src="{{ asset('storage/admin') }}/{{ auth('admin')->user()->image }}"
+                                         src="{{ asset('storage/admin') }}/{{ $hdUser->image }}"
                                          alt="{{ \App\CPU\translate('image_description') }}">
                                     <span class="avatar-status avatar-sm-status avatar-status-success"></span>
                                 </div>
+
+                                <span class="u-meta d-flex flex-column">
+                                    <span class="u-name">{{ trim($hdUser->f_name . ' ' . $hdUser->l_name) }}</span>
+                                    {{-- السوبر أدمن وحده يُعرّف بذلك؛ غيره "مستخدم". --}}
+                                    <span class="u-role">
+                                        {{ $hdUser->is_super
+                                            ? \App\CPU\translate('مدير النظام')
+                                            : \App\CPU\translate('مستخدم') }}
+                                    </span>
+                                </span>
+
+                                <i class="tio-chevron-down" style="font-size:.8rem;color:#7c8ea1;"></i>
                             </a>
 
                             <div id="accountNavbarDropdown"
@@ -145,12 +296,12 @@
                                         <div class="avatar avatar-sm avatar-circle mr-2">
                                             <img class="avatar-img"
                                                  onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
-                                                 src="{{ asset('storage/admin') }}/{{ auth('admin')->user()->image }}"
+                                                 src="{{ asset('storage/admin') }}/{{ $hdUser->image }}"
                                                  alt="{{ \App\CPU\translate('image_description') }}">
                                         </div>
                                         <div class="media-body">
-                                            <span class="card-title h5">{{ auth('admin')->user()->f_name }}</span>
-                                            <span class="card-text">{{ auth('admin')->user()->email }}</span>
+                                            <span class="card-title h5">{{ $hdUser->f_name }}</span>
+                                            <span class="card-text">{{ $hdUser->email }}</span>
                                         </div>
                                     </div>
                                 </div>
@@ -192,3 +343,18 @@
 </div>
 <div id="headerFluid" class="d-none"></div>
 <div id="headerDouble" class="d-none"></div>
+
+<script>
+    // Ctrl+K يركّز البحث، كما يعلن الاختصار المعروض في الحقل.
+    document.addEventListener('keydown', function (e) {
+        if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+            var box = document.getElementById('hdSearch');
+
+            if (box) {
+                e.preventDefault();
+                box.focus();
+                box.select();
+            }
+        }
+    });
+</script>
