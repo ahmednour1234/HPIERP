@@ -105,15 +105,12 @@ body{
     background-color: #F7F8FA;
 }
 
-/* القوائم الفرعية أغمق قليلًا من أرض القائمة لا بلون آخر. */
 .nav-sub {
-    background-color: rgba(0, 0, 0, .16) !important;
+    background-color: #161853 !important;
 }
 
-/* لون القائمة من لوحة HPI نفسها (#14395c) لا #161853 البنفسجي:
-   بقية الشاشات بُنيت على الأولى، فكان الشريطان من عائلتين مختلفتين. */
 .aside-back{
-    background: linear-gradient(180deg, #0d2840 0%, #14395c 100%) !important;
+    background: #161853!important;
 }
 
 .nav-brand-back{

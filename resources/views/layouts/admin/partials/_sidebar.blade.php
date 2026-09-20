@@ -73,7 +73,7 @@ body {
 
 .navbar-vertical .active > .nav-link,
 .navbar-vertical .nav-link.active {
-    background-color: #1e5280;
+    background-color: #2563eb;
     color: #ffffff !important;
     font-weight: 600;
 }
