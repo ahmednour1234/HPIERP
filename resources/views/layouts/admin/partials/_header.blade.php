@@ -14,6 +14,7 @@
     /* شريط علوي فاتح: كان كحليًّا يكرّر لون القائمة الجانبية فيبتلعها. */
     #header.header-style {
         background: #ffffff;
+        padding-inline: .9rem;
         border: 1px solid #e3ecf4;
         box-shadow: 0 2px 10px rgba(20, 57, 92, .05);
     }
@@ -42,9 +43,20 @@
         border: 1px solid #e3ecf4;
         background: #f6fafd;
         border-radius: 10px;
-        padding: .45rem 2.2rem .45rem 3.2rem;
+        /* منطقية لا يمين/يسار: الحشو الطبيعي انقلب في RTL فجلس النص
+           تحت شارة الاختصار واختفت أيقونة البحث. */
+        padding: .5rem .8rem;
+        padding-inline-start: 2.4rem;
+        padding-inline-end: 3.4rem;
         font-size: .84rem;
         color: #1c2b3a;
+    }
+
+    #header .hd-search input::placeholder {
+        color: #9aabbd;
+        /* النص أطول من الحقل على الشاشات الضيقة، فيُقصّ بنقاط بدل أن
+           يُبتر عند الحافة. */
+        text-overflow: ellipsis;
     }
 
     #header .hd-search input:focus {
@@ -56,7 +68,7 @@
 
     #header .hd-search .s-icon {
         position: absolute;
-        inset-inline-start: .7rem;
+        inset-inline-start: .85rem;
         top: 50%;
         transform: translateY(-50%);
         color: #7c8ea1;
@@ -88,25 +100,53 @@
     #header .btn-ghost-secondary:hover { background: #eaf4fb; }
 
     #header .hd-pos {
-        font-size: .82rem;
+        display: inline-flex;
+        align-items: center;
+        height: 34px;
+        font-size: .8rem;
         font-weight: 700;
         color: #14395c !important;
         background: #eaf4fb;
-        border-radius: 8px;
-        padding: .35rem .75rem;
+        border-radius: 9px;
+        padding: 0 .85rem;
     }
 
-    #header .badge-danger {
-        background-color: #dc3545;
-        color: #fff;
+    #header .hd-pos:hover { background: #dbeafb; text-decoration: none; }
+
+    #header .btn-icon {
+        width: 34px;
+        height: 34px;
+        min-height: 34px;
     }
+
+    /* الشارة نقطة صغيرة فوق الجرس لا لوحة حمراء بجواره: العدد قد يبلغ
+       أربعة أرقام فيدفع بقية العناصر. */
+    #header .nav-item .badge-danger {
+        position: absolute;
+        top: .1rem;
+        inset-inline-end: .1rem;
+        min-width: 17px;
+        height: 17px;
+        padding: 0 4px;
+        font-size: .62rem;
+        font-weight: 700;
+        line-height: 17px;
+        text-align: center;
+        background-color: #e5484d;
+        color: #fff;
+        border: 2px solid #fff;
+        border-radius: 99px;
+    }
+
+    #header .nav-item .js-hs-unfold-invoker { position: relative; }
 
     /* بطاقة المستخدم: الاسم والدور بدل صورة مجرّدة. */
     #header .hd-user {
         display: flex;
         align-items: center;
-        gap: .55rem;
-        padding: .25rem .75rem .25rem .25rem;
+        gap: .5rem;
+        padding: .2rem;
+        padding-inline-end: .7rem;
         border: 1px solid #e3ecf4;
         border-radius: 99px;
         background: #fff;
@@ -122,6 +162,14 @@
     }
 
     #header .hd-user .u-role { font-size: .7rem; color: #7c8ea1; line-height: 1.2; }
+
+    /* فجوة بين نصفَي الشريط حتى لا يلتصق البحث بأزرار اليمين. */
+    #header .navbar-nav-wrap {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        width: 100%;
+    }
 
     @media (max-width: 767.98px) {
         #header .hd-date,
@@ -165,7 +213,7 @@
             <!-- Secondary Content -->
             <div class="navbar-nav-wrap-content-right">
                 <!-- Navbar -->
-                <ul class="navbar-nav align-items-center flex-row">
+                <ul class="navbar-nav align-items-center flex-row" style="gap: .4rem;">
                     <li class="nav-item d-none d-sm-inline-block">
                         <div class="hs-unfold">
                             <a class="js-hs-unfold-invoker hd-pos"
