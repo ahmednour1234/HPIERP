@@ -54,13 +54,14 @@ class AttendanceController extends Controller
             })
             ->count();
 
-        // Retrieve all attendance records ordered by date descending
-        $attendances = $query->orderBy('date', 'desc')
+        // بريد الموظف يُعرض في كل صف، فيُحمَّل معها بدل استعلام لكل سطر.
+        $attendances = $query->with('admins:id,f_name,l_name,email')
+            ->orderBy('date', 'desc')
             ->paginate(10)
             ->appends($request->query());
 
         // قائمة الموظفين للفلتر.
-        $employees = Admin::orderBy('f_name')->get();
+        $employees = Admin::orderBy('f_name')->get(['id', 'f_name', 'l_name', 'email']);
 
         return view('admin-views.attendances.index', compact(
             'attendances',
