@@ -3,7 +3,45 @@
 @section('title',\App\CPU\translate('transection_list'))
 
 @push('css_or_js')
+<style>
+    .tx-actions {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: .4rem;
+        padding-top: .9rem;
+        margin-top: .3rem;
+        border-top: 1px solid #e3ecf4;
+    }
 
+    /* وسم النوع: الاتجاه هو ما يُلوَّن، لا كل نوع بلون. */
+    .tx-tag {
+        display: inline-block;
+        font-size: .72rem;
+        font-weight: 700;
+        border-radius: 99px;
+        padding: .15rem .6rem;
+        white-space: nowrap;
+    }
+
+    .tx-tag.is-in   { background: #e6f7ef; color: #0f7a4d; }
+    .tx-tag.is-out  { background: #fdecec; color: #b3261e; }
+    .tx-tag.is-move { background: #eef2f6; color: #56687a; }
+
+    /* الأنواع غير المؤكَّدة نقدًا بعد (آجل، تحصيل) أهدأ من المؤكَّدة. */
+    .tx-tag.is-soft { background: #eaf4fb; color: #14395c; }
+
+    /* المبالغ أرقام: تُقرأ يسارًا وتصطفّ على خانة واحدة. */
+    .tx-amount,
+    .tx-balance {
+        direction: ltr;
+        display: inline-block;
+        font-variant-numeric: tabular-nums;
+        white-space: nowrap;
+    }
+
+    .tx-balance { font-weight: 700; color: #1c2b3a; }
+</style>
 @endpush
 
 @section('content')
@@ -77,11 +115,30 @@
                             ?>
                         @endif
 
-                            <div class="col-12 ">
-                                <div class="row d-flex justify-content-center ">
-                                    <button class="btn btn-success col-3 mr-1">{{\App\CPU\translate('بحث')}}</button>
-                                    <a href="{{ route('admin.account.list-transection') }}" class="btn btn-danger col-3 mr-1">{{\App\CPU\translate('بحث')}}</a>
-                                    <a href="{{ route('admin.account.transection-export',['account_id'=>$acc_id,'tran_type'=>$tran_type,'from'=>$from,'to'=>$to]) }}" class="btn btn-info col-3" data-toggle="tooltip" data-placement="top" title="{{ $chk==0?\App\CPU\translate('export_last_month_data'):''}}">{{\App\CPU\translate('اصدار في اكسل شيت')}}</a>
+                            <div class="col-12">
+                                {{-- كانت ثلاثة أزرار بثلاثة ألوان، واثنان منها
+                                     يحملان كلمة «بحث» نفسها بينما الثاني يمسح
+                                     الفلاتر. فعل واحد أساسي والبقية ثانوية. --}}
+                                <div class="tx-actions">
+                                    <button type="submit" class="btn btn-primary">
+                                        <i class="tio-search mr-1"></i> {{\App\CPU\translate('بحث')}}
+                                    </button>
+
+                                    @if($chk)
+                                        <a href="{{ route('admin.account.list-transection') }}"
+                                           class="btn btn-outline-secondary">
+                                            {{\App\CPU\translate('إعادة تعيين')}}
+                                        </a>
+                                    @endif
+
+                                    <span class="flex-grow-1"></span>
+
+                                    <a href="{{ route('admin.account.transection-export',['account_id'=>$acc_id,'tran_type'=>$tran_type,'from'=>$from,'to'=>$to]) }}"
+                                       class="btn btn-outline-primary"
+                                       data-toggle="tooltip" data-placement="top"
+                                       title="{{ $chk==0?\App\CPU\translate('export_last_month_data'):''}}">
+                                        <i class="tio-file-outlined mr-1"></i> {{\App\CPU\translate('اصدار في اكسل شيت')}}
+                                    </a>
                                 </div>
                             </div>
 
@@ -119,41 +176,38 @@
                                         </td>
                                         
                                       <td>
+    {{-- لون واحد لكل اتجاه: أخضر داخل، أحمر خارج، رمادي نقل بين حسابين
+         لنا. كانت ثمانية ألوان بلا قاعدة، فيظهر «مبيعات» أحمر و«مرتجع
+         مشتريات» أخضر، وهو عكس المعنى. --}}
     @if ($transection->tran_type == 'Expense')
-        <span class="badge badge-danger">
-            {{ \App\CPU\translate('المصروفات') }} <br>
-        </span>
+        <span class="tx-tag is-out">{{ \App\CPU\translate('المصروفات') }}</span>
     @elseif($transection->tran_type == 'Transfer')
-        <span class="badge badge-warning">
-            {{ \App\CPU\translate('التحويلات') }} <br>
-        </span>
+        <span class="tx-tag is-move">{{ \App\CPU\translate('التحويلات') }}</span>
     @elseif($transection->tran_type == 'Income')
-        <span class="badge badge-success">
-            {{ \App\CPU\translate('الدخل') }} <br>
-        </span>
+        <span class="tx-tag is-in">{{ \App\CPU\translate('الدخل') }}</span>
     {{-- المسميات حسب المطلوب. البيع من نوع 4 ينقسم بحسب cash:
          cash = 2 آجل، cash = 1 نقدي — وهو ما تؤكده البيانات. --}}
     @elseif ($transection->tran_type == 4)
         @if($transection->cash == 2)
-            <span class="badge badge-warning">مبيعات أجل</span>
+            <span class="tx-tag is-in is-soft">مبيعات أجل</span>
         @else
-            <span class="badge badge-danger">مبيعات</span>
+            <span class="tx-tag is-in">مبيعات</span>
         @endif
     @elseif($transection->tran_type == 7)
-        <span class="badge badge-info">مرتجع</span>
+        <span class="tx-tag is-out">مرتجع</span>
     @elseif($transection->tran_type == 8)
-        <span class="badge badge-warning">مشتريات</span>
+        <span class="tx-tag is-out">مشتريات</span>
     @elseif($transection->tran_type == 14)
-        <span class="badge badge-success">مرتجع مشتريات</span>
+        <span class="tx-tag is-in">مرتجع مشتريات</span>
     @elseif($transection->tran_type == 13)
-        <span class="badge badge-soft-warning">تحصيل من الآجل</span>
+        <span class="tx-tag is-in is-soft">تحصيل من الآجل</span>
     @elseif($transection->tran_type == 26)
-        <span class="badge badge-soft-success">تحصيل نقدي</span>
+        <span class="tx-tag is-in is-soft">تحصيل نقدي</span>
     @endif
 </td>
 
                                         <td>
-                                            {{ $transection->amount ." ".\App\CPU\Helpers::currency_symbol()}}
+                                            <span class="tx-amount">{{ $transection->amount ." ".\App\CPU\Helpers::currency_symbol()}}</span>
                                         </td>
                                         <td>
                                             {{ Str::limit($transection->description,30) }}
@@ -161,7 +215,7 @@
                                        
 
                                         <td>
-                                            {{ $transection->balance ." ".\App\CPU\Helpers::currency_symbol()}}
+                                            <span class="tx-balance">{{ $transection->balance ." ".\App\CPU\Helpers::currency_symbol()}}</span>
                                         </td>
                                     </tr>
                                 @endforeach
