@@ -66,7 +66,7 @@ class MonthlySalesReportController extends Controller
 
         $sellerIds = $this->sellerIds((array) $request->input('seller_ids', []));
         $products  = $this->columnProducts((array) $request->input('product_ids', []), $sellerIds, $start, $end);
-        $regions   = $this->reportRegions((array) $request->input('region_ids', []));
+        $regions   = $this->reportRegions((array) $request->input('region_ids', []), $sellerIds);
 
         // تحميل واحد لكل ما تحتاجه الأقسام، بدل استعلام لكل منطقة.
         $this->cache = [
@@ -193,21 +193,44 @@ class MonthlySalesReportController extends Controller
         return Product::whereIn('id', $movedIds)->orderBy('name')->get(['id', 'name', 'name_en']);
     }
 
-    /** المناطق المعروضة. */
-    private function reportRegions(array $regionIds)
+    /**
+     * المناطق المعروضة.
+     *
+     * حين يُختار مناديب بعينهم تُعرض مناطقهم وحدها: كانت الدالة تتجاهل
+     * الاختيار فتظهر مناطق لا يعمل فيها أحد منهم بجداول أصفار.
+     */
+    private function reportRegions(array $regionIds, array $sellerIds = [])
     {
         $regionIds = array_filter($regionIds);
         $query = Region::orderBy('name');
 
         if (!empty($regionIds)) {
-            $query->whereIn('id', $regionIds);
-        } else {
-            // المناطق التي لها عملاء فقط؛ جدول regions يحمل محافظات كثيرة
-            // غير مستخدمة وعرضها كلها يُغرق التقرير بجداول فارغة.
-            $query->whereIn('id', DB::table('customers')->whereNotNull('region_id')->distinct()->pluck('region_id'));
+            return $query->whereIn('id', $regionIds)->get(['id', 'name']);
         }
 
-        return $query->get(['id', 'name']);
+        // مناطق المناديب المختارين، من جدول الإسناد.
+        $sellerRegionIds = DB::table('seller_regions')
+            ->whereIn('seller_id', $sellerIds)
+            ->distinct()
+            ->pluck('region_id')
+            ->filter()
+            ->all();
+
+        // المناطق التي لها عملاء فقط؛ جدول regions يحمل محافظات كثيرة
+        // غير مستخدمة وعرضها كلها يُغرق التقرير بجداول فارغة.
+        $withCustomers = DB::table('customers')
+            ->whereNotNull('region_id')
+            ->distinct()
+            ->pluck('region_id')
+            ->all();
+
+        // مندوب بلا مناطق مسندة لا يعني «كل المناطق»، فيُقتصر على ما له
+        // عملاء فيه وإلا عاد التقرير إلى ما كان عليه.
+        $ids = $sellerRegionIds !== []
+            ? array_intersect($sellerRegionIds, $withCustomers)
+            : $withCustomers;
+
+        return $query->whereIn('id', $ids)->get(['id', 'name']);
     }
 
     /** قيد المنطقة على استعلام الطلبات، عبر العميل. */
