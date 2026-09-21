@@ -33,7 +33,10 @@ return [
     // خرائط Google. بدون مفتاح ترفض Google تحميل الـ API وتبقى الخريطة فارغة.
     // المفتاح الافتراضي هو المستخدم أصلًا في صفحات المصانع بهذا المشروع.
     'google_maps' => [
-        'key' => env('GOOGLE_MAPS_API_KEY', 'AIzaSyAQgTQ30_TriFBdJPKKOK4zZQ8rfHCUk6c'),
+        // بلا مفتاح افتراضي: المفتاح المكتوب هنا كان يُرفع مع الكود، وهو
+        // غير مفعَّل للفوترة فتطبع Google شارة "development purposes only"
+        // فوق الخريطة. يوضع المفتاح في .env لكل بيئة.
+        'key' => env('GOOGLE_MAPS_API_KEY'),
     ],
 
 ];

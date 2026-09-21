@@ -52,8 +52,12 @@
                 var lat = parseFloat(admin.latitude);
                 var lng = parseFloat(admin.longitude);
 
-                // إحداثيات غير صالحة أو (0,0) تُتجاهل.
-                if (!isFinite(lat) || !isFinite(lng) || (lat === 0 && lng === 0)) {
+                // صفر في أيٍّ منهما إحداثيّ غير مسجَّل: الشرط السابق كان
+                // يتطلّب أن يكون الاثنان صفرًا، فيمرّ صفّ نصفه صفر ويرسو
+                // على خطّ الاستواء أو خطّ غرينتش.
+                if (!isFinite(lat) || !isFinite(lng)
+                    || Math.abs(lat) < 0.000001 || Math.abs(lng) < 0.000001
+                    || Math.abs(lat) > 90 || Math.abs(lng) > 180) {
                     return;
                 }
 
@@ -115,9 +119,27 @@
         }
     </script>
 
-    {{-- المفتاح إلزامي: بدونه ترفض Google تحميل الـ API وتبقى الخريطة فارغة،
-         وهو سبب عدم عمل هذه الشاشة. --}}
-    <script async defer
-            onerror="hpiMapFailed()"
-            src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&callback=initMap"></script>
+    {{-- المفتاح إلزامي: بدونه ترفض Google تحميل الـ API. تحميل السكربت
+         بمفتاح فارغ يعطي خريطة رمادية بلا تفسير، فيُقال السبب صراحةً. --}}
+    @if(config('services.google_maps.key'))
+        <script async defer
+                onerror="hpiMapFailed()"
+                src="https://maps.googleapis.com/maps/api/js?key={{ config('services.google_maps.key') }}&callback=initMap"></script>
+    @else
+        <script>
+            (function () {
+                var box = document.getElementById('map-error');
+                var map = document.getElementById('map');
+
+                if (box) {
+                    box.style.display = 'block';
+                    box.textContent = 'مفتاح خرائط Google غير مضبوط. أضف GOOGLE_MAPS_API_KEY في ملف .env ثم شغّل: php artisan config:clear';
+                }
+
+                if (map) {
+                    map.style.display = 'none';
+                }
+            })();
+        </script>
+    @endif
 @endpush

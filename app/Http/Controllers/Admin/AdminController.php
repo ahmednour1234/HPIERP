@@ -38,14 +38,32 @@ class AdminController extends Controller
         // خريطة المناديب. الإحداثيات تُخزَّن نصًا وكثير من الصفوف تحمل '0'
         // وهي نقطة في المحيط قبالة أفريقيا لا موقعًا حقيقيًا، فتُستبعد إلى
         // جانب الفارغة؛ وإلا ظهرت علامات في مكان خاطئ أو أزاحت مركز الخريطة.
+        // الفحص في PHP لا في SQL: CAST(... AS DECIMAL) يختلف سلوكه بين
+        // MariaDB وSQLite، فمرّ صفّ إلى الإنتاج ظهر في خليج غينيا بينما
+        // كانت نسخة التطوير نظيفة.
         $admins = Admin::select('id', 'f_name', 'l_name', 'mandob_code', 'latitude', 'longitude')
-                        ->whereNotNull('latitude')
-                        ->whereNotNull('longitude')
-                        ->where('latitude', '!=', '')
-                        ->where('longitude', '!=', '')
-                        ->whereRaw('CAST(latitude AS DECIMAL(12,8)) != 0')
-                        ->whereRaw('CAST(longitude AS DECIMAL(12,8)) != 0')
-                        ->get();
+            ->whereNotNull('latitude')
+            ->whereNotNull('longitude')
+            ->where('latitude', '!=', '')
+            ->where('longitude', '!=', '')
+            ->get()
+            ->filter(function ($admin) {
+                if (!is_numeric($admin->latitude) || !is_numeric($admin->longitude)) {
+                    return false;
+                }
+
+                $lat = (float) $admin->latitude;
+                $lng = (float) $admin->longitude;
+
+                // صفر في أيٍّ منهما يعني إحداثيًّا غير مسجَّل، لا نقطة على
+                // خطّ الاستواء أو خطّ غرينتش.
+                if (abs($lat) < 0.000001 || abs($lng) < 0.000001) {
+                    return false;
+                }
+
+                return abs($lat) <= 90 && abs($lng) <= 180;
+            })
+            ->values();
 
         return view('admin-views.map.index', compact('admins'));
     }
