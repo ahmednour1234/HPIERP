@@ -1550,7 +1550,9 @@ private function salesInvoiceTotals(Request $request): array
         'collected' => round($collected, 2),
         'remaining' => round(max($total - $collected, 0), 2),
         'quantity'  => (float) (clone $lines)->sum('quantity'),
-        'lines'     => (clone $lines)->count(),
+        // أصناف مختلفة لا أسطر: الصنف الواحد في خمسين فاتورة كان يُعدّ
+        // خمسين مرة، فيقرأ «عدد المنتجات المباعة» أكبر من الكتالوج كلّه.
+        'lines'     => (clone $lines)->distinct()->count('product_id'),
     ];
 }
 
@@ -1983,9 +1985,9 @@ public function sample_list(Request $request): Factory|View|Application
     $quantitySum = $orders->sum(function ($order) {
         return $order->details->sum('quantity'); // Use 'details' instead of 'orderDetails'
     });
-    $productCount = $orders->sum(function ($order) {
-        return $order->details->count(); // Use 'details' instead of 'orderDetails'
-    });
+    // أصناف مختلفة لا أسطر: جمع عدد الأسطر يعدّ الصنف مرّة لكل فاتورة.
+    $productCount = $orders->pluck('details')->flatten()
+        ->pluck('product_id')->filter()->unique()->count();
 
     // Get regions for the dropdown
     $regions = $this->regions->get();
@@ -2085,9 +2087,9 @@ public function donation_list(Request $request): Factory|View|Application
     $quantitySum = $orders->sum(function ($order) {
         return $order->details->sum('quantity'); // Use 'details' instead of 'orderDetails'
     });
-    $productCount = $orders->sum(function ($order) {
-        return $order->details->count(); // Use 'details' instead of 'orderDetails'
-    });
+    // أصناف مختلفة لا أسطر: جمع عدد الأسطر يعدّ الصنف مرّة لكل فاتورة.
+    $productCount = $orders->pluck('details')->flatten()
+        ->pluck('product_id')->filter()->unique()->count();
 
     // Get regions for the dropdown
     $regions = $this->regions->get();

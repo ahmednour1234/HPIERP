@@ -1,6 +1,16 @@
 @extends('layouts.admin.app')
 
-@section('title', \App\CPU\translate('تقرير اوامر الصرف'))
+@php
+    // العنوان يتبع نوع الطلب: الشاشة نفسها تخدم الحجز والردّ والصرف،
+    // وكان ثابتًا على «اوامر الصرف» في الحالات الثلاث.
+    $rvTitle = match ((int) $type) {
+        4       => \App\CPU\translate('تقرير حجز المناديب'),
+        7       => \App\CPU\translate('تقرير رد حجز المناديب'),
+        default => \App\CPU\translate('تقرير اوامر الصرف'),
+    };
+@endphp
+
+@section('title', $rvTitle)
 
 @push('css_or_js')
     <link rel="stylesheet" href="{{ asset('public/assets/admin/css/custom.css') }}">
@@ -226,7 +236,7 @@
     <div class="roles-hero">
         <div class="hero-text">
             {{-- كان العنوان شارة عدد وحدها، فتطفو الصفحة بلا اسم. --}}
-            <h1><i class="tio-shipping mr-1"></i> {{ \App\CPU\translate('تقرير اوامر الصرف') }}</h1>
+            <h1><i class="tio-shipping mr-1"></i> {{ $rvTitle }}</h1>
             <p>{{ number_format($reservations->total()) }} {{ \App\CPU\translate('طلب') }}</p>
         </div>
 

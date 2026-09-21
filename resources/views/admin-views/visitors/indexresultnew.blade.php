@@ -457,9 +457,10 @@
                             </div>
 
                             <div class="col-lg-4 col-md-6 mb-3">
-                                <label for="specialist">نوع الجهة</label>
+                                <label for="specialist">التصنيف</label>
                                 {{-- غير "التخصص" أعلاه: ذاك التخصص الطبي
-                                     (category_id)، وهذا نوع الجهة نفسها. --}}
+                                     (category_id)، وهذا تصنيف الجهة نفسها:
+                                     طبيب أو مركز طبي أو صيدلية أو مستشفى. --}}
                                 <select name="specialist[]" id="specialist" class="form-control visitor-select2" multiple
                                         data-placeholder="كل الأنواع">
                                     @foreach($specialistTypes as $value => $label)
