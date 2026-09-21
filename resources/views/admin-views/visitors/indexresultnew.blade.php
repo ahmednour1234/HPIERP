@@ -433,25 +433,21 @@
 
                             <div class="col-lg-4 col-md-6 mb-3">
                                 <label for="seller_id">المندوب</label>
-                                <select name="seller_id" id="seller_id" class="form-control visitor-select2">
+                                <select name="seller_id" id="seller_id" class="form-control visitor-select2 selectpicker-ignore">
                                     <option value="">كل المناديب</option>
                                     @foreach($sellers as $s)
-                                        <option value="{{ $s->id }}" {{ request('seller_id') == $s->id ? 'selected' : '' }}>
-                                            {{ trim($s->f_name . ' ' . $s->l_name) }}
-                                        </option>
+                                        <option value="{{ $s->id }}" @selected(request('seller_id') == $s->id)>{{ trim($s->f_name . ' ' . $s->l_name) }}</option>
                                     @endforeach
                                 </select>
                             </div>
 
                             <div class="col-lg-4 col-md-6 mb-3">
                                 <label for="category_id">التخصص</label>
-                                <select name="category_id" id="category_id" class="form-control visitor-select2">
+                                <select name="category_id" id="category_id" class="form-control visitor-select2 selectpicker-ignore">
                                     <option value="">كل التخصصات</option>
                                     @foreach($categories as $category)
                                         <option value="{{ $category->id }}"
-                                            {{ (string) request('category_id') === (string) $category->id ? 'selected' : '' }}>
-                                            {{ $category->name }}
-                                        </option>
+                                            @selected((string) request('category_id') === (string) $category->id)>{{ $category->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -461,13 +457,11 @@
                                 {{-- غير "التخصص" أعلاه: ذاك التخصص الطبي
                                      (category_id)، وهذه فئة الجهة نفسها:
                                      طبيب أو مركز طبي أو صيدلية أو مستشفى. --}}
-                                <select name="specialist[]" id="specialist" class="form-control visitor-select2" multiple
+                                <select name="specialist[]" id="specialist" class="form-control visitor-select2 selectpicker-ignore" multiple
                                         data-placeholder="كل الأنواع">
                                     @foreach($specialistTypes as $value => $label)
                                         <option value="{{ $value }}"
-                                            {{ in_array((string) $value, array_map('strval', $specialists), true) ? 'selected' : '' }}>
-                                            {{ $label }}
-                                        </option>
+                                            @selected(in_array((string) $value, array_map('strval', $specialists), true))>{{ $label }}</option>
                                     @endforeach
                                 </select>
                             </div>
@@ -486,12 +480,10 @@
 
                             <div class="col-lg-4 col-md-6 mb-3">
                                 <label for="region_id">المنطقة</label>
-                                <select name="region_id[]" id="region_id" class="form-control visitor-select2" multiple>
+                                <select name="region_id[]" id="region_id" class="form-control visitor-select2 selectpicker-ignore" multiple>
                                     @foreach($regions as $region)
                                         <option value="{{ $region->id }}"
-                                            {{ in_array((string) $region->id, array_map('strval', $regionIds), true) ? 'selected' : '' }}>
-                                            {{ $region->name }}
-                                        </option>
+                                            @selected(in_array((string) $region->id, array_map('strval', $regionIds), true))>{{ $region->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
