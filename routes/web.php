@@ -60,6 +60,20 @@ if (!app()->environment('production')) {
     })->where('path', '.*');
 }
 
+/*
+ * الصفحات العامة: سياسة الخصوصية والدعم.
+ *
+ * مطلوبة للنشر على متاجر التطبيقات، فهي خارج حارس تسجيل الدخول. تُسجَّل
+ * قبل fallback وإلا التقطها وحوّلها إلى صفحة الدخول.
+ *
+ * اللغة جزء من المسار لا من الجلسة، فالرابط الواحد يفتح باللغة نفسها
+ * لكلّ من يستقبله — وهو ما تطلبه المتاجر في رابط سياسة الخصوصية.
+ */
+Route::controller(App\Http\Controllers\PublicPageController::class)->group(function () {
+    Route::get('privacy-policy/{locale?}', 'privacy')->name('public.privacy');
+    Route::get('support/{locale?}', 'support')->name('public.support');
+});
+
 Route::fallback(function(){
     return redirect('admin/auth/login');
 });
