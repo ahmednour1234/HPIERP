@@ -193,31 +193,6 @@ body {
     <aside class="aside-back js-navbar-vertical-aside navbar navbar-vertical-aside navbar-vertical navbar-vertical-fixed navbar-expand-xl navbar-bordered  ">
         <div class="navbar-vertical-container text-capitalize">
             <div class="navbar-vertical-footer-offset">
-<div class="navbar-brand-wrapper d-flex align-items-center justify-content-between px-3">
-    <!-- الشعار والنص -->
-    <div class="d-flex align-items-center gap-2">
-        <a class="navbar-brand d-flex align-items-center" href="{{ route('admin.dashboard') }}" aria-label="Front">
-            @php
-                $shop_logo = $badgeService->setting('shop_logo');
-            @endphp
-
-            <span class="brand-text d-flex flex-column">
-                <span class="brand-name">{{ \App\CPU\translate('نظام الإدارة') }}</span>
-                <span class="brand-tag">{{ \App\CPU\translate('إدارة أعمالك بسهولة') }}</span>
-            </span>
-
-            {{-- شعار المتجر إن رُفع، وإلا شعار HPI. البديل السابق كان صورة
-                 عامة من القالب تظهر كمربّع لا معنى له حين لا يوجد شعار. --}}
-            <img class="navbar-brand-logo"
-                 src="{{ $shop_logo ? asset('storage/shop/' . $shop_logo) : asset('public/assets/admin/img/brand/hpi-mark.png') }}"
-                 onerror="this.src='{{ asset('public/assets/admin/img/brand/hpi-mark.png') }}'"
-                 alt="{{ \App\CPU\translate('logo') }}"
-                 style="height: 54px; width: 54px; object-fit: contain;">
-        </a>
-    </div>
-
-  
-</div>
 
                 <!-- Content -->
                 <div class="navbar-vertical-content">

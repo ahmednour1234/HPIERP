@@ -163,6 +163,37 @@
         width: 100%;
     }
 
+    /* الهوية في أول الشريط، على أرض بيضاء فيلزم الشعار الكحلي. */
+    #header .hd-brand {
+        display: flex;
+        align-items: center;
+        gap: .55rem;
+        text-decoration: none;
+        white-space: nowrap;
+    }
+
+    #header .hd-brand:hover { text-decoration: none; }
+
+    #header .hd-brand img {
+        height: 38px;
+        width: 38px;
+        object-fit: contain;
+        flex: none;
+    }
+
+    #header .hd-brand .b-name {
+        font-size: .92rem;
+        font-weight: 800;
+        color: #1c2b3a;
+        line-height: 1.2;
+    }
+
+    #header .hd-brand .b-tag {
+        font-size: .68rem;
+        color: #7c8ea1;
+        line-height: 1.2;
+    }
+
     #header .hd-start { justify-self: start; }
     #header .hd-mid   { justify-self: center; }
     #header .hd-end   { justify-self: end; }
@@ -183,6 +214,19 @@
 
             {{-- العمود الأول: زرّ الطيّ والتاريخ، في أقصى جهة البداية. --}}
             <div class="hd-start d-flex align-items-center" style="gap: .75rem;">
+                {{-- الهوية في الشريط لا في القائمة: الشريط صار بعرض الصفحة
+                     كاملة، فبقاؤها في الجانبية يكرّرها ويأكل ارتفاعها. --}}
+                <a class="hd-brand d-flex align-items-center" href="{{ route('admin.dashboard') }}">
+                    @php($shop_logo = $badgeService->setting('shop_logo'))
+                    <img src="{{ $shop_logo ? asset('storage/shop/' . $shop_logo) : asset('public/assets/admin/img/brand/hpi-logo.png') }}"
+                         onerror="this.src='{{ asset('public/assets/admin/img/brand/hpi-logo.png') }}'"
+                         alt="{{ \App\CPU\translate('logo') }}">
+                    <span class="b-text d-none d-lg-flex flex-column">
+                        <span class="b-name">{{ \App\CPU\translate('نظام الإدارة') }}</span>
+                        <span class="b-tag">{{ \App\CPU\translate('إدارة أعمالك بسهولة') }}</span>
+                    </span>
+                </a>
+
                 <!-- Navbar Vertical Toggle -->
                 <button type="button" class="js-navbar-vertical-aside-toggle-invoker close mr-2">
                     <i class="tio-first-page navbar-vertical-aside-toggle-short-align" data-toggle="tooltip" data-placement="right" title="Collapse"></i>
