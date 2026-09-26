@@ -1,10 +1,10 @@
 name: fieldforce
 description: "FieldForce — تطبيق مندوب مبيعات ميداني"
 publish_to: 'none'
-version: 1.0.0+1
+version: 1.0.4+5
 
 environment:
-  sdk: ^3.11.5
+  sdk: ^3.11.3
 
 dependencies:
   flutter:
