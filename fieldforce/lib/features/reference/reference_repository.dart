@@ -110,14 +110,17 @@ class ReferenceRepository {
   }
 
   /// التخصصات الطبية المسنَدة للمندوب (GET /categories/mine?type=0).
+  /// لو المندوب مالوش تخصصات مسنَدة (قائمة فاضية) أو المسار غير منشور،
+  /// نرجع لكل التخصصات عشان الفلتر ما يبقاش فاضي.
   Future<List<RefItem>> mySpecialties() async {
     try {
       final data =
           await _api.get('/categories/mine', query: {'type': 0, 'status': 1});
-      return (data as List)
+      final list = (data as List)
           .cast<Map<String, dynamic>>()
           .map((c) => RefItem(c['id'] as int, (c['name'] ?? '').toString()))
           .toList();
+      return list.isEmpty ? specialties() : list;
     } on ApiException catch (e) {
       if (e.statusCode != 404) rethrow;
       return specialties();

@@ -854,6 +854,7 @@ class _RequestsTabState extends State<_RequestsTab>
                 onTap: () async {
                   final now = DateTime.now();
                   final d = await showDatePicker(
+                    initialEntryMode: DatePickerEntryMode.calendarOnly,
                     context: ctx,
                     initialDate: now,
                     firstDate: now.subtract(const Duration(days: 7)),

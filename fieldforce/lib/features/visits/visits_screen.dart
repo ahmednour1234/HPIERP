@@ -629,6 +629,7 @@ class _MyVisitsTabState extends State<_MyVisitsTab>
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
     final range = await showDateRangePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       firstDate: DateTime(now.year - 2),
       lastDate: now,
@@ -1050,6 +1051,7 @@ class _PlannedVisitsTabState extends State<_PlannedVisitsTab>
     // اختيار التاريخ
     final now = DateTime.now();
     final date = await showDatePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       initialDate: now,
       firstDate: now,
@@ -1290,6 +1292,7 @@ class _PlannedVisitsTabState extends State<_PlannedVisitsTab>
   Future<void> _pickDateRange() async {
     final now = DateTime.now();
     final range = await showDateRangePicker(
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
       context: context,
       firstDate: DateTime(now.year - 1),
       lastDate: now.add(const Duration(days: 365)),

@@ -75,15 +75,29 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
     final status = _statuses[_tab];
     final q = _search.trim().isEmpty ? null : _search.trim();
     try {
+      // فلترة السيرفر (payment_status) مش متطابقة دايماً مع المتبقّي الفعلي،
+      // فبنستبعد محلياً أي فاتورة حالتها مختلفة عن التبويب. لو الصفحة كلها
+      // اتستبعدت نجيب اللي بعدها (بحد أقصى 5 صفحات في المرة).
+      final kept = <Order>[];
+      var page = _page;
+      var hasMore = true;
+      for (var i = 0; i < 5 && hasMore && kept.length < 10; i++) {
+        final res = await _repo.list(
+          type: 4,
+          customerId: widget.customerId,
+          paymentStatus: status,
+          search: q,
+          offset: page,
+          limit: 25,
+        );
+        if (req != _reqId) return;
+        kept.addAll(status == null
+            ? res.items
+            : res.items.where((o) => o.paymentStatus == status));
+        hasMore = res.hasMore;
+        page++;
+      }
       // الإجماليات تُجلب مرة واحدة عند إعادة التحميل (تخص كل النتائج).
-      final page = await _repo.list(
-        type: 4,
-        customerId: widget.customerId,
-        paymentStatus: status,
-        search: q,
-        offset: _page,
-        limit: 25,
-      );
       OrderTotals? totals = _totals;
       if (reset) {
         totals = await _repo.totals(
@@ -93,9 +107,9 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
       }
       if (!mounted || req != _reqId) return;
       setState(() {
-        _items.addAll(page.items);
-        _hasMore = page.hasMore;
-        _page++;
+        _items.addAll(kept);
+        _hasMore = hasMore;
+        _page = page;
         if (totals != null) _totals = totals;
       });
     } catch (e) {
@@ -350,7 +364,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                 ),
                 child: Row(
                   children: [
-                    _miniStat('محصّل', _money(o.collectedCash), AppColors.good),
+                    _miniStat('محصّل', _money(o.collected), AppColors.good),
                     Container(
                         width: 1,
                         height: 26,

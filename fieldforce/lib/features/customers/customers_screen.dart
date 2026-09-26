@@ -114,19 +114,14 @@ class _CustomersScreenState extends State<CustomersScreen> {
   }
 
   Future<void> _loadFilters() async {
-    try {
-      final results = await Future.wait([
-        // تخصصات المندوب فقط — الفلتر يعرض ما يخصّه لا كل تخصصات النظام.
-        _refRepo.mySpecialties(),
-        _refRepo.regions(),
-      ]);
-      if (mounted) {
-        setState(() {
-          _specialties = results[0];
-          _regions = results[1];
-        });
-      }
-    } catch (_) {}
+    // كل قائمة لوحدها — فشل واحدة ما يخفيش التانية.
+    // تخصصات المندوب أولاً — ولو مالوش تخصصات مسنَدة تظهر كل التخصصات.
+    _refRepo.mySpecialties().then((list) {
+      if (mounted) setState(() => _specialties = list);
+    }).catchError((_) {});
+    _refRepo.regions().then((list) {
+      if (mounted) setState(() => _regions = list);
+    }).catchError((_) {});
   }
 
   void _openFilters() {

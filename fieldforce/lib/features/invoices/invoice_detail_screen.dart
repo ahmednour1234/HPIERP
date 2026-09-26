@@ -202,7 +202,7 @@ class _InvoiceDetailScreenState extends State<InvoiceDetailScreen> {
             child: Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                _payCell('محصّل', _money(o.collectedCash), AppColors.good),
+                _payCell('محصّل', _money(o.collected), AppColors.good),
                 _payCell('متبقّي', _money(o.remaining), AppColors.danger),
               ],
             ),

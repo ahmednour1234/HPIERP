@@ -92,10 +92,18 @@ class Order {
     return r < 0 ? 0 : r;
   }
 
-  /// حالة التحصيل — تُحسب محلياً من collected_cash و order_amount.
+  /// المحصّل الفعلي = قيمة الفاتورة − المتبقّي.
+  /// (collected_cash لوحده مش كافي: التحصيل من اللوحة والمرتجعات
+  /// بيقفلوا الفاتورة من غير ما يحدّثوه.)
+  double get collected {
+    final c = amount - remaining;
+    return c < 0 ? 0 : c;
+  }
+
+  /// حالة التحصيل — تُحسب من المتبقّي عشان تطابق تبويب السيرفر والأرقام.
   String get paymentStatus {
-    if (collectedCash >= amount) return 'paid';
-    if (collectedCash > 0) return 'partial';
+    if (remaining <= 0.009) return 'paid';
+    if (collected > 0.009) return 'partial';
     return 'unpaid';
   }
 
