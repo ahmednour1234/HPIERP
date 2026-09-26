@@ -305,7 +305,26 @@ $quantitySum=0;
                     ->paginate(Helpers::pagination_limit())
                     ->appends(compact('search', 'fromDate', 'toDate'));
 
-                return view('admin-views.pos.reservations.list_notification', compact('reservations', 'search', 'fromDate', 'toDate', 'regions', 'regionId', 'type'));
+                // القالب يرسم فلتر المناديب، فيلزمه $sellers و$sellerId.
+                // كانا غير مُمرَّرين فتنهار الصفحة بـUndefined variable.
+                $adminId   = Auth::guard('admin')->id();
+                $sellerIds = AdminSeller::where('admin_id', $adminId)->pluck('seller_id');
+
+                $sellers = Seller::whereIn('id', $sellerIds)
+                    ->orWhere('id', $adminId)
+                    ->orderBy('f_name')
+                    ->get(['id', 'f_name', 'l_name']);
+
+                $sellerId = request('seller_id');
+
+                // رابط التصدير يبني المسار من type وactive معًا، فغيابها
+                // يرمي "Missing required parameter".
+                $active = $notification->active;
+
+                return view('admin-views.pos.reservations.list_notification', compact(
+                    'reservations', 'search', 'fromDate', 'toDate',
+                    'regions', 'regionId', 'type', 'active', 'sellers', 'sellerId'
+                ));
             }
             break;
 
