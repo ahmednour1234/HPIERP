@@ -1252,6 +1252,25 @@ public function order_list(Request $request): Factory|View|Application
         ->paginate(Helpers::pagination_limit())
         ->appends($request->query());
 
+    // الكميات المرتجعة لفواتير هذه الصفحة، استعلامان لا استعلام لكل صف.
+    // تلزم للتفريق بين الإرجاع الكامل والجزئي، وهو فرق في الكميات لا
+    // في المبالغ.
+    $pageIds = $orders->pluck('id');
+
+    $returnedQty = DB::table('orders')
+        ->join('order_details', 'order_details.order_id', '=', 'orders.id')
+        ->whereIn('orders.parent_id', $pageIds)
+        ->where('orders.type', 7)
+        ->groupBy('orders.parent_id')
+        ->selectRaw('orders.parent_id as pid, COALESCE(SUM(order_details.quantity), 0) as qty')
+        ->pluck('qty', 'pid');
+
+    $orderedQty = DB::table('order_details')
+        ->whereIn('order_id', $pageIds)
+        ->groupBy('order_id')
+        ->selectRaw('order_id as oid, COALESCE(SUM(quantity), 0) as qty')
+        ->pluck('qty', 'oid');
+
     // Totals over the whole filtered set, not the page. The previous version
     // called ->sum() on the paginator, so the figures under the table
     // described only the 25 rows on screen.
@@ -1280,7 +1299,7 @@ public function order_list(Request $request): Factory|View|Application
     return view('admin-views.pos.order.list', compact(
         'orders', 'search', 'fromDate', 'toDate', 'regions', 'regionId', 'sellers',
         'orderAmountSum', 'collectedCashSum', 'remainingSum', 'quantitySum',
-        'productCount', 'done', 'accounts'
+        'productCount', 'done', 'accounts', 'returnedQty', 'orderedQty'
     ));
 }
 
@@ -1502,25 +1521,14 @@ private function salesInvoiceQuery(Request $request)
         $orders->where('cash', (int) $request->input('cash'));
     }
 
-    // Settled vs outstanding. This was commented out, so the control on the
-    // page submitted and nothing changed.
+    // حالة التحصيل، بالتصنيف نفسه الذي يستعمله تقرير المنتجات.
+    //
+    // المحصَّل من transaction_reference لا collected_cash: الأولى تتراكم
+    // مع كل تحصيل لاحق من شاشة العميل، والثانية تُكتب عند البيع وحده —
+    // وهما مختلفتان على 1330 فاتورة هنا، فكان الفلتر يعدّ فواتير
+    // محصَّلة على أنها غير محصَّلة.
     if ($request->filled('done')) {
-        $done = (string) $request->input('done');
-
-        if ($done === '1') {
-            $orders->whereColumn('collected_cash', '>=', 'order_amount');
-        } elseif ($done === 'returned') {
-            // الفواتير التي صدر عليها مرتجع: المرتجع فاتورة نوع 7 تحمل
-            // parent_id بالفاتورة الأصلية.
-            $orders->whereIn('id', function ($q) {
-                $q->select('parent_id')
-                  ->from('orders')
-                  ->where('type', 7)
-                  ->whereNotNull('parent_id');
-            });
-        } else {
-            $orders->whereColumn('collected_cash', '<', 'order_amount');
-        }
+        \App\Support\InvoiceSettlement::scope($orders, (string) $request->input('done'));
     }
 
     return $orders->latest('id');

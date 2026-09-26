@@ -310,7 +310,10 @@ class OrderService
 
             $amount    = round((float) $data['amount'], 2);
             $total     = round((float) $order->order_amount, 2);
-            $collected = round((float) $order->collected_cash, 2);
+            // المحصَّل من transaction_reference: هي السجلّ الكامل — تحصيل
+            // شاشة العميل يزيدها، وهي مضبوطة على كل فاتورة فيها
+            // collected_cash بينما العكس غير صحيح.
+            $collected = round((float) $order->transaction_reference, 2);
             $remaining = round($total - $collected, 2);
 
             if ($amount > $remaining) {
@@ -346,10 +349,13 @@ class OrderService
                 $customer->save();
             }
 
-            $order->collected_cash = $collected + $amount;
+            // يُكتب العمودان معًا: transaction_reference هو ما تقرؤه
+            // الفلاتر والتقارير، وcollected_cash يبقى لما زال يقرؤه.
+            $order->transaction_reference = $collected + $amount;
+            $order->collected_cash        = $collected + $amount;
             $order->save();
 
-            $nowCollected = round((float) $order->collected_cash, 2);
+            $nowCollected = round((float) $order->transaction_reference, 2);
             $nowRemaining = round(max($total - $nowCollected, 0), 2);
 
             return [

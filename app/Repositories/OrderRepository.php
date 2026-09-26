@@ -63,15 +63,25 @@ class OrderRepository extends BaseRepository
                 fn (Builder $q) => $q->where('cash', (int) $filters['cash']))
             ->when($filters['min_amount'] ?? null, fn (Builder $q, $v) => $q->where('order_amount', '>=', $v))
             ->when($filters['max_amount'] ?? null, fn (Builder $q, $v) => $q->where('order_amount', '<=', $v))
-            // Settlement state, derived rather than stored: an order is paid
-            // when what was collected covers the total.
+            // حالة السداد تُشتقّ ولا تُخزَّن.
+            //
+            // المحصَّل من transaction_reference لا collected_cash: الأولى
+            // مجموع ما حُصِّل حتى الآن وتزيد مع كل تحصيل لاحق، والثانية
+            // تُكتب عند البيع وحده. تختلفان على 1330 فاتورة هنا — منها
+            // فواتير محصَّلة بالكامل وcollected_cash فيها صفر، فكانت
+            // تُبلَّغ «غير محصَّلة».
+            //
+            // العمود نصّي، و"+ 0" يحوّله رقمًا على MariaDB وSQLite معًا
+            // بخلاف CAST الذي يختلف سلوكه بينهما.
             ->when($filters['payment_status'] ?? null, function (Builder $q, $state) {
+                $paid = '(COALESCE(transaction_reference, 0) + 0)';
+
                 match ($state) {
-                    'paid'    => $q->whereColumn('collected_cash', '>=', 'order_amount'),
-                    'partial' => $q->whereColumn('collected_cash', '<', 'order_amount')
-                                   ->where('collected_cash', '>', 0),
-                    'unpaid'  => $q->where(fn (Builder $i) => $i->whereNull('collected_cash')
-                                                                ->orWhere('collected_cash', 0)),
+                    'paid'    => $q->whereRaw("{$paid} >= order_amount")
+                                   ->where('order_amount', '>', 0),
+                    'partial' => $q->whereRaw("{$paid} > 0")
+                                   ->whereRaw("{$paid} < order_amount"),
+                    'unpaid'  => $q->whereRaw("{$paid} <= 0"),
                     default   => null,
                 };
             })
@@ -104,7 +114,7 @@ class OrderRepository extends BaseRepository
         $row = $this->applyFilters($this->query()->where('owner_id', $sellerId), $filters)
             ->selectRaw('COUNT(*) as orders,
                          COALESCE(SUM(order_amount), 0)   as total,
-                         COALESCE(SUM(collected_cash), 0) as collected,
+                         COALESCE(SUM(COALESCE(transaction_reference, 0) + 0), 0) as collected,
                          COALESCE(SUM(total_tax), 0)      as tax')
             ->first();
 
@@ -129,7 +139,7 @@ class OrderRepository extends BaseRepository
         $perInvoice = $this->applyFilters(
             $this->query()->where('owner_id', $sellerId), $filters
         )
-            ->select('orders.id', 'orders.order_amount', 'orders.collected_cash')
+            ->select('orders.id', 'orders.order_amount', 'orders.transaction_reference')
             ->selectSub(
                 fn ($q) => $q->from('orders as returns')
                     ->selectRaw('COALESCE(SUM(returns.order_amount), 0)')
@@ -144,7 +154,7 @@ class OrderRepository extends BaseRepository
 
         foreach ($perInvoice as $invoice) {
             $net  = max(0, (float) $invoice->order_amount - (float) $invoice->returned_amount);
-            $paid = (float) $invoice->collected_cash;
+            $paid = (float) $invoice->transaction_reference;
 
             $netRemaining += max(0, $net - $paid);
             $overpaid     += max(0, $paid - $net);

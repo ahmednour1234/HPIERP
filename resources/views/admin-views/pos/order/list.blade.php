@@ -299,6 +299,24 @@
             font-weight: 900;
         }
 
+        /* حالة التحصيل: اللون يتبع المعنى — أخضر محصَّل، أحمر لا شيء،
+           برتقالي إرجاع، أزرق تحصيل ناقص. */
+        .pos-settle {
+            display: inline-block;
+            font-size: .72rem;
+            font-weight: 800;
+            border-radius: 999px;
+            padding: .15rem .6rem;
+            white-space: nowrap;
+        }
+
+        .pos-settle--paid             { background: #e6f7ef; color: #0f7a4d; }
+        .pos-settle--partial_paid     { background: #eaf4fb; color: #14395c; }
+        .pos-settle--unpaid           { background: #fdecec; color: #b3261e; }
+        .pos-settle--returned_fully   { background: #fef4e4; color: #a86412; }
+        .pos-settle--partial_returned { background: #fff7ed; color: #b45309; }
+        .pos-settle--partial_both     { background: #f1f4f7; color: #56687a; }
+
         .pos-orders-collection small {
             font-weight: 800;
         }
@@ -513,12 +531,12 @@
                             <label class="form-label text-secondary fw-semibold small d-block">
                                 {{ \App\CPU\translate('حالة التحصيل') }}
                             </label>
+                            {{-- التصنيف نفسه المستعمل في تقرير المنتجات. --}}
                             <select name="done" class="custom-select shadow-sm">
                                 <option value="">{{ \App\CPU\translate('الكل') }}</option>
-                                <option value="1" @selected(request('done') === '1')>{{ \App\CPU\translate('محصّلة بالكامل') }}</option>
-                                <option value="0" @selected(request('done') === '0')>{{ \App\CPU\translate('عليها متبقي') }}</option>
-                                {{-- فواتير صدر عليها مرتجع --}}
-                                <option value="returned" @selected(request('done') === 'returned')>{{ \App\CPU\translate('عليها مرتجع') }}</option>
+                                @foreach(\App\Support\InvoiceSettlement::labels() as $value => $label)
+                                    <option value="{{ $value }}" @selected(request('done') === $value)>{{ $label }}</option>
+                                @endforeach
                             </select>
                         </div>
                     </div>
@@ -605,6 +623,7 @@
                         <th>{{\App\CPU\translate('ضريبة')}}</th>
                         <th>{{\App\CPU\translate('المبلغ المدفوع')}}</th>
                 <th>{{\App\CPU\translate('المبلغ المحصل')}}</th>
+                        <th>{{\App\CPU\translate('حالة التحصيل')}}</th>
                         <th>{{\App\CPU\translate('التحصيلات')}}</th>
                         <th class="none">{{\App\CPU\translate('صورة الفاتورة')}}</th>
                         <th class="none">{{\App\CPU\translate('روؤية الفاتورة')}}</th>
@@ -656,6 +675,20 @@
     @else
         {{ number_format($order->transaction_reference, 2) }}
     @endif
+</td>
+{{-- حالة التحصيل بالتصنيف نفسه المستعمل في تقرير المنتجات. --}}
+<td>
+    @php
+        $settle = \App\Support\InvoiceSettlement::for(
+            (float) $order->order_amount,
+            (float) $order->transaction_reference,
+            (float) ($orderedQty[$order->id] ?? 0),
+            (float) ($returnedQty[$order->id] ?? 0)
+        );
+    @endphp
+    <span class="pos-settle pos-settle--{{ $settle }}">
+        {{ \App\Support\InvoiceSettlement::label($settle) }}
+    </span>
 </td>
                             {{-- Collections: what has come in against this invoice, what is
                                  left, and the control to reverse a collection. --}}

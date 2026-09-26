@@ -192,6 +192,13 @@ class PaymentStatusConsistencyTest extends ApiTestCase
     {
         $id = (int) (DB::table('orders')->max('id') ?? 0) + 1;
 
+        // الإنتاج يكتب العمودين معًا، فتُحاكيه التجهيزة: تحديد
+        // collected_cash وحده كان يُنتج صفًّا لا يوجد مثله.
+        if (array_key_exists('collected_cash', $attributes)
+            && !array_key_exists('transaction_reference', $attributes)) {
+            $attributes['transaction_reference'] = $attributes['collected_cash'];
+        }
+
         DB::table('orders')->insert(array_merge([
             'id' => $id, 'user_id' => 90001,
             'owner_id' => ApiTestingSeeder::SELLER_ID,

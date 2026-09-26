@@ -55,10 +55,22 @@ class OrderResource extends JsonResource
         ];
     }
 
+    /**
+     * المحصَّل فعليًّا من هذه الفاتورة.
+     *
+     * transaction_reference لا collected_cash: الأولى تتراكم مع كل تحصيل
+     * لاحق، والثانية تُكتب عند البيع وحده — فكانت فاتورة محصَّلة بالكامل
+     * تُبلَّغ «غير محصَّلة» متى حُصِّلت بعد البيع.
+     */
+    private function collected(): float
+    {
+        return (float) $this->transaction_reference;
+    }
+
     /** ما زال على الفاتورة، ولا ينزل تحت الصفر عند التحصيل الزائد. */
     private function remaining(): float
     {
-        return round(max(0, (float) $this->order_amount - (float) $this->collected_cash), 2);
+        return round(max(0, (float) $this->order_amount - $this->collected()), 2);
     }
 
     /**
@@ -67,7 +79,7 @@ class OrderResource extends JsonResource
      */
     private function paymentStatus(): string
     {
-        $collected = (float) $this->collected_cash;
+        $collected = $this->collected();
 
         if ($collected <= 0) {
             return 'unpaid';
@@ -99,7 +111,7 @@ class OrderResource extends JsonResource
      */
     private function netRemaining(): float
     {
-        return round(max(0, $this->netAmount() - (float) $this->collected_cash), 2);
+        return round(max(0, $this->netAmount() - $this->collected()), 2);
     }
 
     /**
@@ -110,7 +122,7 @@ class OrderResource extends JsonResource
      */
     private function overpaid(): float
     {
-        return round(max(0, (float) $this->collected_cash - $this->netAmount()), 2);
+        return round(max(0, $this->collected() - $this->netAmount()), 2);
     }
 
     /**
@@ -133,7 +145,7 @@ class OrderResource extends JsonResource
             return 'fully_returned';
         }
 
-        if ((float) $this->collected_cash <= 0) {
+        if ($this->collected() <= 0) {
             return 'unpaid';
         }
 
