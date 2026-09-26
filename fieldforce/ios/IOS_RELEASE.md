@@ -5,7 +5,7 @@
 | Bundle ID | `com.hpii.app` |
 | الاسم الظاهر | `HPI` |
 | الإصدار | من `pubspec.yaml` → `version: 1.0.0+1` (1.0.0 = Version، 1 = Build) |
-| أقل iOS | 13.0 |
+| أقل iOS | 15.0 |
 | الأجهزة | iPhone فقط — عمودي فقط |
 | الصلاحيات | الموقع (أثناء الاستخدام) · الكاميرا · مكتبة الصور |
 | Privacy Manifest | `Runner/PrivacyInfo.xcprivacy` |
