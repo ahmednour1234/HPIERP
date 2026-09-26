@@ -1,0 +1,387 @@
+<title>FieldForce Screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  :root{
+    --bg:#EEF2F9; --panel:#FFFFFF; --ink:#0C1A33; --ink-soft:#38486A; --muted:#7A879E;
+    --line:#E2E8F2; --card:#FFFFFF; --card-line:#E8EDF5;
+    --accent:#2563EB; --accent-deep:#1D4ED8; --accent-wash:#E5EDFE;
+    --warn:#F59E0B; --danger:#EF4444; --good:#16A34A;
+    --nav:#0B183A; --nav-soft:#152449; --nav-line:#22336A;
+    --on-nav:#EEF3FF; --on-nav-muted:#93A2C6;
+    --shadow:0 20px 50px -22px rgba(15,23,41,.35);
+    --shadow-sm:0 8px 22px -14px rgba(15,23,41,.4);
+    --r:22px;
+  }
+  @media (prefers-color-scheme:dark){
+    :root:not([data-theme="light"]){
+      --bg:#0A1122; --panel:#101a30; --ink:#EEF3FF; --ink-soft:#BAC6E0; --muted:#7B8AAB;
+      --line:#22304f; --card:#132038; --card-line:#263654;
+      --accent:#4B85F5; --accent-deep:#2563EB; --accent-wash:#16264a;
+      --nav:#060D1E; --nav-soft:#111d38; --nav-line:#22315a;
+      --on-nav:#EEF3FF; --on-nav-muted:#8494b8;
+      --shadow:0 24px 60px -24px rgba(0,0,0,.7);
+      --shadow-sm:0 10px 26px -16px rgba(0,0,0,.7);
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#0A1122; --panel:#101a30; --ink:#EEF3FF; --ink-soft:#BAC6E0; --muted:#7B8AAB;
+    --line:#22304f; --card:#132038; --card-line:#263654;
+    --accent:#4B85F5; --accent-deep:#2563EB; --accent-wash:#16264a;
+    --nav:#060D1E; --nav-soft:#111d38; --nav-line:#22315a;
+    --on-nav:#EEF3FF; --on-nav-muted:#8494b8;
+    --shadow:0 24px 60px -24px rgba(0,0,0,.7);
+    --shadow-sm:0 10px 26px -16px rgba(0,0,0,.7);
+  }
+
+  *{box-sizing:border-box}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:"Cairo",system-ui,sans-serif;
+    -webkit-font-smoothing:antialiased; direction:rtl;
+  }
+  .wrap{max-width:1500px;margin:0 auto;padding:40px 28px 80px}
+
+  /* ---- header ---- */
+  header.masthead{display:flex;flex-wrap:wrap;align-items:flex-end;gap:24px;justify-content:space-between;margin-bottom:8px}
+  .brand{display:flex;align-items:center;gap:14px}
+  .logo{width:52px;height:52px;border-radius:15px;background:linear-gradient(145deg,var(--accent),var(--accent-deep));
+    display:grid;place-items:center;box-shadow:var(--shadow-sm);flex:none}
+  .logo svg{width:28px;height:28px}
+  .brand h1{font-family:"Cairo",sans-serif;font-weight:800;font-size:29px;margin:0;letter-spacing:-.02em;line-height:1}
+  .brand .kick{font-size:12.5px;color:var(--muted);letter-spacing:.14em;text-transform:uppercase;margin-top:7px;font-weight:600;direction:ltr;text-align:right}
+  .intro{max-width:430px;color:var(--ink-soft);font-size:14.5px;line-height:1.7}
+  .intro b{color:var(--ink);font-weight:600}
+
+  .legend{display:flex;flex-wrap:wrap;gap:8px;margin:26px 0 40px}
+  .chip{display:inline-flex;align-items:center;gap:7px;background:var(--panel);border:1px solid var(--line);
+    border-radius:999px;padding:7px 13px;font-size:12.5px;color:var(--ink-soft);font-weight:500}
+  .dot{width:9px;height:9px;border-radius:50%;flex:none}
+
+  /* ---- flow grid ---- */
+  .flow{display:grid;grid-template-columns:repeat(auto-fill,390px);gap:30px 46px;justify-content:center}
+  .stage{display:flex;flex-direction:column;gap:14px}
+  .stage-tag{display:flex;align-items:center;gap:10px;padding-inline-start:6px}
+  .stage-tag .num{font-family:"IBM Plex Mono",monospace;font-size:12px;font-weight:600;color:var(--accent-deep);
+    background:var(--accent-wash);border-radius:7px;padding:3px 8px;direction:ltr}
+  .stage-tag h2{font-family:"Cairo",sans-serif;font-size:17px;font-weight:700;margin:0;letter-spacing:-.01em}
+  .stage-tag .ep{margin-inline-start:auto;font-family:"IBM Plex Mono",monospace;font-size:11px;color:var(--muted);direction:ltr}
+
+  /* ---- phone ---- */
+  .phone{width:390px;background:var(--panel);border:1px solid var(--line);border-radius:36px;padding:11px;box-shadow:var(--shadow)}
+  .screen{border-radius:27px;overflow:hidden;background:var(--card);border:1px solid var(--card-line);height:720px;display:flex;flex-direction:column}
+  .screen.dark{background:var(--nav);border-color:var(--nav-line);color:var(--on-nav)}
+  .statusbar{display:flex;justify-content:space-between;align-items:center;padding:11px 20px 6px;font-size:12px;font-weight:600;font-family:"IBM Plex Mono",monospace;color:var(--muted)}
+  .screen.dark .statusbar{color:var(--on-nav-muted)}
+  .statusbar .sig{display:flex;gap:4px;align-items:center}
+  .statusbar .sig i{width:3px;border-radius:1px;background:currentColor;display:inline-block}
+  .statusbar .sig i:nth-child(1){height:5px}.statusbar .sig i:nth-child(2){height:8px}.statusbar .sig i:nth-child(3){height:11px}.statusbar .sig i:nth-child(4){height:14px}
+
+  .body{padding:8px 20px 20px;overflow:hidden;flex:1;display:flex;flex-direction:column;gap:14px}
+
+  .apptop{display:flex;align-items:center;gap:12px;padding:4px 0 2px}
+  .apptop .ico{width:38px;height:38px;border-radius:11px;background:var(--accent-wash);display:grid;place-items:center;color:var(--accent-deep);flex:none}
+  .screen.dark .apptop .ico{background:var(--nav-soft);color:var(--accent)}
+  .apptop h3{margin:0;font-family:"Cairo",sans-serif;font-size:19px;font-weight:700;letter-spacing:-.01em}
+  .apptop p{margin:2px 0 0;font-size:12px;color:var(--muted)}
+  .apptop .av{margin-inline-start:auto;width:40px;height:40px;border-radius:50%;background:linear-gradient(145deg,#334,#556);flex:none;display:grid;place-items:center;color:#fff;font-weight:700;font-size:15px;font-family:"Cairo"}
+
+  h4.sec{margin:2px 0 -2px;font-size:13px;font-weight:600;color:var(--muted);letter-spacing:.02em}
+
+  .card{background:var(--card);border:1px solid var(--card-line);border-radius:16px;padding:15px}
+  .screen.dark .card{background:var(--nav-soft);border-color:var(--nav-line)}
+
+  /* KPI */
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .kpi{background:var(--card);border:1px solid var(--card-line);border-radius:15px;padding:14px}
+  .screen.dark .kpi{background:var(--nav-soft);border-color:var(--nav-line)}
+  .kpi .lbl{font-size:12px;color:var(--muted);margin-bottom:8px}
+  .kpi .val{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;letter-spacing:-.02em;direction:ltr;text-align:right}
+  .kpi .val small{font-size:12px;color:var(--muted);font-weight:500}
+  .kpi .delta{font-size:11.5px;font-weight:600;margin-top:6px;display:inline-flex;gap:4px;align-items:center}
+  .up{color:var(--good)} .down{color:var(--danger)}
+
+  /* chart */
+  .chart{height:120px;width:100%;display:block}
+  .chart-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+  .chart-head .t{font-size:13px;font-weight:600}
+  .chart-head .pill{font-size:11px;color:var(--accent-deep);background:var(--accent-wash);border-radius:999px;padding:3px 9px;font-weight:600}
+
+  /* list rows */
+  .row{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--card-line)}
+  .row:last-child{border-bottom:0}
+  .screen.dark .row{border-color:var(--nav-line)}
+  .row .thumb{width:42px;height:42px;border-radius:12px;background:var(--accent-wash);color:var(--accent-deep);display:grid;place-items:center;font-weight:700;font-family:"Cairo";flex:none;font-size:15px}
+  .row .meta{min-width:0;flex:1}
+  .row .meta .n{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row .meta .s{font-size:12px;color:var(--muted);margin-top:2px}
+  .row .amt{font-family:"IBM Plex Mono",monospace;font-weight:600;font-size:14px;direction:ltr;flex:none}
+  .badge{font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;white-space:nowrap}
+  .b-good{background:var(--accent-wash);color:var(--accent-deep)}
+  .b-warn{background:#FEF3E2;color:#B4740B}
+  .b-dang{background:#FDE7E7;color:#C0362F}
+  :root[data-theme="dark"] .b-warn,:root:not([data-theme="light"]) .b-warn{background:#3a2c10;color:#f2b957}
+  :root[data-theme="dark"] .b-dang,:root:not([data-theme="light"]) .b-dang{background:#3a1818;color:#f08e8e}
+
+  /* inputs */
+  .field{margin-top:2px}
+  .field label{display:block;font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;font-weight:500}
+  .input{display:flex;align-items:center;gap:10px;background:var(--card);border:1px solid var(--card-line);border-radius:13px;padding:13px 14px;font-size:14px;color:var(--ink-soft)}
+  .screen.dark .input{background:var(--nav-soft);border-color:var(--nav-line)}
+  .input .ph{color:var(--muted)}
+  .input.focus{border-color:var(--accent);box-shadow:0 0 0 3px var(--accent-wash)}
+  :root[data-theme="dark"] .input.focus,:root:not([data-theme="light"]) .input.focus{box-shadow:0 0 0 3px rgba(25,198,182,.15)}
+
+  .btn{display:flex;align-items:center;justify-content:center;gap:8px;background:var(--accent);color:#fff;border-radius:14px;padding:15px;font-size:15px;font-weight:700;font-family:"Cairo";border:none;box-shadow:0 10px 22px -12px var(--accent-deep)}
+  .btn.ghost{background:transparent;color:var(--accent-deep);box-shadow:none;border:1.5px solid var(--accent)}
+  .screen.dark .btn.ghost{color:var(--accent)}
+  .btn.danger{background:var(--danger);box-shadow:0 10px 22px -12px var(--danger)}
+
+  .seg{display:flex;background:var(--card);border:1px solid var(--card-line);border-radius:13px;padding:4px;gap:4px}
+  .screen.dark .seg{background:var(--nav-soft);border-color:var(--nav-line)}
+  .seg span{flex:1;text-align:center;font-size:13px;font-weight:600;padding:9px;border-radius:9px;color:var(--muted)}
+  .seg span.on{background:var(--accent);color:#fff}
+  .seg span.on.dang{background:var(--danger)}
+
+  .total-bar{margin-top:auto;background:var(--accent-wash);border:1px solid var(--accent);border-radius:15px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center}
+  .screen.dark .total-bar{background:var(--nav-soft);border-color:var(--accent-deep)}
+  .total-bar .tl{font-size:12.5px;color:var(--ink-soft)}
+  .total-bar .tv{font-family:"IBM Plex Mono",monospace;font-size:22px;font-weight:600;color:var(--accent-deep);direction:ltr}
+  .screen.dark .total-bar .tv{color:var(--accent)}
+
+  /* bottom nav */
+  .tabbar{margin-top:auto;display:flex;background:var(--card);border-top:1px solid var(--card-line);padding:11px 8px 14px;gap:4px}
+  .screen.dark .tabbar{background:var(--nav-soft);border-color:var(--nav-line)}
+  .tab{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;font-size:11px;color:var(--muted);font-weight:600}
+  .tab.on{color:var(--accent-deep)} .screen.dark .tab.on{color:var(--accent)}
+  .tab svg{width:22px;height:22px}
+  .nobody{padding:0} /* screens that manage their own padding */
+
+  /* login specifics */
+  .login-body{flex:1;display:flex;flex-direction:column;padding:0 24px 26px}
+  .login-hero{flex:1;display:flex;flex-direction:column;justify-content:center;align-items:center;gap:18px;text-align:center}
+  .login-hero .mark{width:78px;height:78px;border-radius:24px;background:linear-gradient(145deg,var(--accent),var(--accent-deep));display:grid;place-items:center;box-shadow:0 20px 40px -18px var(--accent-deep)}
+  .login-hero .mark svg{width:42px;height:42px}
+  .login-hero h2{font-family:"Cairo";font-size:25px;font-weight:800;margin:6px 0 0;letter-spacing:-.02em}
+  .login-hero p{margin:0;font-size:13.5px;color:var(--on-nav-muted);max-width:250px;line-height:1.6}
+  .login-form{display:flex;flex-direction:column;gap:14px}
+
+  .foot{margin-top:52px;text-align:center;color:var(--muted);font-size:12.5px;line-height:1.8}
+  .foot b{color:var(--ink-soft);font-weight:600}
+  .foot code{font-family:"IBM Plex Mono",monospace;background:var(--panel);border:1px solid var(--line);padding:1px 7px;border-radius:6px;direction:ltr;display:inline-block}
+
+  .mini{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px;margin-top:2px}
+  .gps{color:var(--accent-deep)} .screen.dark .gps{color:var(--accent)}
+</style>
+
+<div class="wrap">
+  <header class="masthead">
+    <div class="brand">
+      <div class="logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg>
+      </div>
+      <div>
+        <h1>FieldForce</h1>
+        <div class="kick">Field Sales · Concept UI</div>
+      </div>
+    </div>
+    <p class="intro">تصور بصري لتطبيق <b>مندوب مبيعات وتوزيع ميداني</b> — الشاشات مرتّبة حسب رحلة المندوب اليومية: من تسجيل الدخول والبصمة، مروراً بالبيع والتحصيل والزيارات. هوية جديدة مبنية على نفس الـ flow الوظيفي.</p>
+  </header>
+
+  <div class="legend">
+    <span class="chip"><span class="dot" style="background:var(--accent)"></span> Accent — مبيعات وأزرار</span>
+    <span class="chip"><span class="dot" style="background:var(--good)"></span> نجاح / محصّل</span>
+    <span class="chip"><span class="dot" style="background:var(--warn)"></span> معلّق / انتظار</span>
+    <span class="chip"><span class="dot" style="background:var(--danger)"></span> مرتجع / غير محصّل</span>
+    <span class="chip"><span class="dot" style="background:var(--muted)"></span> GPS + صورة مرفقة</span>
+  </div>
+
+  <div class="flow">
+
+    <!-- 1. LOGIN -->
+    <div class="stage">
+      <div class="stage-tag"><span class="num">01</span><h2>تسجيل الدخول</h2><span class="ep">POST /login</span></div>
+      <div class="phone"><div class="screen dark">
+        <div class="statusbar"><span>9:41</span><span class="sig"><i></i><i></i><i></i><i></i></span></div>
+        <div class="login-body">
+          <div class="login-hero">
+            <div class="mark"><svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></div>
+            <h2>أهلاً بيك في FieldForce</h2>
+            <p>ادخل كود المندوب وكلمة المرور لبدء يومك.</p>
+          </div>
+          <div class="login-form">
+            <div class="field"><label>كود المندوب</label><div class="input focus"><span>FF-2048</span></div></div>
+            <div class="field"><label>كلمة المرور</label><div class="input"><span class="ph">••••••••</span></div></div>
+            <button class="btn">تسجيل الدخول</button>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 2. FINGERPRINT / ATTENDANCE -->
+    <div class="stage">
+      <div class="stage-tag"><span class="num">02</span><h2>بصمة الحضور</h2><span class="ep">POST /attendance</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>9:44</span><span class="sig"><i></i><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="apptop"><div class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 11a3 3 0 0 0-3 3c0 2 0 4-1 5"/><path d="M12 8a6 6 0 0 1 6 6"/><path d="M6 14a6 6 0 0 1 9-5.2"/><path d="M12 14v1c0 3-1 5-1 5"/></svg></div><div><h3>الحضور اليومي</h3><p>سجّل بصمتك لبدء الرحلة</p></div></div>
+          <div class="card" style="text-align:center;padding:26px 15px">
+            <div style="width:96px;height:96px;border-radius:50%;margin:4px auto 14px;background:var(--accent-wash);display:grid;place-items:center;color:var(--accent-deep)">
+              <svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 12a7 7 0 0 1 14 0"/><path d="M7.5 13a4.5 4.5 0 0 1 9 0v2"/><path d="M10 14v3"/><path d="M14 14v4"/><path d="M12 13v6"/></svg>
+            </div>
+            <div style="font-family:"Cairo";font-weight:700;font-size:17px">اضغط لتسجيل الحضور</div>
+            <div class="mini gps" style="justify-content:center;margin-top:8px"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> تم تحديد موقعك · القاهرة</div>
+          </div>
+          <div class="row"><div class="thumb" style="background:var(--accent-wash)">✓</div><div class="meta"><div class="n">حضور — 26 أغسطس</div><div class="s">9:44 ص · الفرع الرئيسي</div></div><span class="badge b-good">مسجّل</span></div>
+          <div class="row"><div class="thumb" style="background:#FEF3E2;color:#B4740B">؟</div><div class="meta"><div class="n">انصراف</div><div class="s">لم يُسجّل بعد</div></div><span class="badge b-warn">معلّق</span></div>
+          <button class="btn" style="margin-top:auto">تسجيل البصمة الآن</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 3. STATISTICS / HOME -->
+    <div class="stage">
+      <div class="stage-tag"><span class="num">03</span><h2>الإحصائيات (الرئيسية)</h2><span class="ep">GET /revenue-summary</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>10:02</span><span class="sig"><i></i><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="apptop"><div class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l3-4 3 2 4-6"/></svg></div><div><h3>أهلاً، كريم</h3><p>ملخص أدائك اليوم</p></div><div class="av">ك</div></div>
+          <div class="kpis">
+            <div class="kpi"><div class="lbl">مبيعات اليوم</div><div class="val">4,820 <small>ج</small></div><div class="delta up">▲ 12% عن أمس</div></div>
+            <div class="kpi"><div class="lbl">تحصيلات</div><div class="val">2,150 <small>ج</small></div><div class="delta up">▲ 6 فواتير</div></div>
+            <div class="kpi"><div class="lbl">زيارات منفّذة</div><div class="val">8<small>/12</small></div><div class="delta down">▼ 4 متبقية</div></div>
+            <div class="kpi"><div class="lbl">طلبات جديدة</div><div class="val">5</div><div class="delta up">▲ 2 تقسيط</div></div>
+          </div>
+          <div class="card">
+            <div class="chart-head"><span class="t">أداء الأسبوع</span><span class="pill">+18%</span></div>
+            <svg class="chart" viewBox="0 0 300 120" preserveAspectRatio="none">
+              <defs><linearGradient id="g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="var(--accent)" stop-opacity=".28"/><stop offset="1" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>
+              <line x1="0" y1="30" x2="300" y2="30" stroke="var(--card-line)" stroke-width="1"/><line x1="0" y1="60" x2="300" y2="60" stroke="var(--card-line)" stroke-width="1"/><line x1="0" y1="90" x2="300" y2="90" stroke="var(--card-line)" stroke-width="1"/>
+              <path d="M0,88 L50,72 L100,80 L150,50 L200,58 L250,32 L300,20 L300,120 L0,120 Z" fill="url(#g)"/>
+              <path d="M0,88 L50,72 L100,80 L150,50 L200,58 L250,32 L300,20" fill="none" stroke="var(--accent)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="300" cy="20" r="4.5" fill="var(--accent)" stroke="var(--card)" stroke-width="2"/>
+            </svg>
+          </div>
+        </div>
+        <div class="tabbar">
+          <div class="tab on"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 3v18h18"/><path d="M7 13l3-3 3 2 4-5"/></svg>إحصائيات</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>تحصيلات</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg>مبيعات</div>
+          <div class="tab"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 5h6M9 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2M9 11h6M9 15h4"/></svg>طلبات</div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 4. SALES -->
+    <div class="stage">
+      <div class="stage-tag"><span class="num">04</span><h2>المبيعات (POS)</h2><span class="ep">POST /place/order</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>10:31</span><span class="sig"><i></i><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="apptop"><div class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><path d="M3 6h18M16 10a4 4 0 0 1-8 0"/></svg></div><div><h3>فاتورة بيع</h3><p>صيدلية النور — عميل #1042</p></div></div>
+          <div class="seg"><span class="on">كاش</span><span>تقسيط</span><span class="dang">مرتجع</span></div>
+          <div class="input"><span class="ph">🔍 ابحث عن منتج…</span></div>
+          <div class="card" style="padding:6px 15px">
+            <div class="row"><div class="thumb">P1</div><div class="meta"><div class="n">باراسيتامول 500</div><div class="s">×3 · 12.00 للوحدة</div></div><span class="amt">36.00</span></div>
+            <div class="row"><div class="thumb">P2</div><div class="meta"><div class="n">فيتامين سي فوار</div><div class="s">×2 · 25.00 للوحدة</div></div><span class="amt">50.00</span></div>
+            <div class="row"><div class="thumb">P3</div><div class="meta"><div class="n">مطهر معوي شراب</div><div class="s">×1 · 18.50 للوحدة</div></div><span class="amt">18.50</span></div>
+          </div>
+          <div class="total-bar"><div><div class="tl">الإجمالي (شامل الضريبة)</div><div class="mini gps"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> موقع البيع مسجّل</div></div><div class="tv">104.50</div></div>
+          <button class="btn">تأكيد وطباعة الفاتورة</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 5. COLLECTIONS -->
+    <div class="stage">
+      <div class="stage-tag"><span class="num">05</span><h2>التحصيلات</h2><span class="ep">POST /transactionseller</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>11:10</span><span class="sig"><i></i><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="apptop"><div class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M12 1v22M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div><div><h3>تحصيل نقدي</h3><p>عميل: صيدلية النور</p></div></div>
+          <div class="field"><label>حساب الدفع</label><div class="input"><span>البنك الأهلي — جاري ‹تغيير›</span></div></div>
+          <div class="field"><label>المبلغ المحصّل</label><div class="input focus" style="justify-content:space-between"><span style="font-family:'IBM Plex Mono';font-size:22px;font-weight:600;color:var(--accent-deep);direction:ltr">1,500.00</span><span class="ph">ج.م</span></div></div>
+          <div class="field"><label>إرفاق إيصال</label>
+            <div class="card" style="border-style:dashed;text-align:center;padding:22px;color:var(--muted)">
+              <svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="currentColor" stroke-width="1.6" style="margin-bottom:6px"><rect x="3" y="4" width="18" height="16" rx="2"/><circle cx="9" cy="10" r="2"/><path d="m21 16-5-5L5 20"/></svg>
+              <div style="font-size:13px">صوّر أو ارفع صورة الإيصال</div>
+            </div>
+          </div>
+          <div class="mini gps"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> الموقع يُرفق تلقائياً مع التحصيل</div>
+          <button class="btn" style="margin-top:auto">تأكيد التحصيل</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 6. ORDERS -->
+    <div class="stage">
+      <div class="stage-tag"><span class="num">06</span><h2>الطلبات</h2><span class="ep">GET /order/list</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>11:38</span><span class="sig"><i></i><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="apptop"><div class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"><path d="M9 5h6M9 5a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2M9 11h6M9 15h4"/></svg></div><div><h3>الطلبات</h3><p>كل طلبات اليوم</p></div></div>
+          <div class="seg"><span class="on">الكل</span><span>كاش</span><span>تقسيط</span></div>
+          <div class="card" style="padding:4px 15px">
+            <div class="row"><div class="thumb">#42</div><div class="meta"><div class="n">صيدلية النور</div><div class="s">3 أصناف · كاش</div></div><span class="badge b-good">مكتمل</span></div>
+            <div class="row"><div class="thumb">#43</div><div class="meta"><div class="n">صيدلية الشفاء</div><div class="s">5 أصناف · تقسيط</div></div><span class="badge b-warn">قيد التنفيذ</span></div>
+            <div class="row"><div class="thumb" style="background:#FDE7E7;color:#C0362F">#44</div><div class="meta"><div class="n">صيدلية الحياة</div><div class="s">مرتجع · صنفين</div></div><span class="badge b-dang">مرتجع</span></div>
+            <div class="row"><div class="thumb">#45</div><div class="meta"><div class="n">مركز الدواء</div><div class="s">2 أصناف · كاش</div></div><span class="badge b-good">مكتمل</span></div>
+          </div>
+          <div class="kpis" style="margin-top:2px">
+            <div class="kpi"><div class="lbl">إجمالي الطلبات</div><div class="val">7,340 <small>ج</small></div></div>
+            <div class="kpi"><div class="lbl">عدد الطلبات</div><div class="val">12</div></div>
+          </div>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 7. VISITS -->
+    <div class="stage">
+      <div class="stage-tag"><span class="num">07</span><h2>الزيارات</h2><span class="ep">POST /visitor/store</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>12:05</span><span class="sig"><i></i><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="apptop"><div class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.6"/></svg></div><div><h3>تسجيل زيارة</h3><p>الزيارات المطلوبة اليوم</p></div></div>
+          <div class="card" style="padding:4px 15px">
+            <div class="row"><div class="thumb" style="background:var(--accent-wash)">✓</div><div class="meta"><div class="n">صيدلية النور</div><div class="s">تمّت · 10:31</div></div><span class="badge b-good">منفّذة</span></div>
+            <div class="row"><div class="thumb" style="background:#FEF3E2;color:#B4740B">→</div><div class="meta"><div class="n">صيدلية الشفاء</div><div class="s">التالية · 800م</div></div><span class="badge b-warn">التالية</span></div>
+            <div class="row"><div class="thumb" style="background:#F0F1F5;color:#7A8299">·</div><div class="meta"><div class="n">مركز الدواء</div><div class="s">مجدولة · 2:00 م</div></div><span class="badge" style="background:#F0F1F5;color:#7A8299">لاحقاً</span></div>
+          </div>
+          <h4 class="sec">نتيجة الزيارة</h4>
+          <div class="seg"><span class="on">تمّت</span><span>مغلق</span><span>غير موجود</span></div>
+          <div class="input"><span class="ph">ملاحظات الزيارة…</span></div>
+          <div class="mini gps"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> يُسجّل الموقع والوقت مع الزيارة</div>
+          <button class="btn" style="margin-top:auto">حفظ الزيارة</button>
+        </div>
+      </div></div>
+    </div>
+
+    <!-- 8. ADD CUSTOMER -->
+    <div class="stage">
+      <div class="stage-tag"><span class="num">08</span><h2>إضافة عميل</h2><span class="ep">POST /customer/store</span></div>
+      <div class="phone"><div class="screen">
+        <div class="statusbar"><span>12:40</span><span class="sig"><i></i><i></i><i></i><i></i></span></div>
+        <div class="body">
+          <div class="apptop"><div class="ico"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="10" cy="8" r="4"/><path d="M2 21a8 8 0 0 1 13-6.2M19 8v6M22 11h-6"/></svg></div><div><h3>عميل جديد</h3><p>سجّل نقطة بيع جديدة</p></div></div>
+          <div class="field"><label>اسم المحل</label><div class="input"><span class="ph">صيدلية / سوبر ماركت…</span></div></div>
+          <div class="field"><label>التصنيف</label><div class="input"><span>صيدليات ‹اختيار›</span></div></div>
+          <div class="field"><label>رقم الهاتف</label><div class="input"><span class="ph">01X XXXX XXXX</span></div></div>
+          <div class="field"><label>الموقع على الخريطة</label>
+            <div class="card" style="padding:0;overflow:hidden;height:96px;position:relative;background:linear-gradient(135deg,#dfeeed,#eef2f6)">
+              <svg viewBox="0 0 300 96" style="width:100%;height:100%;display:block"><path d="M0 60 Q60 30 120 55 T300 40" fill="none" stroke="#c3ccd6" stroke-width="6"/><path d="M40 0 L70 96" stroke="#cfd6df" stroke-width="4"/><path d="M200 0 L230 96" stroke="#cfd6df" stroke-width="4"/><circle cx="150" cy="48" r="9" fill="var(--accent)" stroke="#fff" stroke-width="3"/></svg>
+              <div class="mini gps" style="position:absolute;bottom:8px;inset-inline-start:12px;background:var(--card);padding:4px 9px;border-radius:8px"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 21s-7-5.2-7-11a7 7 0 0 1 14 0c0 5.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg> تم تثبيت الموقع</div>
+            </div>
+          </div>
+          <button class="btn" style="margin-top:auto">حفظ العميل</button>
+        </div>
+      </div></div>
+    </div>
+
+  </div>
+
+  <p class="foot">
+    <b>FieldForce</b> — تصور بصري (Concept UI) لتطبيق مندوب مبيعات ميداني.<br>
+    مبني على تحليل الـ flow في <code>APP_FLOW.md</code> و <code>API_REFERENCE.md</code> · هوية جديدة مستقلة تماماً عن التطبيق الأصلي.
+  </p>
+</div>

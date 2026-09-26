@@ -1,0 +1,10 @@
+# ملفات البناء والسجلات
+*.apk
+*.aab
+*.ipa
+*.log
+hs_err_pid*
+replay_pid*
+
+# إعدادات المحرر المحلية
+.vscode/
