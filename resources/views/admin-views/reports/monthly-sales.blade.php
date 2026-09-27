@@ -400,6 +400,17 @@
                     @endforeach
                 </select>
             </div>
+
+            {{-- القسم المعروض: التقرير طويل، وأغلب المراجعات تخصّ جانبًا
+                 واحدًا. الجانب غير المختار لا يُحسب أصلًا. --}}
+            <div class="col-md-3 mb-2">
+                <label class="font-weight-bold">القسم</label>
+                <select name="section" class="form-control selectpicker-ignore">
+                    <option value="all"   @selected(($section ?? 'all') === 'all')>المخزون والمبيعات</option>
+                    <option value="stock" @selected(($section ?? '') === 'stock')>المخزون فقط</option>
+                    <option value="sales" @selected(($section ?? '') === 'sales')>المبيعات فقط</option>
+                </select>
+            </div>
         </div>
 
         <div class="mt-2">
@@ -427,6 +438,7 @@
     {{-- ============ جداول كل منطقة على حدة ============ --}}
     @foreach($perRegion as $block)
         {{-- مخزون المنطقة --}}
+        @if($wantStock ?? true)
         <div class="ms-block">
             <div class="text-center mb-3">
                 <span class="ms-title">مخزون منطقة {{ $block['region']->name }}</span>
@@ -461,8 +473,10 @@
                 </table>
             </div>
         </div>
+        @endif
 
         {{-- مبيعات المنطقة: لكل منتج عمودان (عدد عبوات + المبلغ) --}}
+        @if($wantSales ?? true)
         <div class="ms-block">
             <div class="text-center mb-3">
                 <span class="ms-title">مبيعات منطقة {{ $block['region']->name }}</span>
@@ -509,9 +523,11 @@
                 </table>
             </div>
         </div>
+        @endif
     @endforeach
 
     {{-- ============ التحصيلات: منتج × منطقة ============ --}}
+    @if($wantSales ?? true)
     <div class="ms-block ms-panel">
         <div class="ms-panel-header">
             <div>
@@ -583,8 +599,10 @@
             </div>
         </div>
     </div>
+    @endif
 
     {{-- ============ الجداول المجمّعة ============ --}}
+    @if($wantStock ?? true)
     <div class="ms-block">
         <div class="text-center mb-3">
             <span class="ms-title">إجمالي المخزون</span>
@@ -619,7 +637,9 @@
             </table>
         </div>
     </div>
+    @endif
 
+    @if($wantSales ?? true)
     <div class="ms-block">
         <div class="text-center mb-3">
             <span class="ms-title">إجمالي المبيعات</span>
@@ -666,6 +686,7 @@
             </table>
         </div>
     </div>
+    @endif
 
     @endif
 </div>

@@ -88,4 +88,78 @@ class MonthlySalesReportTest extends ApiTestCase
             'updated_at' => $createdAt,
         ]);
     }
+
+    /**
+     * فلتر القسم يحذف الجانب غير المطلوب من الحساب والعرض.
+     *
+     * لا يُخفيه بعد حسابه: الجداول الغائبة يجب ألّا تُبنى أصلًا، وإلا بقي
+     * التقرير بطيئًا بلا سبب.
+     */
+    public function test_the_section_filter_drops_the_other_side(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 15, 10));
+
+        try {
+            $this->actingAs(Admin::find(ApiTestingSeeder::ADMIN_ID), 'admin');
+
+            $build = (new ReflectionClass(MonthlySalesReportController::class))
+                ->getMethod('build');
+            $build->setAccessible(true);
+
+            $controller = app(MonthlySalesReportController::class);
+
+            $all = $build->invoke($controller, Request::create('/', 'GET', ['section' => 'all']));
+            $this->assertTrue($all['wantStock']);
+            $this->assertTrue($all['wantSales']);
+
+            $stock = $build->invoke($controller, Request::create('/', 'GET', ['section' => 'stock']));
+            $this->assertTrue($stock['wantStock']);
+            $this->assertFalse($stock['wantSales']);
+            $this->assertSame([], $stock['totals']['sales']);
+            // التحصيلات جزء من جانب المبيعات.
+            $this->assertSame([], $stock['collections']);
+
+            $sales = $build->invoke($controller, Request::create('/', 'GET', ['section' => 'sales']));
+            $this->assertFalse($sales['wantStock']);
+            $this->assertTrue($sales['wantSales']);
+            $this->assertSame([], $sales['totals']['stock']);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /** بلا اختيار يبقى التقرير كاملًا كما كان. */
+    public function test_it_shows_both_sides_by_default(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 15, 10));
+
+        try {
+            $this->actingAs(Admin::find(ApiTestingSeeder::ADMIN_ID), 'admin');
+
+            $build = (new ReflectionClass(MonthlySalesReportController::class))->getMethod('build');
+            $build->setAccessible(true);
+
+            $data = $build->invoke(app(MonthlySalesReportController::class), Request::create('/', 'GET'));
+
+            $this->assertSame('all', $data['section']);
+            $this->assertTrue($data['wantStock']);
+            $this->assertTrue($data['wantSales']);
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /** قيمة غير معروفة تُرفض بالتحقّق بدل أن تُفسَّر تفسيرًا صامتًا. */
+    public function test_an_unknown_section_is_rejected(): void
+    {
+        $build = (new ReflectionClass(MonthlySalesReportController::class))->getMethod('build');
+        $build->setAccessible(true);
+
+        $this->expectException(\Illuminate\Validation\ValidationException::class);
+
+        $build->invoke(
+            app(MonthlySalesReportController::class),
+            Request::create('/', 'GET', ['section' => 'nonsense'])
+        );
+    }
 }

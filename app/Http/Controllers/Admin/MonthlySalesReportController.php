@@ -55,6 +55,7 @@ class MonthlySalesReportController extends Controller
             'region_ids.*'  => 'exists:regions,id',
             'seller_ids'    => 'nullable|array',
             'seller_ids.*'  => 'exists:admins,id',
+            'section'       => 'nullable|in:all,stock,sales',
         ]);
 
         $month = $request->filled('month')
@@ -93,10 +94,16 @@ class MonthlySalesReportController extends Controller
                 ->toArray(),
         ];
 
+        // القسم المعروض: الكل أو المخزون وحده أو المبيعات وحدها. الجانب
+        // غير المطلوب لا يُحسب أصلًا بدل أن يُحسب ثم يُخفى.
+        $section   = $request->input('section', 'all');
+        $wantStock = $section !== 'sales';
+        $wantSales = $section !== 'stock';
+
         $perRegion = $regions->map(fn ($region) => [
             'region' => $region,
-            'stock'  => $this->stockRows($products, $sellerIds, $start, $end, $region->id),
-            'sales'  => $this->salesRows($products, $sellerIds, $start, $end, $region->id),
+            'stock'  => $wantStock ? $this->stockRows($products, $sellerIds, $start, $end, $region->id) : [],
+            'sales'  => $wantSales ? $this->salesRows($products, $sellerIds, $start, $end, $region->id) : [],
         ])->values();
 
         return [
@@ -104,11 +111,17 @@ class MonthlySalesReportController extends Controller
             'products'    => $products,
             'regions'     => $regions,
             'perRegion'   => $perRegion,
+            'section'     => $section,
+            'wantStock'   => $wantStock,
+            'wantSales'   => $wantSales,
             'totals'      => [
-                'stock' => $this->stockRows($products, $sellerIds, $start, $end, null),
-                'sales' => $this->salesRows($products, $sellerIds, $start, $end, null),
+                'stock' => $wantStock ? $this->stockRows($products, $sellerIds, $start, $end, null) : [],
+                'sales' => $wantSales ? $this->salesRows($products, $sellerIds, $start, $end, null) : [],
             ],
-            'collections' => $this->collectionMatrix($products, $regions, $sellerIds, $start, $end),
+            // جدول التحصيلات جزء من جانب المبيعات، فيتبع اختياره.
+            'collections' => $wantSales
+                ? $this->collectionMatrix($products, $regions, $sellerIds, $start, $end)
+                : [],
         ];
     }
 
@@ -581,6 +594,13 @@ class MonthlySalesReportController extends Controller
             fputcsv($out, array_merge(['القسم', 'المنطقة', 'المقارنة'], $names, ['الإجمالي العام']));
 
             $emit = function ($section, $regionName, $labels, $source, $isMoney) use ($out, $data) {
+                // الحلقة على التسميات لا على البيانات، فمصدر فارغ كان
+                // يُخرج صفوف أصفار بدل ألّا يُخرج شيئًا — وهو ما يجعل
+                // فلتر القسم بلا أثر في الملف المصدَّر.
+                if (empty($source)) {
+                    return;
+                }
+
                 foreach ($labels as $key => $label) {
                     if ($isMoney) {
                         $qty = $data['products']->map(fn ($p) => round($source[$key][$p->id]['qty'] ?? 0, 2))->all();
@@ -606,7 +626,13 @@ class MonthlySalesReportController extends Controller
             $emit('إجمالي المخزون', 'كل المناطق', self::stockLabels(), $data['totals']['stock'], false);
             $emit('إجمالي المبيعات', 'كل المناطق', self::salesLabels(), $data['totals']['sales'], true);
 
-            // التحصيلات: منتج × منطقة
+            // التحصيلات: منتج × منطقة. تُحذف كلّها حين يُطلب المخزون وحده،
+            // وإلا طُبع رأس جدول بلا صفوف تحته.
+            if (empty($data['collections'])) {
+                fclose($out);
+                return;
+            }
+
             fputcsv($out, []);
             $header = ['التحصيلات', 'المنتج'];
             foreach ($data['regions'] as $r) {
