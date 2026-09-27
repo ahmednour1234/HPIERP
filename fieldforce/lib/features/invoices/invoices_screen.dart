@@ -26,6 +26,7 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
 
   String _search = '';
   Timer? _debounce;
+  DateTimeRange? _range; // فلتر التاريخ (تاريخ الفاتورة) — null = كل التواريخ
 
   // كل فواتير المندوب تُحمَّل مرة واحدة، والتبويبات والبحث والإجماليات
   // تُحسب محلياً بنفس معادلة الشارة (من net_remaining) — لأن فلترة
@@ -89,8 +90,18 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   List<Order> get _visible {
     final status = _statuses[_tab];
     final q = _search.trim().replaceAll('#', '').toLowerCase();
+    final from = _range == null ? null : _ymd(_range!.start);
+    final to = _range == null ? null : _ymd(_range!.end);
     return _all.where((o) {
       if (status != null && o.paymentStatus != status) return false;
+      if (from != null) {
+        // مقارنة نصية لـ YYYY-MM-DD (نفس ترتيب التاريخ).
+        final raw = o.createdAt ?? '';
+        final d = raw.length >= 10 ? raw.substring(0, 10) : '';
+        if (d.isEmpty || d.compareTo(from) < 0 || d.compareTo(to!) > 0) {
+          return false;
+        }
+      }
       if (q.isEmpty) return true;
       return '${o.id}'.contains(q) || o.customerName.toLowerCase().contains(q);
     }).toList();
@@ -115,6 +126,23 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   }
 
   void _setTab(int i) => setState(() => _tab = i);
+
+  Future<void> _pickRange() async {
+    final now = DateTime.now();
+    final r = await showDateRangePicker(
+      context: context,
+      initialEntryMode: DatePickerEntryMode.calendarOnly,
+      firstDate: DateTime(now.year - 3),
+      lastDate: DateTime(now.year, now.month, now.day),
+      initialDateRange: _range,
+      helpText: 'فترة الفواتير',
+      saveText: 'تطبيق',
+    );
+    if (r != null) setState(() => _range = r);
+  }
+
+  static String _ymd(DateTime d) =>
+      '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
 
   Future<void> _refresh() => _load();
 
@@ -141,14 +169,68 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                         : 'حسب حالة التحصيل',
                   ),
                   const SizedBox(height: 14),
-                  TextField(
-                    onChanged: _onSearch,
-                    decoration: const InputDecoration(
-                      hintText: 'ابحث برقم الفاتورة أو اسم العميل…',
-                      prefixIcon:
-                          Icon(Icons.search, color: AppColors.muted),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          onChanged: _onSearch,
+                          decoration: const InputDecoration(
+                            hintText: 'ابحث برقم الفاتورة أو اسم العميل…',
+                            prefixIcon:
+                                Icon(Icons.search, color: AppColors.muted),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      // زرار فلتر التاريخ — يتلوّن لما يكون فيه فترة مختارة.
+                      Material(
+                        color: _range == null
+                            ? AppColors.surface
+                            : AppColors.primary,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(13),
+                          side: BorderSide(
+                              color: _range == null
+                                  ? AppColors.line
+                                  : AppColors.primary),
+                        ),
+                        child: InkWell(
+                          borderRadius: BorderRadius.circular(13),
+                          onTap: _pickRange,
+                          child: SizedBox(
+                            width: 50,
+                            height: 50,
+                            child: Icon(Icons.date_range_rounded,
+                                color: _range == null
+                                    ? AppColors.primary
+                                    : Colors.white),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+                  if (_range != null) ...[
+                    const SizedBox(height: 10),
+                    Align(
+                      alignment: AlignmentDirectional.centerStart,
+                      child: InputChip(
+                        avatar: const Icon(Icons.event,
+                            size: 16, color: AppColors.primary),
+                        label: Text(
+                            '${_ymd(_range!.start)}  ←  ${_ymd(_range!.end)}',
+                            textDirection: TextDirection.ltr,
+                            style: const TextStyle(
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w600,
+                                color: AppColors.primaryDeep)),
+                        backgroundColor: AppColors.primaryWash,
+                        side: BorderSide.none,
+                        onPressed: _pickRange,
+                        onDeleted: () => setState(() => _range = null),
+                        deleteIconColor: AppColors.primaryDeep,
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                   SegmentedTabs(
                     items: const ['الكل', 'غير محصّلة', 'جزئي', 'محصّلة'],
