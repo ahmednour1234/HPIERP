@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import '../../core/network/api_client.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_widgets.dart';
@@ -20,124 +21,102 @@ class InvoicesScreen extends StatefulWidget {
 class _InvoicesScreenState extends State<InvoicesScreen> {
   final _repo = OrderRepository();
   int _tab = 0;
-  // null = الكل · unpaid · partial · paid — تُرسل كـ payment_status
+  // null = الكل · unpaid · partial · paid — حسب Order.paymentStatus
   static const _statuses = [null, 'unpaid', 'partial', 'paid'];
 
   String _search = '';
   Timer? _debounce;
-  final _scroll = ScrollController();
 
-  final List<Order> _items = [];
-  OrderTotals? _totals;
+  // كل فواتير المندوب تُحمَّل مرة واحدة، والتبويبات والبحث والإجماليات
+  // تُحسب محلياً بنفس معادلة الشارة (من net_remaining) — لأن فلترة
+  // payment_status وإجماليات /orders/totals على السيرفر مش متطابقة معاها.
+  List<Order> _all = const [];
   bool _loading = true;
-  bool _loadingMore = false;
-  bool _hasMore = true;
-  int _page = 1;
   Object? _error;
-  // يتجاهل ردود الطلبات القديمة عند تغيير التبويب/البحث بسرعة.
   int _reqId = 0;
 
   @override
   void initState() {
     super.initState();
-    _fetch(reset: true);
-    _scroll.addListener(() {
-      if (_scroll.position.pixels >= _scroll.position.maxScrollExtent - 300 &&
-          !_loading &&
-          !_loadingMore &&
-          _hasMore) {
-        _fetch();
-      }
-    });
+    _load();
   }
 
   @override
   void dispose() {
     _debounce?.cancel();
-    _scroll.dispose();
     super.dispose();
   }
 
-  Future<void> _fetch({bool reset = false}) async {
-    if (!reset && _loadingMore) return;
-    final req = reset ? ++_reqId : _reqId;
-    if (reset) {
-      setState(() {
-        _loading = true;
-        _error = null;
-        _page = 1;
-        _hasMore = true;
-        _items.clear();
-      });
-    } else {
-      setState(() => _loadingMore = true);
-    }
-    final status = _statuses[_tab];
-    final q = _search.trim().isEmpty ? null : _search.trim();
+  Future<void> _load() async {
+    final req = ++_reqId;
+    setState(() {
+      _loading = true;
+      _error = null;
+    });
     try {
-      // فلترة السيرفر (payment_status) مش متطابقة دايماً مع المتبقّي الفعلي،
-      // فبنستبعد محلياً أي فاتورة حالتها مختلفة عن التبويب. لو الصفحة كلها
-      // اتستبعدت نجيب اللي بعدها (بحد أقصى 5 صفحات في المرة).
-      final kept = <Order>[];
-      var page = _page;
-      var hasMore = true;
-      for (var i = 0; i < 5 && hasMore && kept.length < 10; i++) {
-        final res = await _repo.list(
-          type: 4,
-          customerId: widget.customerId,
-          paymentStatus: status,
-          search: q,
-          offset: page,
-          limit: 25,
-        );
-        if (req != _reqId) return;
-        kept.addAll(status == null
-            ? res.items
-            : res.items.where((o) => o.paymentStatus == status));
-        hasMore = res.hasMore;
-        page++;
-      }
-      // الإجماليات تُجلب مرة واحدة عند إعادة التحميل (تخص كل النتائج).
-      OrderTotals? totals = _totals;
-      if (reset) {
-        totals = await _repo.totals(
+      const limit = 200;
+      Future<Paginated<Order>> page(int n) => _repo.list(
             type: 4,
             customerId: widget.customerId,
-            paymentStatus: status);
+            offset: n,
+            limit: limit,
+          );
+      final first = await page(1);
+      final all = <Order>[...first.items];
+      // باقي الصفحات بالتوازي على دفعات (4 طلبات في المرة).
+      for (var n = 2; n <= first.lastPage; n += 4) {
+        final last = (n + 3).clamp(n, first.lastPage);
+        final batch = await Future.wait(
+            [for (var k = n; k <= last; k++) page(k)]);
+        if (req != _reqId) return;
+        for (final r in batch) {
+          all.addAll(r.items);
+        }
       }
+      // إزالة أي تكرار لو الترقيم اتزحزح أثناء التحميل.
+      final seen = <int>{};
+      all.retainWhere((o) => seen.add(o.id));
       if (!mounted || req != _reqId) return;
-      setState(() {
-        _items.addAll(kept);
-        _hasMore = hasMore;
-        _page = page;
-        if (totals != null) _totals = totals;
-      });
+      setState(() => _all = all);
     } catch (e) {
       if (mounted && req == _reqId) setState(() => _error = e);
     } finally {
-      if (mounted && req == _reqId) {
-        setState(() {
-          _loading = false;
-          _loadingMore = false;
-        });
-      }
+      if (mounted && req == _reqId) setState(() => _loading = false);
     }
+  }
+
+  /// الفواتير الظاهرة = حالة التبويب + البحث (رقم الفاتورة أو اسم العميل).
+  List<Order> get _visible {
+    final status = _statuses[_tab];
+    final q = _search.trim().replaceAll('#', '').toLowerCase();
+    return _all.where((o) {
+      if (status != null && o.paymentStatus != status) return false;
+      if (q.isEmpty) return true;
+      return '${o.id}'.contains(q) || o.customerName.toLowerCase().contains(q);
+    }).toList();
+  }
+
+  /// إجماليات نفس الفواتير الظاهرة — تطابق الكروت بالظبط.
+  OrderTotals _totalsOf(List<Order> list) {
+    var total = 0.0, collected = 0.0, remaining = 0.0;
+    for (final o in list) {
+      total += o.amount;
+      collected += o.collected;
+      remaining += o.remaining;
+    }
+    return OrderTotals(list.length, total, collected, remaining);
   }
 
   void _onSearch(String v) {
     _debounce?.cancel();
-    _debounce = Timer(const Duration(milliseconds: 450), () {
-      _search = v;
-      _fetch(reset: true);
+    _debounce = Timer(const Duration(milliseconds: 250), () {
+      if (mounted) setState(() => _search = v);
     });
   }
 
-  void _setTab(int i) {
-    setState(() => _tab = i);
-    _fetch(reset: true);
-  }
+  void _setTab(int i) => setState(() => _tab = i);
 
-  Future<void> _refresh() => _fetch(reset: true);
+  Future<void> _refresh() => _load();
 
   @override
   Widget build(BuildContext context) {
@@ -187,35 +166,33 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
   }
 
   Widget _body() {
-    if (_loading) {
+    if (_loading && _all.isEmpty) {
       return const Center(
           child: CircularProgressIndicator(color: AppColors.primary));
     }
-    if (_error != null && _items.isEmpty) {
+    if (_error != null && _all.isEmpty) {
       final msg = _error is ApiException
           ? (_error as ApiException).message
           : 'تعذّر التحميل';
       return _centered(msg, retry: true);
     }
+    final items = _visible;
+    final totals = _totalsOf(items);
     return RefreshIndicator(
       onRefresh: _refresh,
       color: AppColors.primary,
       child: ListView.builder(
-        controller: _scroll,
         padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
-        // العناصر: شريط الإجماليات + الفواتير + مؤشر تحميل المزيد.
-        itemCount: 1 + (_items.isEmpty ? 1 : _items.length) + (_hasMore ? 1 : 0),
+        // العناصر: شريط الإجماليات + الفواتير.
+        itemCount: 1 + (items.isEmpty ? 1 : items.length),
         itemBuilder: (context, i) {
           if (i == 0) {
             return Padding(
               padding: const EdgeInsets.only(bottom: 10),
-              child: _totals != null
-                  ? _totalsBar(_totals!)
-                  : const SizedBox.shrink(),
+              child: _totalsBar(totals),
             );
           }
-          final idx = i - 1;
-          if (_items.isEmpty) {
+          if (items.isEmpty) {
             return const Padding(
               padding: EdgeInsets.only(top: 60),
               child: Center(
@@ -223,16 +200,9 @@ class _InvoicesScreenState extends State<InvoicesScreen> {
                       style: TextStyle(color: AppColors.muted))),
             );
           }
-          if (idx >= _items.length) {
-            return const Padding(
-              padding: EdgeInsets.all(16),
-              child: Center(
-                  child: CircularProgressIndicator(color: AppColors.primary)),
-            );
-          }
           return Padding(
             padding: const EdgeInsets.only(bottom: 10),
-            child: _invoiceCard(_items[idx]),
+            child: _invoiceCard(items[i - 1]),
           );
         },
       ),
