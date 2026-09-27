@@ -43,23 +43,63 @@ public function index(Request $request)
     $sellerId = $request->input('seller_id');
     $month = $request->input('month');
 
-    // Query salaries based on search parameters
-    $query = Salary::with('seller')->orderby('id','desc'); // eager load seller details
-
-    // Apply filters if they are set
-    if ($sellerId) {
-        $query->where('seller_id', $sellerId);
-    }
-
-    if ($month) {
-        $query->where('month', $month); // Use the month directly as "YYYY-MM"
-    }
-
-    // Paginate results
-    $salaries = $query->paginate(10);
+    $salaries = $this->salaryQuery($request)->paginate(10)->appends($request->query());
 
     // Pass data to the view
     return view('admin-views.salary.list', compact('salaries', 'sellers', 'sellerId', 'month'));
+}
+
+/**
+ * الاستعلام المفلتر، مشترك بين الشاشة والتصدير.
+ *
+ * لو كُتب الفلتر مرتين اختلف الملف عن الشاشة عند أول تعديل على أحدهما.
+ */
+private function salaryQuery(Request $request)
+{
+    $query = Salary::with('seller')->orderBy('id', 'desc');
+
+    if ($sellerId = $request->input('seller_id')) {
+        $query->where('seller_id', $sellerId);
+    }
+
+    if ($month = $request->input('month')) {
+        $query->where('month', $month); // "YYYY-MM" كما هو
+    }
+
+    return $query;
+}
+
+/**
+ * تصدير الرواتب إلى xlsx.
+ *
+ * يصدّر كل ما تطابقه الفلاتر لا صفحة الترقيم المعروضة، فالمراجعة تكون
+ * على الشهر كاملًا.
+ */
+public function export(Request $request)
+{
+    $rows = $this->salaryQuery($request)->get()->map(fn (Salary $salary) => [
+        optional($salary->seller)->id ?? '',
+        optional($salary->seller)->email ?? '',
+        // الأعمدة مخزَّنة نصًّا، فتُحوَّل أرقامًا ليجمعها إكسل.
+        (float) $salary->salary,
+        (float) $salary->commission,
+        (string) $salary->note,
+        (string) $salary->notemanager,
+        (int) $salary->number_of_days,
+        (int) $salary->number_of_visitors,
+        (int) $salary->result_of_visitors,
+        (float) $salary->salary_of_visitors,
+        (float) $salary->transport_amount,
+        (float) $salary->other,
+        (float) $salary->discount,
+        (float) $salary->score,
+        (float) $salary->total,
+        $salary->month ? \Carbon\Carbon::parse($salary->month)->format('Y-m') : '',
+    ]);
+
+    $name = 'salaries-' . ($request->input('month') ?: now()->format('Y-m')) . '.xlsx';
+
+    return \Maatwebsite\Excel\Facades\Excel::download(new \App\Exports\SalariesExport($rows), $name);
 }
 
 

@@ -49,8 +49,14 @@
                     <label for="month">{{ \App\CPU\translate('الشهر') }}</label>
                     <input type="month" id="month" name="month" class="form-control" value="{{ request('month') }}">
                 </div>
-                <div class="col-md-4 d-flex align-items-end">
-                    <button type="submit" class="btn btn-secondary w-100">{{ \App\CPU\translate('بحث') }}</button>
+                <div class="col-md-4 d-flex align-items-end" style="gap:.5rem;">
+                    <button type="submit" class="btn btn-secondary flex-grow-1">{{ \App\CPU\translate('بحث') }}</button>
+
+                    {{-- يصدّر ما تطابقه الفلاتر كلّه لا الصفحة المعروضة. --}}
+                    <a href="{{ route('admin.salaries.export', request()->query()) }}"
+                       class="btn btn-success">
+                        <i class="tio-file-outlined mr-1"></i> {{ \App\CPU\translate('تصدير Excel') }}
+                    </a>
                 </div>
             </div>
         </form>
@@ -69,9 +75,12 @@
                         <th>{{ \App\CPU\translate('عدد ايام العمل') }}</th>
                         <th>{{ \App\CPU\translate('عدد الزوار') }}</th>
                         <th>{{ \App\CPU\translate('نتيجة الزوار') }}</th>
-                        <th>{{ \App\CPU\translate('مبلغ النقل') }}</th>
-                        <th>{{ \App\CPU\translate('بدل التزام') }}</th>
-                        <th>{{ \App\CPU\translate('بدلات أخري') }}</th>
+                        {{-- التسميات كما تكتبها شاشة الإضافة: كانت هنا
+                             «مبلغ النقل» و«بدل التزام» فتُقرأ القيم تحت
+                             عناوين لا تخصّها. --}}
+                        <th>{{ \App\CPU\translate('مكافأة الالتزام') }}</th>
+                        <th>{{ \App\CPU\translate('حافز البيع') }}</th>
+                        <th>{{ \App\CPU\translate('بدلات أخرى') }}</th>
                         <th>{{ \App\CPU\translate('الخصم') }}</th>
                         <th>{{ \App\CPU\translate('النقاط') }}</th>
                         <th>{{ \App\CPU\translate('المجموع') }}</th>

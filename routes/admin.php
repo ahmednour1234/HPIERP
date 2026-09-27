@@ -475,6 +475,8 @@ Route::get('/admin/notifications', [NotificationController::class, 'listItems'])
 Route::prefix('admin/salaries')->group(function () {
     Route::get('/', [SalaryController::class, 'index'])->name('salaries.index');
     Route::get('/create', [SalaryController::class, 'create'])->name('salaries.create');
+    // التصدير يحمل فلاتر الشاشة نفسها.
+    Route::get('/export', [SalaryController::class, 'export'])->name('salaries.export');
         Route::get('/createrating', [SalaryController::class, 'createrating'])->name('salaries.createrating');
     Route::post('/', [SalaryController::class, 'store'])->name('salaries.store');
         Route::post('/rating', [SalaryController::class, 'storerating'])->name('salaries.storerating');
