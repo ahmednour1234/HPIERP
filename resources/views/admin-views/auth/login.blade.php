@@ -85,25 +85,14 @@
             pointer-events: none;
         }
 
-        .aside-brand { display: flex; align-items: center; gap: 14px; }
+        .aside-brand { display: flex; align-items: center; }
 
-        /* الرمز وحده: الاسم مكتوب نصًّا بجانبه، فالملف الكامل يكرره
-           مرتين بخط غير مقروء. */
-        .aside-brand img { width: 52px; height: auto; flex: none; }
-
-        .aside-brand .brand-name {
-            font-size: 1.02rem;
-            font-weight: 600;
-            letter-spacing: .01em;
-            line-height: 1.5;
-        }
-
-        .aside-brand .brand-tag {
-            display: block;
-            font-size: .74rem;
-            font-weight: 400;
-            color: var(--hpi-blue);
-            letter-spacing: .06em;
+        /* الشعار كبير: هو وحده ما يحمل الهوية هنا بعد حذف النص المكرر،
+           ويتبع عرض اللوحة فلا يفيض على الشاشات الضيقة. */
+        .aside-brand img {
+            width: clamp(150px, 20vw, 240px);
+            height: auto;
+            flex: none;
         }
 
         .aside-body { position: relative; z-index: 1; }
@@ -345,12 +334,11 @@
 <div class="auth-shell">
 
     <aside class="auth-aside">
+        {{-- الشعار وحده: الاسم والشعار النصّي مرسومان داخل الصورة، فكتابتهما
+             بجانبها يكرّرهما. --}}
         <div class="aside-brand">
-            <img src="{{ asset('public/assets/admin/img/brand/hpi-mark.png') }}" alt="Hendy Pharmaceutical Industries">
-            <div class="brand-name">
-                Hendy Pharmaceutical Industries
-                <span class="brand-tag">INNOVATIVE PHARMA SOLUTIONS</span>
-            </div>
+            <img src="{{ asset('public/assets/admin/img/brand/hpi-mark.png') }}"
+                 alt="Tayer">
         </div>
 
         <div class="aside-body">
@@ -428,7 +416,7 @@
         </form>
 
         <div class="auth-foot">
-            <strong>HENDY ERP</strong>
+            <strong>TAYER ERP</strong>
             {{\App\CPU\translate('آمن · موثوق · لغدٍ أفضل')}}
         </div>
     </main>

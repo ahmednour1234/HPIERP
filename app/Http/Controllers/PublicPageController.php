@@ -62,7 +62,7 @@ class PublicPageController extends Controller
         };
 
         return [
-            'company' => $setting('shop_name', 'Hendy Pharmaceutical Industries'),
+            'company' => $setting('shop_name', 'Tayer'),
             'email'   => $setting('shop_email', 'info@hpi-eg.com'),
             'phone'   => $setting('shop_phone', ''),
             'address' => $setting('shop_address', ''),
