@@ -211,7 +211,7 @@
                                         </td>
                                             <td>
                                         <img class="navbar-brand-logo"
-                         src="{{ asset('storage/shop/' . $expense->img) }}" alt="Logo">
+                         src="{{ asset('public/storage/shop/' . $expense->img) }}" alt="Logo">
                                     </td>
 
                                     {{-- تعديل المصروف أو حذفه، والحذف يرد المبلغ إلى الحساب --}}

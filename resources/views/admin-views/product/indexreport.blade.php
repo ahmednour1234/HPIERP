@@ -639,7 +639,7 @@
                                     <td><span class="product-report-pill {{ $status['class'] }}">{{ $status['label'] }}</span></td>
                                     <td class="none">
                                         @if(!empty($product['img']))
-                                            <img src="{{ asset('storage/'.$product['img']) }}" alt="Image Description"
+                                            <img src="{{ asset('public/storage/'.$product['img']) }}" alt="Image Description"
                                                  style="width: 50px; height: auto; cursor: pointer;"
                                                  onclick="openProductReportImage(this.src)">
                                         @else

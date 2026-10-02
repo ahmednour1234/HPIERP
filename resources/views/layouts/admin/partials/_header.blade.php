@@ -218,7 +218,7 @@
                      كاملة، فبقاؤها في الجانبية يكرّرها ويأكل ارتفاعها. --}}
                 <a class="hd-brand d-flex align-items-center" href="{{ route('admin.dashboard') }}">
                     @php($shop_logo = $badgeService->setting('shop_logo'))
-                    <img src="{{ $shop_logo ? asset('storage/shop/' . $shop_logo) : asset('public/assets/admin/img/brand/hpi-logo.png') }}"
+                    <img src="{{ $shop_logo ? asset('public/storage/shop/' . $shop_logo) : asset('public/assets/admin/img/brand/hpi-logo.png') }}"
                          onerror="this.src='{{ asset('public/assets/admin/img/brand/hpi-logo.png') }}'"
                          alt="{{ \App\CPU\translate('logo') }}">
                     <span class="b-text d-none d-lg-flex flex-column">
@@ -349,7 +349,7 @@
                                 <div class="avatar avatar-sm avatar-circle">
                                     <img class="avatar-img"
                                          onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
-                                         src="{{ asset('storage/admin') }}/{{ $hdUser->image }}"
+                                         src="{{ asset('public/storage/admin') }}/{{ $hdUser->image }}"
                                          alt="{{ \App\CPU\translate('image_description') }}">
                                     <span class="avatar-status avatar-sm-status avatar-status-success"></span>
                                 </div>
@@ -374,7 +374,7 @@
                                         <div class="avatar avatar-sm avatar-circle mr-2">
                                             <img class="avatar-img"
                                                  onerror="this.src='{{ asset('public/assets/admin/img/160x160/img1.jpg') }}'"
-                                                 src="{{ asset('storage/admin') }}/{{ $hdUser->image }}"
+                                                 src="{{ asset('public/storage/admin') }}/{{ $hdUser->image }}"
                                                  alt="{{ \App\CPU\translate('image_description') }}">
                                         </div>
                                         <div class="media-body">

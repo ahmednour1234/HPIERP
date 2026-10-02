@@ -164,7 +164,7 @@
 <div class="invoice-container">
     <div class="header">
         <!-- Logo in top-center -->
-        <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="Shop Logo" style="max-width: 180px;">
+        <img src="{{ asset('public/storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="Shop Logo" style="max-width: 180px;">
         <h2>أمر صرف</h2>
         <p>{{ optional(\App\Models\BusinessSetting::where(['key' => 'shop_name'])->first())->value }}</p>
     </div>

@@ -159,7 +159,7 @@
                             <td>{{ number_format($order['total_tax'], 2) }}</td>
                             <td>0.00</td>
                             <td class="none">
-    <img src="{{ asset('storage/shop/'.$order['img']) }}" alt="Image Description" style="width: 50px; height: auto;">
+    <img src="{{ asset('public/storage/shop/'.$order['img']) }}" alt="Image Description" style="width: 50px; height: auto;">
 </td>
                             <td class="none">
                                 <button class="btn btn-sm btn-white" target="_blank" type="button"
@@ -407,7 +407,7 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
                             <p><strong>البريد الإلكتروني:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_email"])->first())->value }}</p>
                         </div>
                         <div class="logo">
-                            <img src="{{ asset('storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
+                            <img src="{{ asset('public/storage/shop/' . optional(\App\Models\BusinessSetting::where(['key' => 'shop_logo'])->first())->value) }}" alt="شعار المتجر">
                         </div>
                         <div class="right">
                             <p><strong>اسم المؤسسة:</strong> {{ optional(\App\Models\BusinessSetting::where(["key" => "shop_name"])->first())->value }}</p>

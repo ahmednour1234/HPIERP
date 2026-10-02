@@ -254,7 +254,7 @@
                             <td class="col-amount">{{ number_format((float) $transaction->amount, 2) }}</td>
 
                             <td>
-                                @php($imgPath = $transaction->img ? asset('storage/' . $transaction->img) : null)
+                                @php($imgPath = $transaction->img ? asset('public/storage/' . $transaction->img) : null)
 
                                 @if($imgPath)
                                     {{-- الملف قد يكون مفقودًا على هذه النسخة، فتظهر أيقونة

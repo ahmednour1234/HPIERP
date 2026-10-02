@@ -363,3 +363,30 @@ function translate($key)
     }
     return $result;
 }
+
+/**
+ * رابط ملفٍ مرفوع داخل storage/app/public.
+ *
+ * جذر الويب في الإنتاج هو مجلد المشروع لا مجلد public، ولهذا تكتب
+ * القوالب asset('public/assets/...') بالبادئة صراحةً. أما نداءات
+ * asset('storage/...') فتغفلها، فيخرج الرابط /storage/shop/... ويعيد
+ * 302 بدل الصورة، بينما /public/storage/shop/... يعمل. ضبط ASSET_URL
+ * لا يصلح هذا لأنه سيضاعف البادئة على 349 نداءً تعمل أصلًا.
+ *
+ * عمود img يحمل البادئة "shop/" أصلًا فلا تُضاف هنا.
+ */
+function storage_url($path)
+{
+    $path = trim((string) $path);
+
+    if ($path === '') {
+        return null;
+    }
+
+    // رابط مطلق مخزَّن كما هو: يُترك دون مساس.
+    if (preg_match('#^(https?:)?//#i', $path)) {
+        return $path;
+    }
+
+    return asset('public/storage/' . ltrim($path, '/'));
+}

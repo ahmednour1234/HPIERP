@@ -26,7 +26,7 @@
             <p><strong>الضريبة:</strong> {{ $material->tax->name ?? 'لا توجد' }}</p>
             <p><strong>الملف:</strong>
                 @if ($material->pdf_file)
-                    <a href="{{ asset('storage/materials/pdf/' . $material->pdf_file) }}" target="_blank">📄 عرض الملف</a>
+                    <a href="{{ asset('public/storage/materials/pdf/' . $material->pdf_file) }}" target="_blank">📄 عرض الملف</a>
                 @else
                     -
                 @endif

@@ -52,7 +52,7 @@
                                 <tr>
                                     <td class="media gap-2 align-items-center pos-cart-product">
                                         <img class="avatar avatar-sm pos-cart-product-img"
-                                            src="{{ asset('storage/product') }}/{{ $cartItem['image'] }}"
+                                            src="{{ asset('public/storage/product') }}/{{ $cartItem['image'] }}"
                                             onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
                                             alt="{{ $cartItem['name'] }} image">
                                         <div class="media-body">

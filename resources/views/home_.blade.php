@@ -11,7 +11,7 @@
                         @php($shop_logo=optional(\App\Models\BusinessSetting::where(['key'=>'shop_logo'])->first())->value)
                         <img width="210"
                              onerror="this.src='{{asset('public/assets/admin/img/160x160/img2.jpg')}}'"
-                             src="{{asset('storage/shop')}}/{{ $shop_logo }}"
+                             src="{{asset('public/storage/shop')}}/{{ $shop_logo }}"
                              alt="{{\App\CPU\translate('logo')}}">
                         <br><hr>
 

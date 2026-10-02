@@ -524,7 +524,7 @@
                                         <center>
                                             <img class="img-one-bs my-4" id="viewer"
                                                  onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
-                                                 src="{{ asset('storage/shop/' . $shop_logo) }}" alt="" />
+                                                 src="{{ asset('public/storage/shop/' . $shop_logo) }}" alt="" />
                                         </center>
                                     </div>
                                 </div>
@@ -548,7 +548,7 @@
 {{--                                        <center>--}}
 {{--                                            <img class="img-one-bs" id="viewer"--}}
 {{--                                                onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"--}}
-{{--                                                src="{{ asset('storage/shop/' . $shop_logo) }}"--}}
+{{--                                                src="{{ asset('public/storage/shop/' . $shop_logo) }}"--}}
 {{--                                                alt="" />--}}
 {{--                                        </center>--}}
 {{--                                    </div>--}}

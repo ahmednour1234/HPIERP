@@ -187,7 +187,7 @@
                                         </td>
                                                 <td>
                                         <img class="navbar-brand-logo"
-                         src="{{ asset('storage/shop/' . $income->img) }}" alt="Logo">
+                         src="{{ asset('public/storage/shop/' . $income->img) }}" alt="Logo">
                                     </td>
                                     </tr>
                                 @endforeach

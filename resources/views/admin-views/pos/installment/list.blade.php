@@ -312,7 +312,7 @@
                             // عمود img يحمل البادئة "shop/" أصلًا، فإضافتها
                             // مرة أخرى تنتج storage/shop/shop/... ولا تُحمَّل.
                             $img = $installment->img
-                                ? asset('storage/' . ltrim($installment->img, '/'))
+                                ? asset('public/storage/' . ltrim($installment->img, '/'))
                                 : null;
                         @endphp
 
@@ -411,7 +411,7 @@
                             </button>
                         </div>
                         <div class="modal-body text-center">
-                            <img src="{{ asset('storage/' . ltrim($installment->img, '/')) }}"
+                            <img src="{{ asset('public/storage/' . ltrim($installment->img, '/')) }}"
                                  alt="{{ \App\CPU\translate('الصورة') }}"
                                  style="max-width: 100%; height: auto;">
                         </div>
