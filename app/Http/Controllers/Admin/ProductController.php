@@ -487,7 +487,13 @@ public function getreportProducts(Request $request)
                     
                 ];
             })->filter();
-        });
+        })
+        // groupBy ثم map يعيد مجموعةً من المجموعات: صنفٌ له صفّ واحد
+        // يبدو سليمًا، لكن صنفًا له صفّان يجعل القالب يمرّ على مجموعة
+        // لا على صفّ، فـ$product['order_type'] لا يُرجع شيئًا وتنكسر
+        // الصفحة. التسطيح يعيدها صفوفًا مستوية.
+        ->flatten(1)
+        ->values();
 
     // 8) فلتر أوامر المبالغ/الإحصائيات (مصَحَّح ليعمل عبر Customer)
     $orderFilter = function ($q) use ($validated, $start_date, $end_date, $regionIds) {
