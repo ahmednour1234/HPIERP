@@ -355,11 +355,15 @@ public function prices(Request $request, $id): View|Factory|Application|Redirect
     }
 
     /**
-     * تعديل بيانات المندوب مقصور على Super Admin.
+     * تعديل بيانات المندوب يحتاج صلاحية sellers.update.
      *
-     * كان أي حساب لديه صلاحية المناديب يستطيع تغيير بياناتهم. العلامة على
-     * الحساب نفسه (is_super) لا على role، لأن role = 'admin' يشمل أمين
-     * المخزن والمحاسب وغيرهم.
+     * كان الشرط على عمود is_super وحده، وهو عمودٌ سابق لنظام الأدوار.
+     * فحسابٌ يحمل دور super-admin ومعه sellers.update كان يُمنع، لأن
+     * الحارس لا ينظر في الأدوار أصلًا: يُقال له «متاح لمدير النظام
+     * فقط» وهو مدير النظام.
+     *
+     * hasPermission هي ما تقرؤه بقية اللوحة وتشمل دور super-admin،
+     * ويبقى العمود القديم مقبولًا لمن لم يُرحَّل بعد.
      */
     private function denyUnlessSuperAdmin()
     {
@@ -369,7 +373,11 @@ public function prices(Request $request, $id): View|Factory|Application|Redirect
             return null;
         }
 
-        Toastr::error(\App\CPU\translate('تعديل بيانات المندوب متاح لمدير النظام فقط'));
+        if ($admin && method_exists($admin, 'hasPermission') && $admin->hasPermission('sellers.update')) {
+            return null;
+        }
+
+        Toastr::error(\App\CPU\translate('تعديل بيانات المندوب يحتاج صلاحية إدارة المناديب'));
 
         return redirect()->route('admin.seller.list');
     }
