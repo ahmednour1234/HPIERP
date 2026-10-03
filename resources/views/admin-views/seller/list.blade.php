@@ -9,82 +9,95 @@
 
 @section('content')
 <style>
-    /* Page Header */
-    .page-header-title i {
-        color: #2596be;
+    .sellers-page { --sl-navy:#11245a; --sl-ink:#1f2d3d; --sl-muted:#6b7a90;
+                    --sl-line:#e6edf5; --sl-soft:#f4f8fc; }
+
+    .sellers-head {
+        display:flex; align-items:center; justify-content:space-between;
+        flex-wrap:wrap; gap:1rem; margin-bottom:1.1rem;
     }
-    .page-header-title .badge {
-        background-color: #bee0ec;
-        color: #333;
-        font-weight: 600;
+    .sellers-head h1 {
+        display:flex; align-items:center; gap:.6rem;
+        font-size:1.3rem; font-weight:800; color:var(--sl-navy); margin:0;
+    }
+    .sellers-head .count {
+        background:var(--sl-navy); color:#fff; border-radius:999px;
+        font-size:.78rem; font-weight:700; padding:.2rem .65rem;
     }
 
-    /* Seller Card */
-    .card.seller-card {
-        border-radius: 1rem;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.05);
-        overflow: hidden;
-        margin-bottom: 1.5rem;
-    }
-    .card.seller-card .card-header {
-        background: #bee0ec;
-        color: #333;
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        flex-wrap: wrap;
-        gap: 1rem;
-        padding: 1rem 1.5rem;
-        border-bottom: none;
-        border-top-left-radius: 1rem;
-        border-top-right-radius: 1rem;
-    }
-    .card.seller-card .card-header .input-group .form-control {
-        border-radius: 0.75rem 0 0 0.75rem;
-    }
-    .card.seller-card .card-header .input-group .btn {
-        border-radius: 0 0.75rem 0.75rem 0;
+    .sellers-card {
+        border:1px solid var(--sl-line); border-radius:14px; background:#fff;
+        box-shadow:0 10px 26px rgba(15,23,42,.06); overflow:hidden;
     }
 
-    /* Table Rows */
-    .datatable-custom table {
-        border-collapse: separate;
-        border-spacing: 0 0.5rem;
+    .sellers-toolbar {
+        display:flex; align-items:center; gap:.75rem; flex-wrap:wrap;
+        padding:1rem 1.15rem; background:var(--sl-soft);
+        border-bottom:1px solid var(--sl-line);
     }
-    .datatable-custom tbody tr {
-        background: #fff;
-        border-radius: 0.75rem;
-        box-shadow: 0 2px 6px rgba(0,0,0,0.03);
-    }
-    .datatable-custom thead {
-        background: #bee0ec;
-    }
-    .datatable-custom thead th {
-        color: #333;
-        font-weight: 600;
-        border: none;
-    }
-    .datatable-custom tbody td {
-        vertical-align: middle;
-        border: none;
+    .sellers-toolbar form { flex:1 1 320px; margin:0; }
+    .sellers-toolbar .input-group .form-control { border-color:var(--sl-line); }
+
+    /* صفٌّ واحد متّصل لا بطاقات متباعدة: الفصل بـborder-spacing كان
+       يترك فجوات تجعل الصف الواحد يبدو مقطّعًا عبر ثلاثة عشر عمودًا. */
+    .sellers-table { width:100%; margin:0; border-collapse:collapse; }
+
+    .sellers-table thead th {
+        background:var(--sl-soft); color:var(--sl-navy);
+        font-size:.76rem; font-weight:700; white-space:nowrap;
+        padding:.8rem .7rem; border-bottom:1px solid var(--sl-line);
     }
 
-    /* Action Buttons */
-    .datatable-custom .btn-white {
-        background: #fff;
-        border-radius: 0.75rem;
-        box-shadow: 0 1px 4px rgba(0,0,0,0.1);
-        margin-right: 0.25rem;
-        color: #2596be;
+    .sellers-table tbody td {
+        padding:.85rem .7rem; vertical-align:middle;
+        border-bottom:1px solid #f1f5f9; font-size:.85rem; color:var(--sl-ink);
     }
-    .datatable-custom .btn-white:hover {
-        background: #f1f5f9;
+    .sellers-table tbody tr:hover { background:#fafcfe; }
+    .sellers-table tbody tr:last-child td { border-bottom:0; }
+
+    .sl-index { color:var(--sl-muted); font-size:.78rem; }
+
+    /* الاسم والبريد في خلية واحدة: عمودان منفصلان لنفس الشخص يبدّدان
+       العرض على جدول مزدحم أصلًا. */
+    .sl-person strong { display:block; font-weight:700; line-height:1.3; }
+    .sl-person small  { color:var(--sl-muted); font-size:.74rem; }
+
+    .sl-code {
+        display:inline-block; background:#eef3f9; color:var(--sl-navy);
+        border-radius:6px; padding:.15rem .5rem;
+        font-size:.75rem; font-weight:700; letter-spacing:.02em;
     }
-    /* Ensure action buttons inline */
-    .action-group {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
+    .sl-code--empty { background:transparent; color:#c3ccd8; font-weight:400; }
+
+    .sl-num { font-variant-numeric:tabular-nums; white-space:nowrap; }
+    .sl-zero { color:#c3ccd8; }
+
+    /* المبلغ السالب أحمر: كان بلون النصّ نفسه فلا يُفرَّق دَينٌ عن رصيد
+       إلا بقراءة الإشارة. */
+    .sl-money { font-variant-numeric:tabular-nums; font-weight:700; white-space:nowrap; }
+    .sl-money--neg { color:#c0392b; }
+    .sl-money--pos { color:#1b7f5a; }
+    .sl-money--nil { color:#9aa7b6; font-weight:400; }
+
+    .sl-cell-money { display:flex; align-items:center; justify-content:center; gap:.45rem; }
+
+    .sl-act {
+        border:0; border-radius:7px; padding:.2rem .6rem;
+        font-size:.72rem; font-weight:700; color:#fff; background:var(--sl-navy);
+    }
+    .sl-act:hover { background:#0c1a44; color:#fff; }
+
+    .sl-tools { display:flex; gap:.3rem; }
+    .sl-tools .btn {
+        width:30px; height:30px; padding:0; display:inline-flex;
+        align-items:center; justify-content:center;
+        border:1px solid var(--sl-line); border-radius:8px;
+        background:#fff; color:var(--sl-navy); font-size:.9rem;
+    }
+    .sl-tools .btn:hover { background:var(--sl-soft); color:var(--sl-navy); }
+
+    @media (max-width: 991.98px) {
+        .sellers-table thead th, .sellers-table tbody td { padding:.6rem .5rem; font-size:.8rem; }
     }
 </style>
 
@@ -137,80 +150,99 @@
                         <thead>
                             <tr>
                                 <th>#</th>
-                                <th>الاسم</th>
-                                <th>الايميل</th>
+                                {{-- الاسم والبريد في عمود واحد: عمودان لنفس
+                                     الشخص يبدّدان العرض على جدول مزدحم. --}}
+                                <th>المندوب</th>
                                 <th>كود المندوب</th>
                                 <th>كود العربة</th>
-                                <th>الراتب</th>
-                                <th>نسبة المبيعات</th>
-                                <th>زيارات الشهر</th>
-                                <th>الزيارات المتوقعة</th>
-                                <th>التقييم</th>
+                                <th class="text-end">الراتب</th>
+                                <th class="text-center">نسبة المبيعات</th>
+                                <th class="text-center">زيارات الشهر</th>
+                                <th class="text-center">المتوقعة</th>
+                                <th class="text-center">التقييم</th>
                                 <th class="text-center">دائن</th>
                                 <th class="text-center">مدين</th>
-                                <th>إجراءات</th>
+                                <th class="text-center">إجراءات</th>
                             </tr>
                         </thead>
                         <tbody id="set-rows">
                             @foreach($sellers as $key => $seller)
                                 <tr>
-                                    <td>{{ $key + 1 }}</td>
-                                    <td>{{ $seller->f_name . ' ' . $seller->l_name }}</td>
-                                    <td>{{ $seller->email }}</td>
-                                    <td>{{ $seller->mandob_code }}</td>
-                                    <td>{{ optional(\App\Models\Store::where('store_id', $seller->vehicle_code)->first())->store_code }}</td>
-                                    <td>{{ $seller->salary }}</td>
-                                    <td>{{ $seller->precent_of_sales }}%</td>
-                                    <td>{{ $seller->result_visitors }}</td>
-                                    <td>{{ $seller->visitors }}</td>
-                                    <td>{{ $seller->score }}%</td>
-                                    <!-- دائن -->
-                                    <td class="text-center">
-                                        @if($seller->id)
-                                            <div class="d-flex align-items-center justify-content-center gap-2">
-                                                <span>{{ $seller->balance . ' ' . \App\CPU\Helpers::currency_symbol() }}</span>
-                                                <button
-                                                    class="btn btn-info badge"
-                                                    onclick="update_seller_balance_cl({{ $seller->seller_id }})"
-                                                    data-toggle="modal"
-                                                    data-target="#update-seller-balance"
-                                                >
-                                                    {{ \App\CPU\translate('استلام') }}
-                                                </button>
-                                            </div>
-                                        @else
-                                            <span>لا توجد بيانات دائن</span>
-                                        @endif
+                                    @php
+                                        $vehicle = optional(\App\Models\Store::where('store_id', $seller->vehicle_code)->first())->store_code;
+                                        $pct = fn ($v) => (float) $v > 0
+                                            ? '<span class="sl-num">' . rtrim(rtrim(number_format((float) $v, 1), '0'), '.') . '%</span>'
+                                            : '<span class="sl-num sl-zero">0%</span>';
+                                        $cnt = fn ($v) => (float) $v > 0
+                                            ? '<span class="sl-num">' . number_format((float) $v) . '</span>'
+                                            : '<span class="sl-num sl-zero">0</span>';
+                                    @endphp
+
+                                    <td><span class="sl-index">{{ $key + 1 }}</span></td>
+
+                                    <td class="sl-person">
+                                        <strong>{{ trim($seller->f_name . ' ' . $seller->l_name) ?: '—' }}</strong>
+                                        <small>{{ $seller->email }}</small>
                                     </td>
-                                    <!-- مدين -->
+
+                                    <td>
+                                        <span class="sl-code {{ $seller->mandob_code ? '' : 'sl-code--empty' }}">{{ $seller->mandob_code ?: '—' }}</span>
+                                    </td>
+
+                                    <td>
+                                        <span class="sl-code {{ $vehicle ? '' : 'sl-code--empty' }}">{{ $vehicle ?: '—' }}</span>
+                                    </td>
+
+                                    <td class="text-end"><span class="sl-num">{{ number_format((float) $seller->salary) }}</span></td>
+                                    <td class="text-center">{!! $pct($seller->precent_of_sales) !!}</td>
+                                    <td class="text-center">{!! $cnt($seller->result_visitors) !!}</td>
+                                    <td class="text-center">{!! $cnt($seller->visitors) !!}</td>
+                                    <td class="text-center">{!! $pct($seller->score) !!}</td>
+                                    @php
+                                        // صفرٌ باهت وسالبٌ أحمر: كان الكل بلون
+                                        // واحد فلا يُفرَّق دَينٌ عن رصيد إلا
+                                        // بقراءة الإشارة في صفٍّ مزدحم.
+                                        $money = function ($value) {
+                                            $v = (float) $value;
+                                            $class = $v < 0 ? 'sl-money--neg' : ($v > 0 ? 'sl-money--pos' : 'sl-money--nil');
+                                            return '<span class="sl-money ' . $class . '">' . number_format($v, 2) . '</span>';
+                                        };
+                                    @endphp
+
+                                    {{-- دائن --}}
                                     <td class="text-center">
-                                        @if($seller->id)
-                                            <div class="d-flex align-items-center justify-content-center gap-2">
-                                                <span>{{ $seller->credit . ' ' . \App\CPU\Helpers::currency_symbol() }}</span>
-                                                <button
-                                                    class="btn btn-info badge"
+                                        <div class="sl-cell-money">
+                                            {!! $money($seller->balance) !!}
+                                            <button class="sl-act"
+                                                    onclick="update_seller_balance_cl({{ $seller->seller_id }})"
+                                                    data-toggle="modal" data-target="#update-seller-balance">
+                                                {{ \App\CPU\translate('استلام') }}
+                                            </button>
+                                        </div>
+                                    </td>
+
+                                    {{-- مدين --}}
+                                    <td class="text-center">
+                                        <div class="sl-cell-money">
+                                            {!! $money($seller->credit) !!}
+                                            <button class="sl-act"
                                                     onclick="update_seller_credit_cl({{ $seller->seller_id }})"
-                                                    data-toggle="modal"
-                                                    data-target="#update-seller-credit"
-                                                >
-                                                    {{ \App\CPU\translate('تحصيل') }}
-                                                </button>
-                                            </div>
-                                        @else
-                                            <span>لا توجد بيانات مدين</span>
-                                        @endif
+                                                    data-toggle="modal" data-target="#update-seller-credit">
+                                                {{ \App\CPU\translate('تحصيل') }}
+                                            </button>
+                                        </div>
                                     </td>
                                     <!-- إجراءات -->
-                                    <td>
-                                        <div class="action-group">
-                                            <a href="{{ route('admin.seller.prices', [$seller->seller_id]) }}" class="btn btn-white" title="تسعير">
+                                    <td class="text-center">
+                                        <div class="sl-tools justify-content-center">
+                                            <a href="{{ route('admin.seller.prices', [$seller->seller_id]) }}" class="btn" title="تسعير">
                                                 <i class="tio-money"></i>
                                             </a>
-                                            <a href="{{ route('admin.seller.edit', [$seller->seller_id]) }}" class="btn btn-white" title="تعديل">
+                                            <a href="{{ route('admin.seller.edit', [$seller->seller_id]) }}" class="btn" title="تعديل">
                                                 <i class="tio-edit"></i>
                                             </a>
                                         
-                                            <a href="{{ route('admin.visitor.showResultVisitors', [$seller->seller_id]) }}" class="btn btn-white" title="عرض الزيارات">
+                                            <a href="{{ route('admin.visitor.showResultVisitors', [$seller->seller_id]) }}" class="btn" title="عرض الزيارات">
                                                 <i class="tio-visible"></i>
                                             </a>
                                         </div>
