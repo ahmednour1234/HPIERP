@@ -404,11 +404,19 @@ body {
                                 </li>
 
                                 @cangroup('handover')
-                                <li class="nav-item {{Request::is('admin/handover*')?'active':''}}">
+                                <li class="nav-item {{Request::is('admin/handover') || Request::is('admin/handover/create') || Request::is('admin/handover/[0-9]*')?'active':''}}">
                                     <a class="nav-link " href="{{route('admin.handover.index')}}"
                                        title="{{\App\CPU\translate('تسليم عهدة مندوب')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">{{\App\CPU\translate('تسليم عهدة')}}</span>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item {{Request::is('admin/handover/custody')?'active':''}}">
+                                    <a class="nav-link " href="{{route('admin.handover.custody')}}"
+                                       title="{{\App\CPU\translate('عهدة المناديب')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">{{\App\CPU\translate('عهدة المناديب')}}</span>
                                     </a>
                                 </li>
                                 @endif

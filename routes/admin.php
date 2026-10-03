@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SellerCustodyController;
 use App\Http\Controllers\Admin\SellerHandoverController;
 use App\Http\Controllers\Admin\StockReturnRequestController;
 use App\Http\Controllers\Admin\MaterialController;
@@ -556,6 +557,10 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
             Route::post ('{id}/count/{countId}/reject',     [SellerHandoverController::class, 'rejectCount'])->whereNumber('id')->whereNumber('countId')->name('count.reject');
 
             Route::post ('{id}/end', [SellerHandoverController::class, 'end'])->whereNumber('id')->name('end');
+
+            // قراءة فقط: تحسب العهدة من سجلّاتها وتعرض الفرق، ولا تكتب
+            // شيئًا. قبل {id} لأنها ليست معرِّفًا رقميًّا.
+            Route::get  ('custody', [SellerCustodyController::class, 'index'])->name('custody');
         });
     });   // نهاية مجموعة middleware admin
 });
