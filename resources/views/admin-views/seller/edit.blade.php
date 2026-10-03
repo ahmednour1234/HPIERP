@@ -7,14 +7,107 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/select2/4.0.13/css/select2.min.css" rel="stylesheet" />
 
 <style>
-    .form-card { border-radius: 1rem; box-shadow: 0 4px 12px rgba(0,0,0,0.05); overflow: hidden; margin-bottom: 1.5rem; }
-    .form-card .card-header { background: #bee0ec; color: #333; padding: 1rem 1.5rem; font-size: 1.25rem; font-weight: 600; border-bottom: none; }
-    .form-card .card-body { padding: 1.5rem; }
-    .form-label { font-weight: 600; }
-    .btn-primary { background: #2596be; border-color: #2596be; }
-    .select2-container--default .select2-selection--multiple { border-radius: 0.5rem; min-height: 44px; }
-    .select2-container--default .select2-selection--single { border-radius: 0.5rem; height: 44px; padding: 0.375rem 1rem; }
-    .select2-container { width: 100% !important; }
+    .seller-form { --sf-navy:#11245a; --sf-ink:#1f2d3d; --sf-muted:#6b7a90;
+                   --sf-line:#e6edf5; --sf-soft:#f6f9fc; }
+
+    .seller-form .form-card {
+        border:1px solid var(--sf-line); border-radius:14px; background:#fff;
+        box-shadow:0 10px 26px rgba(15,23,42,.06); overflow:hidden; margin-bottom:1.25rem;
+    }
+
+    .seller-form .form-card > .card-header {
+        display:flex; align-items:center; justify-content:space-between;
+        gap:1rem; padding:1.1rem 1.4rem; border-bottom:0;
+        background:linear-gradient(135deg,#11245a,#1b3b7a); color:#fff;
+        font-size:1.1rem; font-weight:800;
+    }
+
+    /* أقسام داخل البطاقة: كانت الحقول كلّها كتلةً واحدة، فالبحث عن
+       حقلٍ بعينه يعني مسح الصفحة كلها بالعين. */
+    .sf-section { padding:1.25rem 1.4rem; border-top:1px solid var(--sf-line); }
+    .sf-section:first-of-type { border-top:0; }
+
+    .sf-section-title {
+        display:flex; align-items:center; gap:.5rem; margin:0 0 1rem;
+        font-size:.9rem; font-weight:800; color:var(--sf-navy);
+    }
+    .sf-section-title i { color:#1b3b7a; }
+    .sf-section-title span {
+        flex:1; height:1px; background:var(--sf-line);
+    }
+
+    .seller-form .form-label,
+    .seller-form .input-label {
+        font-size:.82rem; font-weight:700; color:var(--sf-navy); margin-bottom:.4rem;
+    }
+
+    .seller-form .form-control,
+    .seller-form select.form-control {
+        border:1px solid var(--sf-line); border-radius:9px;
+        min-height:42px; font-size:.88rem; color:var(--sf-ink);
+    }
+    .seller-form .form-control:focus {
+        border-color:#8fb4e8; box-shadow:0 0 0 .18rem rgba(27,59,122,.1);
+    }
+
+    /* ---------- Select2 ---------- */
+
+    .seller-form .select2-container { width:100% !important; }
+
+    .select2-container--default .select2-selection--multiple,
+    .select2-container--default .select2-selection--single {
+        border:1px solid #e6edf5 !important; border-radius:9px !important;
+        min-height:42px; padding:.2rem .45rem;
+    }
+
+    .select2-container--default.select2-container--focus .select2-selection--multiple,
+    .select2-container--default.select2-container--open .select2-selection--single {
+        border-color:#8fb4e8 !important; box-shadow:0 0 0 .18rem rgba(27,59,122,.1);
+    }
+
+    /* الوسم المختار: كان رماديًّا بحجم النصّ نفسه فيصعب تمييز
+       المختار عن الكتابة. */
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        background:#eef3fb; border:1px solid #d7e3f5; border-radius:7px;
+        color:#11245a; font-size:.78rem; font-weight:700;
+        padding:.12rem .5rem; margin:.2rem .2rem 0 0;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove {
+        color:#7f93ad; margin-left:.3rem; margin-right:0;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice__remove:hover {
+        color:#c0392b;
+    }
+
+    /* القائمة المنسدلة: كانت تخرج بعرض الصفحة وتُقصّ عناصرها عند
+       الحافة، فلا يُقرأ المعروض. */
+    .select2-container--open .select2-dropdown {
+        border:1px solid #d7e3f5; border-radius:10px;
+        box-shadow:0 14px 34px rgba(15,23,42,.14); overflow:hidden;
+    }
+    .select2-container .select2-results__option {
+        font-size:.85rem; padding:.5rem .8rem;
+        white-space:normal; word-break:break-word;
+    }
+    .select2-container--default .select2-results__option--highlighted[aria-selected] {
+        background:#1b3b7a;
+    }
+    .select2-search--dropdown .select2-search__field {
+        border:1px solid #e6edf5; border-radius:7px; padding:.4rem .6rem;
+    }
+
+    .sf-foot {
+        display:flex; justify-content:flex-end; gap:.6rem;
+        padding:1.1rem 1.4rem; background:var(--sf-soft);
+        border-top:1px solid var(--sf-line);
+    }
+    .sf-foot .btn { border-radius:9px; font-weight:700; padding:.5rem 1.6rem; }
+
+    @media (max-width: 767.98px) {
+        .sf-section { padding:1rem; }
+        .sf-foot { flex-direction:column-reverse; }
+        .sf-foot .btn { width:100%; }
+    }
 </style>
 @endpush
 
@@ -64,7 +157,7 @@
     $oldShiftsArray = is_array($oldShifts) ? $oldShifts : (json_decode($oldShifts, true) ?: []);
 @endphp
 
-<div class="content container-fluid" dir="rtl">
+<div class="content container-fluid seller-form" dir="rtl">
     <div class="row justify-content-center">
         <div class="col-lg-12">
             <div class="card form-card">
@@ -76,6 +169,8 @@
                     <form action="{{ route('admin.seller.update', [$seller->id]) }}" method="post" id="seller_form" enctype="multipart/form-data">
                         @csrf
 
+                        <div class="sf-section">
+                        <h6 class="sf-section-title"><i class="tio-user"></i> البيانات الأساسية <span></span></h6>
                         <div class="row g-3">
 
                             <div class="col-md-6">
@@ -98,6 +193,12 @@
                                 <input type="password" name="password" class="form-control" placeholder="{{ \App\CPU\translate('اتركه فارغًا إن لم ترد تغييره') }}">
                             </div>
 
+                        </div>
+                        </div>
+
+                        <div class="sf-section">
+                            <h6 class="sf-section-title"><i class="tio-poi"></i> نطاق العمل <span></span></h6>
+                            <div class="row g-3">
                             {{-- Regions --}}
                             <div class="col-md-12 mb-3" id="regions-box">
                                 <label class="form-label">{{ \App\CPU\translate('المناطق') }} <span class="text-danger">*</span></label>
@@ -134,6 +235,12 @@
                                 </select>
                             </div>
 
+                        </div>
+                        </div>
+
+                        <div class="sf-section">
+                            <h6 class="sf-section-title"><i class="tio-truck"></i> العهدة والتشغيل <span></span></h6>
+                            <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">{{ \App\CPU\translate('الخزن') }} <span class="text-danger">*</span></label>
                                 <select name="store_id" class="form-control select2-single" required>
@@ -161,6 +268,12 @@
                                 </select>
                             </div>
 
+                        </div>
+                        </div>
+
+                        <div class="sf-section">
+                            <h6 class="sf-section-title"><i class="tio-money"></i> الأجر والمستهدف <span></span></h6>
+                            <div class="row g-3">
                             <div class="col-md-4">
                                 <label class="form-label">{{ \App\CPU\translate('نسبة المبيعات %') }}</label>
                                 <input type="number" name="precent_of_sales" class="form-control" value="{{ old('precent_of_sales', $seller->precent_of_sales) }}" step="0.01">
@@ -182,6 +295,12 @@
                             </div>
 
                             {{-- Shifts (JSON Array) --}}
+                        </div>
+                        </div>
+
+                        <div class="sf-section">
+                            <h6 class="sf-section-title"><i class="tio-shield"></i> الدور والصلاحيات <span></span></h6>
+                            <div class="row g-3">
                             <div class="col-md-6">
                                 <div class="form-group">
                                     <label class="input-label">اسم الشيفت <span class="text-danger">*</span></label>
@@ -242,10 +361,15 @@
                                 </div>
                             </div>
 
-                            <div class="col-12 text-center mt-4">
-                                <button type="submit" class="btn btn-primary">{{ \App\CPU\translate('تحديث') }}</button>
-                            </div>
                         </div> {{-- row --}}
+                        </div> {{-- sf-section --}}
+
+                        {{-- الحفظ في شريطٍ ثابت أسفل البطاقة: كان زرًّا
+                             وسط الصفحة بعد آخر حقل فيضيع بين المحتوى. --}}
+                        <div class="sf-foot">
+                            <a href="{{ route('admin.seller.list') }}" class="btn btn-secondary">إلغاء</a>
+                            <button type="submit" class="btn btn-primary">{{ \App\CPU\translate('تحديث') }}</button>
+                        </div>
                     </form>
                 </div>
             </div>
