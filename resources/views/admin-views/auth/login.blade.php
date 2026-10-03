@@ -49,8 +49,10 @@
             min-height: 100vh;
             min-height: 100dvh;   /* شريط المتصفح على الجوال يقتطع من vh */
             display: grid;
-            /* اللوحة الجانبية أعرض من النموذج لتحمل الصورة دون اقتطاع. */
-            grid-template-columns: minmax(420px, 1fr) minmax(360px, 520px);
+            /* عمودان متقاربان: كان النموذج محصورًا في 520px بينما
+               تأخذ اللوحة كل ما تبقّى، فيبدو مزحومًا على الطرف.
+               1.15fr/1fr يترك الصورة أوسع قليلًا دون أن يخنقه. */
+            grid-template-columns: 1.15fr minmax(420px, 1fr);
             background: #fff;
         }
 
@@ -114,17 +116,22 @@
             color: rgba(255, 255, 255, .78);
         }
 
+        /* صفّان من بطاقتين لا صفٌّ من أربع: أربعة أعمدة تضغط النص
+           إلى .72rem فيصير شريطًا يصعب قراءته. */
         .aside-features {
             position: relative;
             z-index: 1;
             display: grid;
-            grid-template-columns: repeat(4, 1fr);
-            gap: 12px;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 14px;
+            max-width: 30rem;
         }
 
         .feature {
-            padding: 14px 10px;
-            text-align: center;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 14px 16px;
             border-radius: 14px;
             background: rgba(255, 255, 255, .08);
             border: 1px solid rgba(255, 255, 255, .12);
@@ -132,16 +139,15 @@
         }
 
         .feature i {
-            display: block;
-            font-size: 1.3rem;
-            margin-bottom: 6px;
+            flex: none;
+            font-size: 1.25rem;
             color: var(--hpi-blue);
         }
 
         .feature span {
-            font-size: .72rem;
-            line-height: 1.5;
-            color: rgba(255, 255, 255, .85);
+            font-size: .85rem;
+            line-height: 1.45;
+            color: rgba(255, 255, 255, .9);
         }
 
         /* ---------- النموذج ---------- */
@@ -160,7 +166,7 @@
         /* النموذج لا يتمدد مع العمود: حقل بعرض 500px يصعب مسحه بالعين. */
         .auth-main > * {
             width: 100%;
-            max-width: 400px;
+            max-width: 420px;
             margin-inline: auto;
         }
 
@@ -169,9 +175,9 @@
         /* الشعار فاتح على شفاف فيكاد يختفي على الأبيض؛ قرص داكن يعيده
            للظهور ويطابق زر الدخول. */
         .auth-head .logo-badge {
-            width: 84px;
-            height: 84px;
-            margin: 0 auto 16px;
+            width: 104px;
+            height: 104px;
+            margin: 0 auto 18px;
             border-radius: 50%;
             display: flex;
             align-items: center;
@@ -181,7 +187,7 @@
             box-shadow: 0 10px 22px rgba(20, 57, 92, .24);
         }
 
-        .auth-head .logo-badge img { width: 46px; height: auto; }
+        .auth-head .logo-badge img { width: 60px; height: auto; }
 
         .auth-head h2 {
             font-size: 1.6rem;
@@ -307,7 +313,8 @@
         @media (max-width: 1100px) {
             .auth-shell { grid-template-columns: 1fr minmax(340px, 440px); }
             .aside-body h1 { font-size: 2rem; }
-            .aside-features { grid-template-columns: repeat(2, 1fr); }
+            /* عمود واحد: بطاقتان جنبًا إلى جنب في لوحةٍ ضاقت تتداخلان. */
+            .aside-features { grid-template-columns: 1fr; }
         }
 
         @media (max-width: 860px) {
@@ -325,7 +332,8 @@
         @media (max-width: 420px) {
             .auth-main { padding: 28px 18px; }
             .auth-head h2 { font-size: 1.35rem; }
-            .auth-head .logo-badge { width: 68px; height: 68px; }
+            .auth-head .logo-badge { width: 80px; height: 80px; }
+            .auth-head .logo-badge img { width: 46px; }
         }
     </style>
 </head>
