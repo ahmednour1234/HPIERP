@@ -372,6 +372,92 @@
             .visitor-results-btn {
                 width: 100%;
             }
+
+            /* الجدول يصير بطاقات.
+
+               كان min-width: 58rem داخل table-responsive يُحدث تمريرًا
+               أفقيًّا على الهاتف، والملاحظة رابع عمود فتقع خارج الشاشة
+               ولا يعرف أحد أنها هناك. البطاقة تُظهر كل حقل في سطره. */
+            .visitor-results-table-wrap {
+                overflow: visible;
+            }
+
+            .visitor-results-table {
+                min-width: 0;
+                table-layout: auto;
+            }
+
+            .visitor-results-table thead {
+                /* لا تُخفى بـdisplay:none كي تبقى لقارئ الشاشة. */
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                overflow: hidden;
+                clip: rect(0 0 0 0);
+                white-space: nowrap;
+            }
+
+            .visitor-results-table,
+            .visitor-results-table tbody,
+            .visitor-results-table tr,
+            .visitor-results-table td {
+                display: block;
+                width: auto !important;
+            }
+
+            .visitor-results-table tr {
+                border: 1px solid #e3eaf3;
+                border-radius: 10px;
+                background: #fff;
+                padding: .85rem 1rem;
+                margin-bottom: .75rem;
+            }
+
+            .visitor-results-table td {
+                display: flex;
+                align-items: flex-start;
+                justify-content: space-between;
+                gap: 1rem;
+                padding: .4rem 0;
+                border: 0;
+                text-align: start;
+                white-space: normal;
+                word-break: break-word;
+            }
+
+            .visitor-results-table td + td {
+                border-top: 1px dashed #eef2f7;
+            }
+
+            .visitor-results-table td::before {
+                content: attr(data-label);
+                flex: 0 0 auto;
+                color: #6b7a90;
+                font-size: .78rem;
+                font-weight: 700;
+            }
+
+            /* الملاحظة هي سبب الشكوى: تُعرض كاملةً بلا قصّ، وتحت
+               عنوانها لا بجانبه، فالفقرة لا تُقرأ في نصف سطر. */
+            .visitor-results-table td.visitor-results-note {
+                flex-direction: column;
+                gap: .25rem;
+                -webkit-line-clamp: none;
+                display: block;
+            }
+
+            .visitor-results-table td.visitor-results-note::before {
+                display: block;
+                margin-bottom: .25rem;
+            }
+
+            .visitor-results-table td[colspan] {
+                justify-content: center;
+            }
+
+            .visitor-results-table td[colspan]::before {
+                content: none;
+            }
         }
 
         @media print {
@@ -557,12 +643,15 @@
                             <tbody>
                             @forelse($visitors as $index => $v)
                                 <tr>
-                                    <td><span class="visitor-results-index">{{ $index + $visitors->firstItem() }}</span></td>
-                                    <td>{{ $v->customer->name ?? '-' }}</td>
-                                    <td>{{ trim(optional($v->seller)->f_name . ' ' . optional($v->seller)->l_name) ?: '-' }}</td>
+                                    {{-- data-label: على الهاتف يصير كل صفٍّ بطاقةً
+                                         ويُرسَم هذا العنوان أمام كل قيمة، إذ تختفي
+                                         ترويسة الجدول. --}}
+                                    <td data-label="#"><span class="visitor-results-index">{{ $index + $visitors->firstItem() }}</span></td>
+                                    <td data-label="العميل">{{ $v->customer->name ?? '-' }}</td>
+                                    <td data-label="المندوب">{{ trim(optional($v->seller)->f_name . ' ' . optional($v->seller)->l_name) ?: '-' }}</td>
                                     {{-- title: النص مقصوص لثلاثة أسطر، فيُقرأ كاملًا بالوقوف عليه. --}}
-                                    <td class="visitor-results-note" title="{{ $v->note }}">{{ $v->note ?: '-' }}</td>
-                                    <td>
+                                    <td class="visitor-results-note" data-label="الملاحظة" title="{{ $v->note }}">{{ $v->note ?: '-' }}</td>
+                                    <td data-label="الموقع">
                                         @if($v->lat && $v->lang)
                                             <a href="https://www.google.com/maps?q={{ $v->lat }},{{ $v->lang }}"
                                                target="_blank"
@@ -573,7 +662,7 @@
                                             <span class="text-muted">لا توجد إحداثيات</span>
                                         @endif
                                     </td>
-                                    <td>{{ $v->created_at->format('d M Y H:i') }}</td>
+                                    <td data-label="تاريخ الإنشاء">{{ $v->created_at->format('d M Y H:i') }}</td>
                                 </tr>
                             @empty
                                 <tr>
