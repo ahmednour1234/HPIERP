@@ -10,6 +10,7 @@ use App\Models\CurrentOrder;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\Product;
+use App\Models\Seller;
 use App\Models\SellerPrice;
 use App\Models\Stock;
 use App\Models\Transection;
@@ -354,6 +355,25 @@ class OrderService
             $order->transaction_reference = $collected + $amount;
             $order->collected_cash        = $collected + $amount;
             $order->save();
+
+            // عهدة المحصِّل وعمولته.
+            //
+            // كانت v2 لا تمسّ العمودين إطلاقًا بينما تحدّثهما v1، فكل
+            // تحصيل من هذه النقطة لا يظهر في عهدة المندوب ولا عمولته.
+            //
+            // القاعدة كقاعدة v1: المال في يد القابض فيدخل عهدته
+            // (credit) ليورّده، والعمولة لصاحب البيعة لا لمن حصّلها،
+            // فلا تُحتسب على فاتورة رُحِّلت إليه.
+            $collector = Seller::lockForUpdate()->find($sellerId);
+
+            if ($collector) {
+                if ((int) $order->owner_id === $sellerId) {
+                    $collector->commission = (string) ((float) $collector->commission + $amount);
+                }
+
+                $collector->credit = (string) ((float) $collector->credit + $amount);
+                $collector->save();
+            }
 
             $nowCollected = round((float) $order->transaction_reference, 2);
             $nowRemaining = round(max($total - $nowCollected, 0), 2);

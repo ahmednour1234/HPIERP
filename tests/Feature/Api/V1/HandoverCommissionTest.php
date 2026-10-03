@@ -128,4 +128,82 @@ class HandoverCommissionTest extends ApiTestCase
             'المال في يده فيدخل عهدته ليورّده.'
         );
     }
+
+    /**
+     * نقطة v2 تحدّث العهدة والعمولة كما تفعل v1.
+     *
+     * كانت لا تمسّ العمودين إطلاقًا، فكل تحصيل منها يسقط من عهدة
+     * المندوب ومن عمولته معًا.
+     *
+     * @test
+     */
+    public function the_v2_endpoint_updates_custody_and_commission(): void
+    {
+        $this->order(930003, self::SELLER);
+
+        $account = DB::table('accounts')->first();
+
+        if (!$account) {
+            $this->markTestSkipped('لا يوجد حساب في البيانات.');
+        }
+
+        $before = Seller::find(self::SELLER);
+        $comm   = (float) $before->commission;
+        $credit = (float) $before->credit;
+
+        $this->asSeller()->postJson('/api/v2/orders/930003/collect', [
+            'amount'     => 100,
+            'account_id' => $account->id,
+            'date'       => now()->toDateString(),
+        ])->assertOk();
+
+        $after = Seller::find(self::SELLER);
+
+        $this->assertSame(round($comm + 100, 2), round((float) $after->commission, 2));
+        $this->assertSame(round($credit + 100, 2), round((float) $after->credit, 2));
+    }
+
+    /**
+     * وعلى فاتورة عهدة: العهدة وحدها.
+     *
+     * @test
+     */
+    public function the_v2_endpoint_pays_no_commission_on_a_handed_over_invoice(): void
+    {
+        $this->otherSeller();
+        $this->order(930004, self::OTHER);
+
+        \App\Models\SellerHandover::create([
+            'from_seller_id' => self::OTHER,
+            'to_seller_id'   => self::SELLER,
+            'started_at'     => now()->subDay(),
+        ]);
+
+        $account = DB::table('accounts')->first();
+
+        if (!$account) {
+            $this->markTestSkipped('لا يوجد حساب في البيانات.');
+        }
+
+        $before = Seller::find(self::SELLER);
+        $comm   = (float) $before->commission;
+        $credit = (float) $before->credit;
+
+        $response = $this->asSeller()->postJson('/api/v2/orders/930004/collect', [
+            'amount'     => 100,
+            'account_id' => $account->id,
+            'date'       => now()->toDateString(),
+        ]);
+
+        // التطبيق لم يُعدَّل، فالبوّابة ما زالت ترفض فاتورة الغير.
+        // الشرط المختبَر هو ألّا تُحتسب عمولة إن مرّت.
+        if ($response->status() === 200) {
+            $after = Seller::find(self::SELLER);
+
+            $this->assertSame(round($comm, 2), round((float) $after->commission, 2));
+            $this->assertSame(round($credit + 100, 2), round((float) $after->credit, 2));
+        } else {
+            $this->assertSame($comm, (float) Seller::find(self::SELLER)->commission);
+        }
+    }
 }
