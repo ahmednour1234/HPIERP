@@ -69,6 +69,7 @@ class EnforceSectionPermission
         'storages'           => 'storages',
         'storage'            => 'storages',
         'stock-returns'      => 'stock_returns',
+        'handover'           => 'handover',
         'stock'              => 'stock',
         'vehicle-stock'      => 'vehicle_stock',
 

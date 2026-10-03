@@ -120,6 +120,7 @@ class Permissions
             'supply_orders' => ['label' => 'أوامر التوريد',      'actions' => $crud + ['approve' => 'اعتماد']],
             'deposits'      => ['label' => 'تحويلات المناديب',   'actions' => $crud + ['approve' => 'اعتماد']],
             'stock_returns' => ['label' => 'طلبات إرجاع البضاعة', 'actions' => $viewOnly + ['approve' => 'اعتماد']],
+            'handover'      => ['label' => 'تسليم عهدة مندوب',   'actions' => $crud + ['approve' => 'اعتماد']],
         ];
     }
 

@@ -17,6 +17,7 @@ use App\Http\Controllers\Admin\AttendanceController;
 use App\Http\Controllers\Admin\CustomerController;
 use App\Http\Controllers\Admin\DocumentController;
 use App\Http\Controllers\Admin\RoleController;
+use App\Http\Controllers\Admin\SellerHandoverController;
 use App\Http\Controllers\Admin\StockReturnRequestController;
 use App\Http\Controllers\Admin\MaterialController;
 use App\Http\Controllers\Admin\PurchaseController;
@@ -538,5 +539,23 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
         Route::get  ('stock-returns/{id}',         [StockReturnRequestController::class, 'show'])->whereNumber('id')->name('stock-returns.show');
         Route::post ('stock-returns/{id}/approve', [StockReturnRequestController::class, 'approve'])->whereNumber('id')->name('stock-returns.approve');
         Route::post ('stock-returns/{id}/reject',  [StockReturnRequestController::class, 'reject'])->whereNumber('id')->name('stock-returns.reject');
+
+        // تسليم عهدة مندوب انتهت خدمته: السجلّ، جرد العربية، وترحيل
+        // الفواتير إلى من يخلفه.
+        Route::group(['prefix' => 'handover', 'as' => 'handover.'], function () {
+            Route::get  ('/',       [SellerHandoverController::class, 'index'])->name('index');
+            Route::get  ('create',  [SellerHandoverController::class, 'create'])->name('create');
+            Route::post ('/',       [SellerHandoverController::class, 'store'])->name('store');
+            Route::get  ('{id}',    [SellerHandoverController::class, 'show'])->whereNumber('id')->name('show');
+
+            Route::post ('{id}/transfer',      [SellerHandoverController::class, 'transfer'])->whereNumber('id')->name('transfer');
+            Route::post ('{id}/transfer/undo', [SellerHandoverController::class, 'undoTransfer'])->whereNumber('id')->name('transfer.undo');
+
+            Route::post ('{id}/count',                      [SellerHandoverController::class, 'storeCount'])->whereNumber('id')->name('count.store');
+            Route::post ('{id}/count/{countId}/approve',    [SellerHandoverController::class, 'approveCount'])->whereNumber('id')->whereNumber('countId')->name('count.approve');
+            Route::post ('{id}/count/{countId}/reject',     [SellerHandoverController::class, 'rejectCount'])->whereNumber('id')->whereNumber('countId')->name('count.reject');
+
+            Route::post ('{id}/end', [SellerHandoverController::class, 'end'])->whereNumber('id')->name('end');
+        });
     });   // نهاية مجموعة middleware admin
 });

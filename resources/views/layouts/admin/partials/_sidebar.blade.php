@@ -402,6 +402,16 @@ body {
                                         <span class="text-truncate">{{\App\CPU\translate('قائمة مناديب')}}</span>
                                     </a>
                                 </li>
+
+                                @cangroup('handover')
+                                <li class="nav-item {{Request::is('admin/handover*')?'active':''}}">
+                                    <a class="nav-link " href="{{route('admin.handover.index')}}"
+                                       title="{{\App\CPU\translate('تسليم عهدة مندوب')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">{{\App\CPU\translate('تسليم عهدة')}}</span>
+                                    </a>
+                                </li>
+                                @endif
                             </ul>
                         </li>
                         @endif
