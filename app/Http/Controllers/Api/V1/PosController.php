@@ -974,8 +974,19 @@ public function placeInstallment(Request $request): JsonResponse
             }
 
             // ========= 8) Update seller & customer =========
-            $seller->commission = (float) $seller->commission + $price;
-            $seller->credit     = (float) $seller->credit + $price;
+            // العهدة لمن قبض، والعمولة لمن باع.
+            //
+            // بعد ترحيل عهدة مندوبٍ انتهت خدمته تصير الفاتورة باسم
+            // خلفه، فيحصّلها. المال في يده فيدخل عهدته (credit)
+            // ليورّده، أما العمولة فلصاحب البيعة لا لمن حصّلها،
+            // والبيعة ليست بيعته.
+            $isHandover = (int) $order->owner_id !== (int) $sellerId;
+
+            if (!$isHandover) {
+                $seller->commission = (float) $seller->commission + $price;
+            }
+
+            $seller->credit = (float) $seller->credit + $price;
             $seller->save();
 
             $customer->credit   = (float) $customer->credit - $price;

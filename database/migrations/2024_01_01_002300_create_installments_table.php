@@ -28,7 +28,10 @@ return new class extends Migration
                 $table->integer('active')->default(1);
                 $table->integer('notification')->default(0);
                 $table->integer('insert_flag')->default(1);
-                $table->integer('update_flag');
+                // بلا قيمة افتراضية كان كل إدراج لا يذكر العمود صراحةً
+                // يفشل، وهو ما يفعله تسجيل القسط من التطبيق. أخواته
+                // insert_flag وactive لها افتراضي، وغيابه هنا سهو.
+                $table->integer('update_flag')->default(0);
                 $table->timestamps();
                 $table->mediumText('img')->nullable();
                 $table->index(['seller_id'], 'installments_seller_id_index');
