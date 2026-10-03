@@ -1,6 +1,6 @@
 <?php
 
-namespace Tests\Feature\Api\V2;
+namespace Tests\Feature\Admin;
 
 use App\Models\Order;
 use App\Models\SellerHandover;
@@ -8,7 +8,10 @@ use Database\Seeders\ApiTestingSeeder;
 use Tests\Feature\Api\ApiTestCase;
 
 /**
- * تسليم عهدة مندوب إلى آخر.
+ * تسليم عهدة مندوب إلى آخر: السجلّ وحده.
+ *
+ * التطبيق لا يُعدَّل، فلا تمسّ هذه الميزة واجهة الـAPI: لا نقطة
+ * نهاية جديدة ولا تغيير في سلوك قائمة. السجلّ يُقرأ من اللوحة.
  *
  * الشرط الأهم هنا ليس أن الميزة تعمل، بل ألّا تغيّر شيئًا قائمًا:
  * لا تُنقل ملكية فاتورة ولا يتبدّل رقم في تقرير سابق. ولهذا تُقاس
@@ -207,175 +210,5 @@ class SellerHandoverTest extends ApiTestCase
             Order::where('owner_id', $other)->count(),
             'فواتير صاحب العهدة يجب أن تبقى محسوبةً عليه.'
         );
-    }
-
-    /** @test */
-    public function the_handover_endpoints_are_empty_without_a_handover(): void
-    {
-        $this->asSeller()->getJson('/api/v2/handover')
-            ->assertOk()->assertJson(['success' => true, 'data' => []]);
-
-        $this->asSeller()->getJson('/api/v2/handover/orders')
-            ->assertOk()->assertJson(['data' => []]);
-
-        $this->asSeller()->getJson('/api/v2/handover/collections')
-            ->assertOk()->assertJson(['data' => []]);
-    }
-
-    /** @test */
-    public function the_handover_listing_names_the_source_seller(): void
-    {
-        $other = $this->otherSellerId();
-        $this->handFrom($other);
-
-        $this->asSeller()->getJson('/api/v2/handover')
-            ->assertOk()
-            ->assertJsonPath('data.0.from.id', $other);
-    }
-
-    /** @test */
-    public function handover_orders_list_the_other_sellers_unpaid_invoices(): void
-    {
-        $other = $this->otherSellerId();
-        $this->handFrom($other);
-
-        $ids = collect($this->asSeller()->getJson('/api/v2/handover/orders')->json('data'))
-            ->pluck('id');
-
-        $this->assertTrue($ids->contains(900077), 'فاتورة العهدة غير المسدَّدة يجب أن تظهر.');
-    }
-
-    /**
-     * الفصل: فواتير العهدة لا تدخل قائمة المندوب نفسه.
-     *
-     * @test
-     */
-    public function handover_invoices_stay_out_of_the_sellers_own_listing(): void
-    {
-        $other = $this->otherSellerId();
-        $this->handFrom($other);
-
-        $ids = collect($this->asSeller()->getJson('/api/v2/orders')->json('data'))
-            ->pluck('id');
-
-        $this->assertFalse(
-            $ids->contains(900077),
-            'فاتورة العهدة يجب ألّا تظهر في قائمة فواتير المندوب نفسه.'
-        );
-    }
-
-    /** @test */
-    public function a_seller_may_open_an_invoice_handed_over_to_them(): void
-    {
-        $other = $this->otherSellerId();
-
-        // قبل التسليم: ممنوع.
-        $this->asSeller()->getJson('/api/v2/orders/900077')->assertForbidden();
-
-        $this->handFrom($other);
-
-        $this->asSeller()->getJson('/api/v2/orders/900077')->assertOk();
-    }
-
-    /** @test */
-    public function an_invoice_of_an_unrelated_seller_stays_forbidden(): void
-    {
-        $other = $this->otherSellerId();
-        $this->handFrom($other);
-
-        \Illuminate\Support\Facades\DB::table('orders')->insert([
-            'id'           => 900078,
-            'user_id'      => 90001,
-            'owner_id'     => 900099,
-            'order_amount' => 100,
-            'total_tax'    => 0,
-            'update_flag'  => 0,
-            'type'         => 1,
-            'created_at'   => now(),
-            'updated_at'   => now(),
-        ]);
-
-        // التسليم يفتح عهدة بعينها لا كل الفواتير.
-        $this->asSeller()->getJson('/api/v2/orders/900078')->assertForbidden();
-    }
-
-    /**
-     * العهدة بلا عمولة: المال يدخل credit ولا يمسّ commission.
-     *
-     * @test
-     */
-    public function collecting_a_handover_invoice_adds_custody_but_no_commission(): void
-    {
-        $other = $this->otherSellerId();
-        $this->handFrom($other);
-
-        $before = \App\Models\Seller::find(self::SELLER);
-        $credit = (float) $before->credit;
-        $comm   = (float) $before->commission;
-
-        $account = \Illuminate\Support\Facades\DB::table('accounts')->first();
-
-        if (!$account) {
-            $this->markTestSkipped('لا يوجد حساب في البيانات.');
-        }
-
-        $response = $this->asSeller()->postJson('/api/v2/orders/900077/collect', [
-            'amount'     => 100,
-            'account_id' => $account->id,
-            'date'       => now()->toDateString(),
-        ]);
-
-        $response->assertOk()->assertJsonPath('data.is_handover', true);
-
-        $after = \App\Models\Seller::find(self::SELLER);
-
-        $this->assertSame(
-            round($credit + 100, 2),
-            round((float) $after->credit, 2),
-            'تحصيل العهدة يجب أن يدخل عهدة القابض.'
-        );
-
-        $this->assertSame(
-            round($comm, 2),
-            round((float) $after->commission, 2),
-            'تحصيل العهدة يجب ألّا يُحتسب في عمولة القابض.'
-        );
-    }
-
-    /**
-     * التحصيل يُسجَّل باسم القابض، والفاتورة تبقى لصاحبها.
-     *
-     * @test
-     */
-    public function the_collection_is_recorded_against_the_collector(): void
-    {
-        $other = $this->otherSellerId();
-        $this->handFrom($other);
-
-        $account = \Illuminate\Support\Facades\DB::table('accounts')->first();
-
-        if (!$account) {
-            $this->markTestSkipped('لا يوجد حساب في البيانات.');
-        }
-
-        $this->asSeller()->postJson('/api/v2/orders/900077/collect', [
-            'amount'     => 50,
-            'account_id' => $account->id,
-            'date'       => now()->toDateString(),
-        ])->assertOk();
-
-        $this->assertDatabaseHas('transections', [
-            'order_id'  => 900077,
-            'seller_id' => self::SELLER,
-        ]);
-
-        // الفاتورة لم تنتقل.
-        $this->assertSame($other, (int) Order::find(900077)->owner_id);
-
-        // وتظهر في كشف تحصيلات العهدة لا في كشفه هو.
-        $this->asSeller()->getJson('/api/v2/handover/collections')
-            ->assertOk()
-            ->assertJsonPath('data.items.0.order_id', 900077)
-            ->assertJsonPath('data.items.0.owner_id', $other);
     }
 }

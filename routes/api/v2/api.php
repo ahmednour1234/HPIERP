@@ -122,16 +122,6 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
             Route::delete('courses/{id}', [\App\Http\Controllers\Api\V2\ManagerController::class, 'destroyCourse'])->whereNumber('id');
         });
 
-        // العهدة المستلَمة: فواتير مندوبٍ انتهت خدمته يحصّلها غيره.
-        // مسار مستقلّ عن /orders و/dashboard عمدًا، فتوسيعهما كان
-        // ليبدّل أرقام تقارير سابقة بأثر رجعي. الراتب والتقييم ليسا
-        // هنا أصلًا: ما لا يُبنى لا يتسرّب.
-        Route::group(['prefix' => 'handover'], function () {
-            Route::get('/', [\App\Http\Controllers\Api\V2\HandoverController::class, 'index']);
-            Route::get('orders', [\App\Http\Controllers\Api\V2\HandoverController::class, 'orders']);
-            Route::get('collections', [\App\Http\Controllers\Api\V2\HandoverController::class, 'collections']);
-        });
-
         // ملاحظات المدير كما يقرأها المندوب نفسه.
         Route::get('manager-notes', [\App\Http\Controllers\Api\V2\ManagerController::class, 'myManagerNotes']);
 

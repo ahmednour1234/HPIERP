@@ -10,8 +10,6 @@ use App\Models\CurrentOrder;
 use App\Models\Order;
 use App\Models\OrderDetail;
 use App\Models\Product;
-use App\Models\Seller;
-use App\Models\SellerHandover;
 use App\Models\SellerPrice;
 use App\Models\Stock;
 use App\Models\Transection;
@@ -66,11 +64,7 @@ class OrderService
         }
 
         // A seller may only read their own invoices; v1 returned any order by id.
-        // صاحبُها، أو من استلم عهدته وما زال التسليم قائمًا: الفاتورة
-        // تبقى محسوبةً لصاحبها، والتحصيل يُسجَّل باسم من قبضه. بلا
-        // تسليمٍ قائم يتصرّف هذا الشرط كما كان حرفيًّا.
-        if ((int) $order->owner_id !== $sellerId
-            && !SellerHandover::allows($sellerId, (int) $order->owner_id)) {
+        if ((int) $order->owner_id !== $sellerId) {
             throw new AuthorizationException('This order does not belong to you');
         }
 
@@ -361,30 +355,11 @@ class OrderService
             $order->collected_cash        = $collected + $amount;
             $order->save();
 
-            // تحصيل فاتورة عهدة: المال في يد القابض فيدخل عهدته
-            // (credit) ليورّده، ولا يُحتسب في عمولته (commission) لأن
-            // البيعة ليست بيعته. فاتورته هو لا تمرّ من هنا: حسابها
-            // قائم في v1 ولم يُنقل بعدُ إلى v2، فلا يُمسّ هنا كي لا
-            // تُحتسب مرتين عند نقله.
-            $isHandover = (int) $order->owner_id !== $sellerId;
-
-            if ($isHandover) {
-                $collector = Seller::lockForUpdate()->find($sellerId);
-
-                if ($collector) {
-                    $collector->credit = (string) ((float) $collector->credit + $amount);
-                    $collector->save();
-                }
-            }
-
             $nowCollected = round((float) $order->transaction_reference, 2);
             $nowRemaining = round(max($total - $nowCollected, 0), 2);
 
             return [
                 'order_id'       => $order->id,
-                // أصل الفاتورة، ليعرف القابض لمن يحصّل.
-                'owner_id'       => (int) $order->owner_id,
-                'is_handover'    => $isHandover,
                 'order_amount'   => $total,
                 'collected_cash' => $nowCollected,
                 'remaining'      => $nowRemaining,
