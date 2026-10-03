@@ -1387,7 +1387,7 @@ Stack trace:
   'shop_name' => 'اسم المتجر',
   'shop_phone' => 'هاتف المتجر',
   'shop_setting_section' => 'Shop setting section',
-  'shop_setup' => 'إعداد المتجر',
+  'shop_setup' => 'اعدادات النظام',
   'shor_cut_keys' => 'Shor cut keys',
   'short' => 'Short',
   'short_cut_key_list' => 'قائمة الاختصارات',

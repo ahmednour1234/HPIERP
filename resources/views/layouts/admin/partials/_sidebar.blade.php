@@ -1156,7 +1156,7 @@ body {
                                     >
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span
-                                            class="text-truncate">{{\App\CPU\translate('الشركة')}} {{\App\CPU\translate('تعديل الاعدادات')}}</span>
+                                            class="text-truncate">{{\App\CPU\translate('shop_setup')}}</span>
                                     </a>
                                 </li>
                                 
