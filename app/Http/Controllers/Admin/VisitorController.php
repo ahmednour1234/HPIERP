@@ -605,7 +605,12 @@ public function indexresult(Request $request)
     // ====== تحضير صلاحيات البائعين للمشرف الحالي ======
 $admin   = Auth::guard('admin')->user();
 $adminId = $admin?->id;
-$isSuper = $admin && in_array($admin->role, ['super_admin', 'admin'], true);
+// عمود is_super وحده يفتح كل المناديب.
+//
+// كان الشرط على role، و'admin' هي قيمته لكل موظف إداري لا للمشرف
+// العام وحده، فمن أُسند إليه خمسة مناديب كان يرى العشرة جميعًا.
+// بقية اللوحة تقرأ is_super، وهذا الموضع كان يخالفها.
+$isSuper = $admin && $admin->is_super;
 
 // IDs البائعين المسموحين
 $allowedSellerIds = $isSuper
@@ -734,7 +739,9 @@ public function exportResult(Request $request)
 {
     $admin   = Auth::guard('admin')->user();
     $adminId = $admin?->id;
-    $isSuper = $admin && in_array($admin->role, ['super_admin', 'admin'], true);
+    // is_super وحده، كما في بقية اللوحة: التصدير يجب أن يحمل ما
+    // تعرضه الشاشة لا أكثر.
+    $isSuper = $admin && $admin->is_super;
 
     $allowedSellerIds = $isSuper
         ? Seller::where('role', 'seller')->pluck('id')->all()
