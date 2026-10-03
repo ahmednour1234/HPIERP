@@ -12,6 +12,9 @@ use Illuminate\Support\Facades\DB;
 
 class CustomerService
 {
+    /** عملاء الصفحة الواحدة ما لم يطلب العميل غير ذلك. */
+    public const DEFAULT_PAGE_SIZE = 1000;
+
     public function __construct(private CustomerRepository $customers)
     {
     }
@@ -21,7 +24,13 @@ class CustomerService
         return $this->customers->forSeller(
             $sellerId,
             $filters['search'] ?? null,
-            (int) ($filters['limit'] ?? 25),
+            // 1000 لا 25: التطبيق يطلب الصفحة الأولى ولا يطلب ما بعدها،
+            // فكان المندوب يرى 25 عميلًا من 2350 عند إنشاء فاتورة ويظنّ
+            // الباقي غير موجود. الحدّ يغطّي أكبر مندوب في البيانات.
+            //
+            // حلٌّ وسيط: الصواب أن يُمرّر التطبيق offset أو يبحث من
+            // السيرفر، فالترقيم باقٍ هنا ويعمل لمن يستعمله.
+            (int) ($filters['limit'] ?? self::DEFAULT_PAGE_SIZE),
             (int) ($filters['offset'] ?? 1),
             [
                 'category_id' => array_filter((array) ($filters['category_id'] ?? [])),
