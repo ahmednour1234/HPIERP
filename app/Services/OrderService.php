@@ -32,6 +32,10 @@ class OrderService
 {
     public const TYPE_SALE   = 4;
     public const TYPE_RETURN = 7;
+
+    /** عمود orders.cash: نقدي أم آجل. */
+    public const CASH   = 1;
+    public const CREDIT = 2;
     public const STOCK_CONSUMING = [4, 12, 24];
 
     public function __construct(
@@ -514,8 +518,14 @@ class OrderService
                 'coupon_code'            => $data['coupon_code'] ?? null,
                 'coupon_discount_amount' => $couponDiscount,
                 'coupon_discount_title'  => $data['coupon_title'] ?? null,
-                'collected_cash'         => $data['collected_cash'] ?? $grandTotal,
-                'transaction_reference'  => $data['collected_cash'] ?? null,
+                // فاتورة آجل بلا مبلغٍ مُرسَل لم يُحصَّل منها شيء.
+                //
+                // كان الافتراضي $grandTotal فتُكتب الفاتورة محصَّلةً
+                // بالكامل لحظة إنشائها، وتظهر في الشاشة «محصّلة
+                // بالكامل» وهي دَين لم يُقبض منه قرش. النقدي وحده هو
+                // المحصَّل عند البيع.
+                'collected_cash'         => $this->collectedAtSale($data, $grandTotal),
+                'transaction_reference'  => $this->collectedAtSale($data, $grandTotal),
                 'img'                    => $imagePath,
                 'update_flag'            => 0,
             ]);
@@ -534,7 +544,7 @@ class OrderService
                 'cash'         => $data['cash'] ?? 1,
                 'total_tax'    => $taxTotal,
                 'order_amount' => $data['order_amount'] ?? $grandTotal,
-                'collected_cash' => $data['collected_cash'] ?? $grandTotal,
+                'collected_cash' => $this->collectedAtSale($data, $grandTotal),
             ]);
 
             // Installment variants are settled separately, so they post no
@@ -583,6 +593,25 @@ class OrderService
         $type     = $item['discount_type'] ?? $product->discount_type ?? 'amount';
 
         return $type === 'percent' ? ($price / 100) * $discount : $discount;
+    }
+
+    /**
+     * ما حُصِّل لحظة البيع.
+     *
+     * الآجل (cash = 2) دَين: لا يُقبض منه شيء عند الإنشاء ما لم يُرسل
+     * التطبيق مبلغًا صراحةً. كان الافتراضي قيمة الفاتورة كاملة، فتولد
+     * الفاتورة الآجلة «محصّلة بالكامل» ويختفي الدَّين من الشاشة ومن
+     * فلاتر التحصيل.
+     *
+     * النقدي يبقى على افتراضه: بيعٌ نقديٌّ قُبض ثمنه عند تسليمه.
+     */
+    private function collectedAtSale(array $data, float $grandTotal): float
+    {
+        if (array_key_exists('collected_cash', $data) && $data['collected_cash'] !== null) {
+            return round((float) $data['collected_cash'], 2);
+        }
+
+        return (int) ($data['cash'] ?? self::CASH) === self::CREDIT ? 0.0 : round($grandTotal, 2);
     }
 
     private function extraDiscount(array $data, float $netTotal): float
