@@ -162,4 +162,119 @@ class MonthlySalesReportTest extends ApiTestCase
             Request::create('/', 'GET', ['section' => 'nonsense'])
         );
     }
+
+    /**
+     * قسطٌ يقبضه مندوبٌ عن فاتورة زميله يظل محسوبًا في التقرير.
+     *
+     * كان الترشيح على installments.seller_id بينما الفواتير تُجمع
+     * بـ owner_id، فيسقط هذا القسط من التقرير كله. وبعد ترحيل العهدة
+     * يصير هذا هو الحال الغالب لا الاستثناء.
+     */
+    public function test_a_collection_taken_by_another_seller_still_counts(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 15, 10));
+
+        try {
+            $this->actingAs(Admin::find(ApiTestingSeeder::ADMIN_ID), 'admin');
+
+            $this->insertOrderWithLine(910101, 4, 2, 10, '2026-09-04 10:00:00');
+
+            // الفاتورة لمندوبنا، والقسط قبضه غيره.
+            DB::table('installments')->insert([
+                'seller_id'   => 900077,
+                'customer_id' => 90001,
+                'order_id'    => 910101,
+                'total_price' => 300,
+                'note'        => '',
+                'insert_flag' => 0,
+                'update_flag' => 0,
+                'active'      => 1,
+                'created_at'  => '2026-09-10 10:00:00',
+                'updated_at'  => '2026-09-10 10:00:00',
+            ]);
+
+            $data = $this->report(['month' => '2026-09']);
+            $sales = $data['totals']['sales'];
+
+            $this->assertSame(
+                300.0,
+                round($this->sumRow($sales, 'collected_by_others'), 2),
+                'القسط الذي قبضه مندوب آخر يجب أن يظهر مفصولًا.'
+            );
+
+            // وهو الإصلاح الأصلي: كان الترشيح بـ seller_id يُسقط
+            // المبلغ من صفوف التحصيل نفسها، فلا يظهر في التقرير
+            // أصلًا. يقع هذا التوكيد إن عاد الترشيح القديم.
+            $this->assertSame(
+                300.0,
+                round($this->sumRow($sales, 'collected_month'), 2),
+                'القسط يجب أن يُحتسب في المحصل من الآجل، لا أن يسقط.'
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /** ما يقبضه صاحب الفاتورة نفسه لا يُعدّ تحصيل غيره. */
+    public function test_the_owners_own_collection_is_not_flagged_as_someone_elses(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 15, 10));
+
+        try {
+            $this->actingAs(Admin::find(ApiTestingSeeder::ADMIN_ID), 'admin');
+
+            $this->insertOrderWithLine(910102, 4, 2, 10, '2026-09-04 10:00:00');
+
+            DB::table('installments')->insert([
+                'seller_id'   => ApiTestingSeeder::SELLER_ID,
+                'customer_id' => 90001,
+                'order_id'    => 910102,
+                'total_price' => 300,
+                'note'        => '',
+                'insert_flag' => 0,
+                'update_flag' => 0,
+                'active'      => 1,
+                'created_at'  => '2026-09-10 10:00:00',
+                'updated_at'  => '2026-09-10 10:00:00',
+            ]);
+
+            $sales = $this->report(['month' => '2026-09'])['totals']['sales'];
+
+            $this->assertSame(0.0, round($this->sumRow($sales, 'collected_by_others'), 2));
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /** الصف الجديد له تسمية، وإلا لم يُعرض في القالب. */
+    public function test_the_new_row_is_labelled(): void
+    {
+        $this->assertArrayHasKey(
+            'collected_by_others',
+            MonthlySalesReportController::salesLabels()
+        );
+    }
+
+    /** @return array<string,mixed> */
+    private function report(array $query): array
+    {
+        $build = (new ReflectionClass(MonthlySalesReportController::class))->getMethod('build');
+        $build->setAccessible(true);
+
+        return $build->invoke(
+            app(MonthlySalesReportController::class),
+            Request::create('/', 'GET', $query)
+        );
+    }
+
+    private function sumRow(array $sales, string $key): float
+    {
+        $sum = 0.0;
+
+        foreach ($sales[$key] ?? [] as $cell) {
+            $sum += (float) ($cell['amount'] ?? 0);
+        }
+
+        return $sum;
+    }
 }

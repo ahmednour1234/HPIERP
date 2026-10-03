@@ -79,10 +79,33 @@ class MonthlySalesReportController extends Controller
                 ->where('created_at', '<', $start)
                 ->with(['details', 'customer:id,region_id'])->get(),
 
-            'paidThisMonth' => Installment::whereIn('seller_id', $sellerIds)
+            // التحصيل يُنسب إلى الفاتورة لا إلى من قبضه.
+            //
+            // كان الترشيح على installments.seller_id بينما الفواتير
+            // تُجمع بـ owner_id، فقسطٌ يقبضه مندوبٌ عن فاتورة زميله
+            // يسقط من التقرير كله: لا يظهر عند صاحب الفاتورة لأن
+            // الفلتر استبعده، ولا عند القابض لأن الفاتورة ليست في
+            // قائمته. الربط بالفواتير المعروضة يعيد هذه المبالغ.
+            'paidThisMonth' => Installment::whereIn(
+                    'order_id',
+                    Order::where('type', 4)
+                        ->whereIn('owner_id', $sellerIds)
+                        ->select('id')
+                )
                 ->whereBetween('created_at', [$start, $end])
                 ->select('order_id', DB::raw('SUM(total_price) as paid'))
                 ->groupBy('order_id')
+                ->pluck('paid', 'order_id'),
+
+            // منها ما قبضه غير صاحب الفاتورة: بعد ترحيل العهدة يصير
+            // هذا هو الحال الغالب، ودمجه بالباقي يُخفي من حصّل فعلًا.
+            'paidByOthers' => Installment::join('orders', 'orders.id', '=', 'installments.order_id')
+                ->where('orders.type', 4)
+                ->whereIn('orders.owner_id', $sellerIds)
+                ->whereColumn('installments.seller_id', '<>', 'orders.owner_id')
+                ->whereBetween('installments.created_at', [$start, $end])
+                ->select('installments.order_id', DB::raw('SUM(installments.total_price) as paid'))
+                ->groupBy('installments.order_id')
                 ->pluck('paid', 'order_id'),
 
             // مناديب كل منطقة، لتفادي استعلام seller_regions لكل منطقة.
@@ -394,6 +417,11 @@ class MonthlySalesReportController extends Controller
             'collected_month' => $blank(), // المحصل من الآجل (خلال الشهر)
             'collected_cash'  => $blank(), // المحصل نقدي
             'carried_forward' => $blank(), // المرحل آجل للشهر القادم
+
+            // جزء من المحصَّل أعلاه، مفصولًا لا مضافًا: قبضه مندوبٌ
+            // غير صاحب الفاتورة. يبقى محسوبًا في صفوف التحصيل كما هو،
+            // ويُقرأ هنا من حصّله فعلًا.
+            'collected_by_others' => $blank(),
         ];
 
         if (empty($productIds)) {
@@ -405,6 +433,7 @@ class MonthlySalesReportController extends Controller
         $monthOrders = $this->ordersInRegion($this->cache['monthOrders'], $regionId);
         $priorOrders = $this->ordersInRegion($this->cache['priorOrders'], $regionId);
         $paidThisMonth = $this->cache['paidThisMonth'];
+        $paidByOthers  = $this->cache['paidByOthers'];
 
         foreach ($monthOrders as $order) {
             $total = (float) $order->order_amount;
@@ -423,6 +452,9 @@ class MonthlySalesReportController extends Controller
                 }
 
                 $rows['collected_month'][$pid]['amount'] += $viaInstallment * $share;
+
+                $rows['collected_by_others'][$pid]['amount']
+                    += (float) ($paidByOthers[$order->id] ?? 0) * $share;
 
                 $rows['carried_forward'][$pid]['amount'] += $remaining * $share;
                 if ($remaining > 0) {
@@ -449,6 +481,9 @@ class MonthlySalesReportController extends Controller
                 }
 
                 $rows['collected_prior'][$pid]['amount'] += $paidNow * $share;
+
+                $rows['collected_by_others'][$pid]['amount']
+                    += (float) ($paidByOthers[$order->id] ?? 0) * $share;
 
                 $rows['carried_forward'][$pid]['amount'] += $open * $share;
                 if ($open > 0) {
@@ -576,6 +611,9 @@ class MonthlySalesReportController extends Controller
             'collected_month' => 'المحصل من الأجل (خلال الشهر)',
             'collected_cash'  => 'المحصل نقدي',
             'carried_forward' => 'المرحل آجل للشهر القادم',
+
+            // جزءٌ مما سبق لا إضافةً عليه، فلا يدخل في جمع الأعمدة.
+            'collected_by_others' => 'منه: حصّله مندوب آخر',
         ];
     }
 
