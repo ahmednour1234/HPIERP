@@ -30,6 +30,11 @@
             overflow: hidden;
         }
 
+        /* بطاقة الفلاتر لا تقصّ ما ينسدل منها: قوائم الاختيار تخرج
+           خارج حدودها، وoverflow:hidden كان يقطع قوائم الصف الثاني
+           خاصةً، فتبدو كأنها لا تفتح. */
+        .product-report-filter { overflow: visible; }
+
         .product-report-hero {
             display: flex;
             align-items: center;

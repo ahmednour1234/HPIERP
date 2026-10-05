@@ -296,11 +296,22 @@ public function getreportProducts(Request $request)
     $productsall = Product::select('id', 'name', 'product_code')
         ->orderBy('name')
         ->get();
-    // بيانات المساعدين للفلاتر
-    $sellers = Seller::join('admin_sellers', 'admins.id', '=', 'admin_sellers.seller_id')
-        ->where('admin_sellers.admin_id', $adminId)
-        ->select('admins.id', 'admins.email', 'admins.f_name', 'admins.l_name')
-        ->get();
+    // بيانات المساعدين للفلاتر.
+    //
+    // المشرف العام يرى كل المناديب: admin_sellers لا تحمل له صفًّا،
+    // فكانت قائمة الفلتر تخرج فارغة ولا يمكنه الترشيح بمندوب أصلًا.
+    $admin = Auth::guard('admin')->user();
+
+    $sellers = Seller::where('role', 'seller')
+        ->when(
+            !($admin && (int) ($admin->is_super ?? 0) === 1),
+            fn ($q) => $q->whereIn(
+                'admins.id',
+                AdminSeller::where('admin_id', $adminId)->select('seller_id')
+            )
+        )
+        ->orderBy('f_name')
+        ->get(['admins.id', 'admins.email', 'admins.f_name', 'admins.l_name']);
 
     $regions = Region::select('id', 'name')->orderBy('name')->get();
 
