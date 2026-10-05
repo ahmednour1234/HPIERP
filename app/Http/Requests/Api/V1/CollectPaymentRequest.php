@@ -25,7 +25,8 @@ class CollectPaymentRequest extends FormRequest
             'account_id' => ['required', 'integer', 'exists:accounts,id'],
             'date'       => ['required', 'date'],
             'note'       => ['nullable', 'string', 'max:2000'],
-            'img'        => ['nullable', 'image', 'max:4096'],
+            // صورة الإيصال إلزامية: هي سند التحصيل.
+            'img'        => ['required', 'image', 'max:4096'],
             'cash'       => ['nullable', 'integer', 'in:1,2'],
         ];
     }
@@ -33,6 +34,7 @@ class CollectPaymentRequest extends FormRequest
     public function messages(): array
     {
         return [
+            'img.required' => 'صورة الإيصال مطلوبة.',
             'amount.gt'         => 'The amount must be greater than zero.',
             'account_id.exists' => 'That account does not exist.',
         ];

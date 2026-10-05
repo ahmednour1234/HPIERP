@@ -28,13 +28,15 @@ class SellerDepositRequest extends FormRequest
             'note'       => ['nullable', 'string', 'max:2000'],
             // The deposit slip. Optional: a seller may hand cash over in
             // person and photograph the receipt later.
-            'img'        => ['nullable', 'image', 'max:4096'],
+            // صورة التحويل إلزامية: هي سند توريد العهدة.
+            'img'        => ['required', 'image', 'max:4096'],
         ];
     }
 
     public function messages(): array
     {
         return [
+            'img.required' => 'صورة التحويل مطلوبة.',
             'account_id.exists' => 'That account does not exist.',
             'amount.gt'         => 'The amount must be greater than zero.',
         ];

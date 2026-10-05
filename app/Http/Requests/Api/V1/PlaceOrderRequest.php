@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Api\V1;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 /**
  * v1 accepted the cart as a loosely-quoted string and repaired it with a
@@ -51,13 +52,23 @@ class PlaceOrderRequest extends FormRequest
             'coupon_title'        => ['nullable', 'string', 'max:255'],
             'coupon_discount'     => ['nullable', 'numeric', 'min:0'],
             // The receipt or transfer slip photographed at the counter.
-            'img'                 => ['nullable', 'image', 'max:4096'],
+            // صورة الفاتورة إلزامية على البيع وحده.
+            //
+            // هذا الطلب يخدم أربعة أنواع: بيع (4) ومرتجع (7) وقسطين
+            // (12، 24). الإلزام على البيع لأنه ما يُطلب سنده، أما
+            // المرتجع فيُحرَّر مقابل فاتورةٍ قائمة لها صورتها.
+            'img'                 => [
+                Rule::requiredIf(fn () => (int) ($this->input('order_type') ?? 4) === 4),
+                'image',
+                'max:4096',
+            ],
         ];
     }
 
     public function messages(): array
     {
         return [
+            'img.required' => 'صورة الفاتورة مطلوبة.',
             'cart.required'         => 'The cart is empty.',
             'cart.*.quantity.gt'    => 'Each line needs a quantity greater than zero.',
             'cart.*.id.exists'      => 'One of the products in the cart does not exist.',

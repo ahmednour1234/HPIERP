@@ -139,7 +139,10 @@
                 var sellerId = $(this).val();
                 if (sellerId) {
                     $.ajax({
-                        url: '{{ route("admin.salaries.showsalary", "") }}/' + sellerId,
+                        // الشهر يُمرَّر ليُعدّ عليه: الكشف يُحرَّر غالبًا
+                        // بعد انتهاء شهره، فالعدّ على «الآن» يُظهر صفرًا.
+                        url: '{{ route("admin.salaries.showsalary", "") }}/' + sellerId
+                             + '?month=' + ($('#month').val() || ''),
                         method: 'GET',
                         success: function(data) {
                             $('#salary').val(data.salary);
@@ -164,6 +167,11 @@
                     $('#salary, #commission, #score, #number_of_visitors, #result_of_visitors, #notemanager, #holidays, #number_of_days').val('');
                     calculateTotal();
                 }
+            });
+
+            // تغيير الشهر يعيد جلب زيارات ذلك الشهر.
+            $('#month').on('change', function () {
+                $('#seller_id').trigger('change');
             });
 
             $('#salary_of_visitors, #transport_amount, #collection_incentive, #discount, #other').on('input', calculateTotal);

@@ -118,11 +118,18 @@ public function showsalary($id)
     // التالي، فإن فُتحت الشاشة بعده قرأت صفرًا لمندوبٍ نزل زياراته
     // فعلًا — ومعه تخرج نسبة الزيارات صفرًا كذلك، إذ تُحسب منه.
     //
-    // الشهر الجاري هو ما يخصّ كشف الراتب، فالعدّ عليه لا على العمر كلّه.
+    // العدّ على الشهر الذي يُحرَّر عنه الكشف، لا على الشهر الجاري:
+    // الراتب يُسجَّل غالبًا بعد انتهاء شهره، فحصر العدّ على «الآن»
+    // يُظهر صفرًا لشهرٍ كامل من الزيارات.
+    $month = request('month');
+    $period = $month
+        ? \Carbon\Carbon::createFromFormat('Y-m', $month)
+        : now();
+
     $salary->result_visitors = DB::table('result_visitors')
         ->where('admin_id', $id)
-        ->whereYear('created_at', now()->year)
-        ->whereMonth('created_at', now()->month)
+        ->whereYear('created_at', $period->year)
+        ->whereMonth('created_at', $period->month)
         ->count();
 
     return response()->json($salary);
