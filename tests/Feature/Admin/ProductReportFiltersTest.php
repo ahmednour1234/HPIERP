@@ -32,17 +32,17 @@ class ProductReportFiltersTest extends ApiTestCase
         return $this->get(route('admin.product.getreportProducts'))->assertOk()->getContent();
     }
 
-    /** الصفحة محمية بصلاحيتها، والاختبار عن الفلاتر لا عن الصلاحيات. */
+    /** الصفحة تقريرٌ فتحتاج reports.view، والاختبار عن الفلاتر لا عن الصلاحيات. */
     private function allowReports(Admin $admin): void
     {
         $permission = \App\Models\Permission::firstOrCreate(
-            ['name' => 'products.view'],
-            ['label' => 'عرض المنتجات', 'group' => 'products']
+            ['name' => 'reports.view'],
+            ['label' => 'عرض التقارير', 'group' => 'reports']
         );
 
         $role = \App\Models\Role::firstOrCreate(
-            ['name' => 'products-only'],
-            ['label' => 'products-only']
+            ['name' => 'reports-only'],
+            ['label' => 'reports-only']
         );
         $role->permissions()->syncWithoutDetaching([$permission->id]);
         $admin->roles()->syncWithoutDetaching([$role->id]);

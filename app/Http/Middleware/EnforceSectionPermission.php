@@ -55,6 +55,13 @@ class EnforceSectionPermission
         'reports'            => 'reports',
         'productsunlike'     => 'reports',
 
+        // تقارير تحت بادئة product: البادئة الأطول تفوز، فتُصنَّف
+        // تقاريرَ لا منتجاتٍ. بدونها كانت صفحة «كشف المنتجات المباعة»
+        // تطلب صلاحية products من حسابٍ أُعطي صلاحية التقارير وحدها،
+        // فتُرفض ولا يُفهم السبب.
+        'product/getreportProducts' => 'reports',
+        'product/listreportexpire'  => 'reports',
+
         'product'            => 'products',
         'category'           => 'categories',
         'unit'               => 'units',
