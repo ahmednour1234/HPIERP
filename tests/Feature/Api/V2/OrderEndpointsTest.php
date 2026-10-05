@@ -27,12 +27,12 @@ class OrderEndpointsTest extends ApiTestCase
         $stockBefore = Stock::where('seller_id', ApiTestingSeeder::SELLER_ID)
             ->where('product_id', 90001)->value('stock');
 
-        $response = $this->asSeller()->postJson('/api/v2/orders', [
+        $response = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id'        => 90001,
             'order_type'     => 4,
             'cart'           => $this->cart(5, 75),
             'collected_cash' => 375,
-        ]);
+        ]));
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
@@ -61,11 +61,11 @@ class OrderEndpointsTest extends ApiTestCase
         $orders       = Order::count();
         $transactions = Transection::count();
 
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id'    => 90001,
             'order_type' => 4,
             'cart'       => $this->cart($stockBefore + 100),
-        ])->assertStatus(422)->assertJsonPath('success', false);
+        ]))->assertStatus(422)->assertJsonPath('success', false);
 
         // v1 decremented stock before its try block, so a later failure left
         // stock wrong with no order to explain it.
@@ -83,12 +83,12 @@ class OrderEndpointsTest extends ApiTestCase
             ->where('product_id', 90001)->value('stock');
         $balanceBefore = Customer::find(90001)->balance;
 
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id'    => 90001,
             'order_type' => 7,
             'cart'       => $this->cart(3, 75),
             'collected_cash' => 225,
-        ])->assertStatus(201)->assertJsonPath('data.type', 7);
+        ]))->assertStatus(201)->assertJsonPath('data.type', 7);
 
         $this->assertEquals(
             $stockBefore + 3,
@@ -99,34 +99,34 @@ class OrderEndpointsTest extends ApiTestCase
 
     public function test_the_cart_is_validated(): void
     {
-        $this->asSeller()->postJson('/api/v2/orders', ['user_id' => 90001])
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt(['user_id' => 90001]))
             ->assertStatus(422)
             ->assertJsonStructure(['errors' => ['cart']]);
 
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'cart' => [['id' => 90001, 'quantity' => 0]],
-        ])->assertStatus(422)->assertJsonStructure(['errors' => ['cart.0.quantity']]);
+        ]))->assertStatus(422)->assertJsonStructure(['errors' => ['cart.0.quantity']]);
 
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'cart' => [['id' => 99999999, 'quantity' => 1]],
-        ])->assertStatus(422)->assertJsonStructure(['errors' => ['cart.0.id']]);
+        ]))->assertStatus(422)->assertJsonStructure(['errors' => ['cart.0.id']]);
     }
 
     public function test_a_json_encoded_cart_from_an_older_client_is_accepted(): void
     {
         // v1 clients send the cart as a string; prepareForValidation decodes it.
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id'    => 90001,
             'order_type' => 4,
             'cart'       => json_encode($this->cart(2, 75)),
-        ])->assertStatus(201);
+        ]))->assertStatus(201);
     }
 
     public function test_an_unknown_customer_is_rejected(): void
     {
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 99999999, 'cart' => $this->cart(),
-        ])->assertStatus(422)->assertJsonStructure(['errors' => ['user_id']]);
+        ]))->assertStatus(422)->assertJsonStructure(['errors' => ['user_id']]);
     }
 
     public function test_the_customer_price_beats_the_price_the_client_sent(): void
@@ -135,10 +135,10 @@ class OrderEndpointsTest extends ApiTestCase
             'local_id' => 0, 'customer_id' => 90001, 'product_id' => 90001, 'price' => 40,
         ]);
 
-        $response = $this->asSeller()->postJson('/api/v2/orders', [
+        $response = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4,
             'cart'    => $this->cart(2, 999), // client claims 999
-        ])->assertStatus(201);
+        ]))->assertStatus(201);
 
         // The negotiated price wins, so a tampered client cannot set its own.
         $this->assertEquals(40, $response->json('data.details.0.price'));
@@ -146,9 +146,9 @@ class OrderEndpointsTest extends ApiTestCase
 
     public function test_orders_are_listed_and_filtered_for_this_seller_only(): void
     {
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4, 'cart' => $this->cart(1),
-        ])->assertStatus(201);
+        ]))->assertStatus(201);
 
         $this->asSeller()->getJson('/api/v2/orders')
             ->assertOk()
@@ -169,9 +169,9 @@ class OrderEndpointsTest extends ApiTestCase
 
     public function test_an_invoice_can_be_read_by_its_owner_only(): void
     {
-        $id = $this->asSeller()->postJson('/api/v2/orders', [
+        $id = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4, 'cart' => $this->cart(1),
-        ])->json('data.id');
+        ]))->json('data.id');
 
         $this->asSeller()->getJson("/api/v2/orders/{$id}")
             ->assertOk()
@@ -199,14 +199,14 @@ class OrderEndpointsTest extends ApiTestCase
 
     public function test_a_percentage_discount_is_applied_per_line(): void
     {
-        $response = $this->asSeller()->postJson('/api/v2/orders', [
+        $response = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4,
             'cart' => [[
                 'id' => 90001, 'quantity' => 2, 'price' => 100,
                 'discount' => 10, 'discount_type' => 'percent', 'tax' => 5,
             ]],
             'collected_cash' => 200,
-        ])->assertStatus(201);
+        ]))->assertStatus(201);
 
         // 10% of 100 is 10 per unit, and the type is echoed back.
         $this->assertEquals(10, $response->json('data.details.0.discount_on_product'));
@@ -218,14 +218,14 @@ class OrderEndpointsTest extends ApiTestCase
 
     public function test_a_flat_discount_is_taken_as_given(): void
     {
-        $response = $this->asSeller()->postJson('/api/v2/orders', [
+        $response = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4,
             'cart' => [[
                 'id' => 90001, 'quantity' => 2, 'price' => 100,
                 'discount' => 15, 'discount_type' => 'amount', 'tax' => 0,
             ]],
             'collected_cash' => 200,
-        ])->assertStatus(201);
+        ]))->assertStatus(201);
 
         $this->assertEquals(15, $response->json('data.details.0.discount_on_product'));
         $this->assertEquals(170, $response->json('data.order_amount'));   // 200 - 30
@@ -233,11 +233,11 @@ class OrderEndpointsTest extends ApiTestCase
 
     public function test_a_line_without_a_discount_falls_back_to_the_products_own(): void
     {
-        $response = $this->asSeller()->postJson('/api/v2/orders', [
+        $response = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4,
             'cart' => [['id' => 90001, 'quantity' => 1, 'price' => 100]],
             'collected_cash' => 100,
-        ])->assertStatus(201);
+        ]))->assertStatus(201);
 
         // The fixture product carries tax 14 and no discount.
         $this->assertEquals(14, $response->json('data.details.0.tax_amount'));
@@ -246,15 +246,15 @@ class OrderEndpointsTest extends ApiTestCase
 
     public function test_a_negative_discount_is_rejected(): void
     {
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001,
             'cart' => [['id' => 90001, 'quantity' => 1, 'price' => 100, 'discount' => -5]],
-        ])->assertStatus(422)->assertJsonStructure(['errors' => ['cart.0.discount']]);
+        ]))->assertStatus(422)->assertJsonStructure(['errors' => ['cart.0.discount']]);
 
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001,
             'cart' => [['id' => 90001, 'quantity' => 1, 'discount_type' => 'sideways']],
-        ])->assertStatus(422)->assertJsonStructure(['errors' => ['cart.0.discount_type']]);
+        ]))->assertStatus(422)->assertJsonStructure(['errors' => ['cart.0.discount_type']]);
     }
 
     public function test_a_receipt_photo_is_stored_on_the_order_and_its_ledger_entry(): void
@@ -278,17 +278,33 @@ class OrderEndpointsTest extends ApiTestCase
         ]);
     }
 
-    public function test_an_order_without_a_photo_is_still_accepted(): void
+    /**
+     * فاتورة بيع بلا صورة تُرفض.
+     *
+     * الصورة سند الفاتورة عند المراجعة، وكانت اختيارية فتمرّ بلا سند.
+     */
+    public function test_a_sale_without_a_photo_is_refused(): void
     {
         $this->asSeller()->postJson('/api/v2/orders', [
             'user_id' => 90001, 'order_type' => 4,
             'cart' => [['id' => 90001, 'quantity' => 1, 'price' => 100]],
-        ])->assertStatus(201)->assertJsonPath('data.img', null);
+        ])->assertStatus(422)->assertJsonValidationErrors(['img']);
+    }
+
+    /** أما المرتجع فيُحرَّر مقابل فاتورةٍ لها صورتها، فلا تلزمه. */
+    public function test_a_return_does_not_need_a_photo(): void
+    {
+        $response = $this->asSeller()->postJson('/api/v2/orders', [
+            'user_id' => 90001, 'order_type' => 7,
+            'cart' => [['id' => 90001, 'quantity' => 1, 'price' => 100]],
+        ]);
+
+        $this->assertNotSame(422, $response->status(), 'المرتجع يجب ألّا تلزمه صورة.');
     }
 
     public function test_order_endpoints_require_authentication(): void
     {
         $this->getJson('/api/v2/orders')->assertStatus(401);
-        $this->postJson('/api/v2/orders', [])->assertStatus(401);
+        $this->postJson('/api/v2/orders', $this->withReceipt([]))->assertStatus(401);
     }
 }

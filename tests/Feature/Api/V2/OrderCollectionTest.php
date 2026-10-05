@@ -20,22 +20,25 @@ class OrderCollectionTest extends ApiTestCase
     /** Sell for `total`, collecting nothing up front. */
     private function unpaidInvoice(int $qty = 1, float $price = 100): Order
     {
-        $id = $this->asSeller()->postJson('/api/v2/orders', [
+        $id = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4,
             'cart' => [['id' => 90001, 'quantity' => $qty, 'price' => $price]],
             'collected_cash' => 0,
-        ])->assertStatus(201)->json('data.id');
+        ]))->assertStatus(201)->json('data.id');
 
         return Order::find($id);
     }
 
     private function collect(int $orderId, array $overrides = [])
     {
-        return $this->asSeller()->postJson("/api/v2/orders/{$orderId}/collect", array_merge([
-            'amount'     => 50,
-            'account_id' => 90001,
-            'date'       => now()->toDateString(),
-        ], $overrides));
+        return $this->asSeller()->postJson("/api/v2/orders/{$orderId}/collect", array_merge(
+            $this->withReceipt([
+                'amount'     => 50,
+                'account_id' => 90001,
+                'date'       => now()->toDateString(),
+            ]),
+            $overrides
+        ));
     }
 
     public function test_a_partial_collection_moves_the_invoice_to_partial(): void
@@ -121,11 +124,11 @@ class OrderCollectionTest extends ApiTestCase
 
     public function test_a_return_invoice_cannot_be_collected(): void
     {
-        $returnId = $this->asSeller()->postJson('/api/v2/orders', [
+        $returnId = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 7,
             'cart' => [['id' => 90001, 'quantity' => 1, 'price' => 50]],
             'collected_cash' => 50,
-        ])->assertStatus(201)->json('data.id');
+        ]))->assertStatus(201)->json('data.id');
 
         $this->collect($returnId, ['amount' => 10])
             ->assertStatus(422)

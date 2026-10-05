@@ -21,11 +21,14 @@ class SellerDepositTest extends ApiTestCase
 {
     private function file(array $overrides = []): int
     {
-        $response = $this->asSeller()->postJson('/api/v2/deposits', array_merge([
-            'account_id' => 90001,
-            'amount'     => 1500,
-            'note'       => 'Cash handed in',
-        ], $overrides));
+        $response = $this->asSeller()->postJson('/api/v2/deposits', array_merge(
+            $this->withReceipt([
+                'account_id' => 90001,
+                'amount'     => 1500,
+                'note'       => 'Cash handed in',
+            ]),
+            $overrides
+        ));
 
         $response->assertStatus(201);
 
@@ -34,9 +37,9 @@ class SellerDepositTest extends ApiTestCase
 
     public function test_a_deposit_is_filed_as_pending(): void
     {
-        $response = $this->asSeller()->postJson('/api/v2/deposits', [
+        $response = $this->asSeller()->postJson('/api/v2/deposits', $this->withReceipt([
             'account_id' => 90001, 'amount' => 1500, 'note' => 'Cash handed in',
-        ]);
+        ]));
 
         $response->assertStatus(201)
             ->assertJsonPath('success', true)
@@ -124,7 +127,7 @@ class SellerDepositTest extends ApiTestCase
     {
         foreach ([0, -500] as $amount) {
             $this->asSeller()
-                ->postJson('/api/v2/deposits', ['account_id' => 90001, 'amount' => $amount])
+                ->postJson('/api/v2/deposits', $this->withReceipt(['account_id' => 90001, 'amount' => $amount]))
                 ->assertStatus(422)
                 ->assertJsonStructure(['errors' => ['amount']]);
         }
@@ -134,19 +137,18 @@ class SellerDepositTest extends ApiTestCase
     {
         // v1 accepted any account_id and only failed at insert time.
         $this->asSeller()
-            ->postJson('/api/v2/deposits', ['account_id' => 99999999, 'amount' => 100])
+            ->postJson('/api/v2/deposits', $this->withReceipt(['account_id' => 99999999, 'amount' => 100]))
             ->assertStatus(422)
             ->assertJsonStructure(['errors' => ['account_id']]);
     }
 
-    public function test_a_deposit_without_a_photo_is_accepted(): void
+    /** توريد بلا صورة يُرفض: الصورة سند تسليم العهدة. */
+    public function test_a_deposit_without_a_photo_is_refused(): void
     {
-        // img is NOT NULL with no default, so the v1 endpoint 500'd on every
-        // request that did not attach a file.
         $this->asSeller()
             ->postJson('/api/v2/deposits', ['account_id' => 90001, 'amount' => 250])
-            ->assertStatus(201)
-            ->assertJsonPath('data.image', null);
+            ->assertStatus(422)
+            ->assertJsonValidationErrors(['img']);
     }
 
     public function test_a_seller_only_sees_their_own_deposits(): void
@@ -198,6 +200,6 @@ class SellerDepositTest extends ApiTestCase
     public function test_deposit_endpoints_require_authentication(): void
     {
         $this->getJson('/api/v2/deposits')->assertStatus(401);
-        $this->postJson('/api/v2/deposits', [])->assertStatus(401);
+        $this->postJson('/api/v2/deposits', $this->withReceipt([]))->assertStatus(401);
     }
 }

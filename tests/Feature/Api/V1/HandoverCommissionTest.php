@@ -61,13 +61,13 @@ class HandoverCommissionTest extends ApiTestCase
             $this->markTestSkipped('لا يوجد حساب في البيانات.');
         }
 
-        return $this->asSeller()->postJson('/api/v1/pos/place/installment', [
+        return $this->asSeller()->postJson('/api/v1/pos/place/installment', $this->withReceipt([
             'order_id'   => $orderId,
             'user_id'    => 90001,
             'price'      => $amount,
             'payment_id' => $account->id,
             'note'       => 'اختبار',
-        ]);
+        ]));
     }
 
     /**
@@ -151,11 +151,11 @@ class HandoverCommissionTest extends ApiTestCase
         $comm   = (float) $before->commission;
         $credit = (float) $before->credit;
 
-        $this->asSeller()->postJson('/api/v2/orders/930003/collect', [
+        $this->asSeller()->postJson('/api/v2/orders/930003/collect', $this->withReceipt([
             'amount'     => 100,
             'account_id' => $account->id,
             'date'       => now()->toDateString(),
-        ])->assertOk();
+        ]))->assertOk();
 
         $after = Seller::find(self::SELLER);
 
@@ -189,11 +189,11 @@ class HandoverCommissionTest extends ApiTestCase
         $comm   = (float) $before->commission;
         $credit = (float) $before->credit;
 
-        $response = $this->asSeller()->postJson('/api/v2/orders/930004/collect', [
+        $response = $this->asSeller()->postJson('/api/v2/orders/930004/collect', $this->withReceipt([
             'amount'     => 100,
             'account_id' => $account->id,
             'date'       => now()->toDateString(),
-        ]);
+        ]));
 
         // التطبيق لم يُعدَّل، فالبوّابة ما زالت ترفض فاتورة الغير.
         // الشرط المختبَر هو ألّا تُحتسب عمولة إن مرّت.

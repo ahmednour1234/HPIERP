@@ -15,10 +15,10 @@ class DashboardEndpointsTest extends ApiTestCase
 {
     private function placeSale(int $qty = 2): void
     {
-        $this->asSeller()->postJson('/api/v2/orders', [
+        $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4,
             'cart' => [['id' => 90001, 'quantity' => $qty, 'price' => 75]],
-        ])->assertStatus(201);
+        ]))->assertStatus(201);
     }
 
     public function test_summary_reports_the_sellers_own_figures(): void

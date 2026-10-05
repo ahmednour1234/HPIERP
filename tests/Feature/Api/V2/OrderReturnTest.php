@@ -20,11 +20,11 @@ class OrderReturnTest extends ApiTestCase
     /** Sell `qty` units and hand back the invoice id. */
     private function sell(int $qty = 5, float $price = 100): int
     {
-        return $this->asSeller()->postJson('/api/v2/orders', [
+        return $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id' => 90001, 'order_type' => 4,
             'cart' => [['id' => 90001, 'quantity' => $qty, 'price' => $price]],
             'collected_cash' => $qty * $price,
-        ])->assertStatus(201)->json('data.id');
+        ]))->assertStatus(201)->json('data.id');
     }
 
     public function test_an_invoices_returnable_lines_are_listed(): void

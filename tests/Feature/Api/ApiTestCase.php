@@ -47,6 +47,18 @@ abstract class ApiTestCase extends TestCase
         return $this;
     }
 
+    /**
+     * صورة وهمية للطلبات التي صارت تلزمها.
+     *
+     * البيع والتحصيل والتوريد تُلزم صورةً سندًا للعملية، فتمرير
+     * الحمولة من هنا يبقي الاختبارات معبّرةً عن الحالة المقصودة لا
+     * عن قاعدة التحقق.
+     */
+    protected function withReceipt(array $payload): array
+    {
+        return $payload + ['img' => \Illuminate\Http\UploadedFile::fake()->image('receipt.png')];
+    }
+
     /** Standard JSON headers for every request. */
     protected function jsonHeaders(): array
     {

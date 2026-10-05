@@ -77,7 +77,7 @@ class CreditOrderNotCollectedTest extends ApiTestCase
             $this->markTestSkipped('لا يوجد حساب في البيانات.');
         }
 
-        $response = $this->asSeller()->postJson('/api/v2/orders', [
+        $response = $this->asSeller()->postJson('/api/v2/orders', $this->withReceipt([
             'user_id'    => 90001,
             'order_type' => 4,
             'cash'       => OrderService::CREDIT,
@@ -87,7 +87,7 @@ class CreditOrderNotCollectedTest extends ApiTestCase
                 'quantity' => 1,
                 'price'    => 110.60,
             ]],
-        ]);
+        ]));
 
         $response->assertSuccessful();
 
