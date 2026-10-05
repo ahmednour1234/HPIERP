@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
@@ -643,16 +644,27 @@ class _SalesScreenState extends State<SalesScreen> {
                             qty > 0 ? AppColors.inkSoft : AppColors.muted),
                   ),
                 ),
-                SizedBox(
-                  width: 30,
-                  child: Text('$qty',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w700,
-                          color: qty > 0
-                              ? AppColors.primaryDeep
-                              : AppColors.muted)),
+                // الضغط على الرقم يفتح خانة لكتابة الكمية مباشرة.
+                InkWell(
+                  onTap: () => _editQty(p.id, qty),
+                  child: Container(
+                    constraints: const BoxConstraints(minWidth: 40),
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 6, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: AppColors.surface,
+                      borderRadius: BorderRadius.circular(7),
+                      border: Border.all(color: AppColors.line),
+                    ),
+                    child: Text('$qty',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w700,
+                            color: qty > 0
+                                ? AppColors.primaryDeep
+                                : AppColors.muted)),
+                  ),
                 ),
                 InkWell(
                   onTap: () => setState(() => _cart[p.id] = qty + 1),
@@ -668,6 +680,41 @@ class _SalesScreenState extends State<SalesScreen> {
         ],
       ),
     );
+  }
+
+  /// كتابة الكمية بالكيبورد (بدل الضغط على + مئات المرات). 0 = شيل الصنف.
+  Future<void> _editQty(int productId, num current) async {
+    final ctrl = TextEditingController(text: current > 0 ? '$current' : '');
+    ctrl.selection =
+        TextSelection(baseOffset: 0, extentOffset: ctrl.text.length);
+    final v = await showDialog<int>(
+      context: context,
+      builder: (ctx) {
+        void submit() =>
+            Navigator.pop(ctx, int.tryParse(ctrl.text.trim()) ?? 0);
+        return AlertDialog(
+          title: const Text('الكمية'),
+          content: TextField(
+            controller: ctrl,
+            autofocus: true,
+            keyboardType: TextInputType.number,
+            inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.w700),
+            decoration: const InputDecoration(hintText: '0'),
+            onSubmitted: (_) => submit(),
+          ),
+          actions: [
+            TextButton(
+                onPressed: () => Navigator.pop(ctx),
+                child: const Text('إلغاء')),
+            ElevatedButton(onPressed: submit, child: const Text('تم')),
+          ],
+        );
+      },
+    );
+    if (v == null || !mounted) return;
+    setState(() => v <= 0 ? _cart.remove(productId) : _cart[productId] = v);
   }
 
   /// ملخص الفاتورة التفصيلي — فرعي / خصم / ضريبة / إجمالي.
