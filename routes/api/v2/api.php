@@ -152,6 +152,10 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
             Route::get('{id}', [ReservationController::class, 'show'])->whereNumber('id');
         });
 
+        // الوضع المالي للمندوب: ما باعه وحصّله، وما بقي على عملائه،
+        // وما في يده لم يورّده. محسوبٌ من السجلّات لا من admins.credit.
+        Route::get('finance/summary', [\App\Http\Controllers\Api\V2\SellerFinanceController::class, 'summary']);
+
         // The seller's own payslips.
         Route::get('salary', [SalaryController::class, 'show']);
         Route::get('salary/history', [SalaryController::class, 'history']);
