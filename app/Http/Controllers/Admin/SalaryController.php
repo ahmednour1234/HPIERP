@@ -112,6 +112,19 @@ public function showsalary($id)
         return response()->json(['message' => 'Salary record not found.'], 404);
     }
 
+    // الزيارات الفعلية تُعدّ من سجلّها لا من العمود المخزَّن.
+    //
+    // حفظ راتب الشهر يصفّر admins.result_visitors استعدادًا للشهر
+    // التالي، فإن فُتحت الشاشة بعده قرأت صفرًا لمندوبٍ نزل زياراته
+    // فعلًا — ومعه تخرج نسبة الزيارات صفرًا كذلك، إذ تُحسب منه.
+    //
+    // الشهر الجاري هو ما يخصّ كشف الراتب، فالعدّ عليه لا على العمر كلّه.
+    $salary->result_visitors = DB::table('result_visitors')
+        ->where('admin_id', $id)
+        ->whereYear('created_at', now()->year)
+        ->whereMonth('created_at', now()->month)
+        ->count();
+
     return response()->json($salary);
 }
 
