@@ -19,11 +19,22 @@ public function storeAttendance(Request $request)
     // الحارس: admin-api
 
     // ===== 0) تحقق أساسي من المدخلات =====
+    // الموقع إلزامي: بصمةٌ بلا إحداثيات لا تُثبت أين كان صاحبها،
+    // وكانت nullable فيقبلها السيرفر ويخرج عمود الموقع في اللوحة
+    // فارغًا بلا أن يخالف أحدٌ شيئًا.
+    //
+    // between يرفض الصفر الضمني كذلك: جهازٌ لم يحدّد موقعه يرسل
+    // (0,0) أحيانًا، وهي نقطة في المحيط لا بصمة.
     $request->validate([
         'status' => 'required|in:1,2',
         'note'   => 'nullable|string|max:500',
-        'lat'    => 'nullable|numeric',
-        'lon'    => 'nullable|numeric',
+        'lat'    => 'required|numeric|between:-90,90|not_in:0',
+        'lon'    => 'required|numeric|between:-180,180|not_in:0',
+    ], [
+        'lat.required' => 'يلزم تفعيل الموقع لتسجيل الحضور.',
+        'lon.required' => 'يلزم تفعيل الموقع لتسجيل الحضور.',
+        'lat.not_in'   => 'تعذّر تحديد موقعك، فعّل الـGPS وأعد المحاولة.',
+        'lon.not_in'   => 'تعذّر تحديد موقعك، فعّل الـGPS وأعد المحاولة.',
     ]);
 
     // ===== 1) جلب المسؤول الحالي =====
