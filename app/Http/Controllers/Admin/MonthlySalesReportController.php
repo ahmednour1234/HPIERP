@@ -174,11 +174,23 @@ class MonthlySalesReportController extends Controller
      */
     private function sellerIds(array $requested = []): array
     {
-        $adminId = Auth::guard('admin')->id();
+        $admin   = Auth::guard('admin')->user();
+        $adminId = optional($admin)->id;
 
-        $ids = AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
+        // المشرف العام يرى كل المناديب.
+        //
+        // كان النطاق من admin_sellers وحده، ومدير النظام ليس مُسنَدًا
+        // إلى أحد فيها، فتخرج قائمته فارغة: أعمدة المنتجات تُبنى من
+        // حركة هؤلاء المناديب، فلا منتج يُعرض وتصير كل الصفوف أصفارًا
+        // في شهرٍ فيه مئات الفواتير.
+        if ($admin && (int) ($admin->is_super ?? 0) === 1) {
+            $ids = \App\Models\Seller::where('role', 'seller')->pluck('id')->all();
+        } else {
+            $ids = AdminSeller::where('admin_id', $adminId)->pluck('seller_id')->all();
+        }
+
         $ids[] = $adminId;
-        $ids = array_values(array_unique($ids));
+        $ids = array_values(array_unique(array_filter($ids)));
 
         $requested = array_filter(array_map('intval', $requested));
 

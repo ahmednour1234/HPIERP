@@ -277,4 +277,53 @@ class MonthlySalesReportTest extends ApiTestCase
 
         return $sum;
     }
+
+    /**
+     * المشرف العام يرى كل المناديب.
+     *
+     * كان النطاق من admin_sellers وحده، ومدير النظام ليس مُسنَدًا إلى
+     * أحد فيها. أعمدة المنتجات تُبنى من حركة هؤلاء المناديب، فتخرج
+     * فارغةً وتصير كل صفوف التقرير أصفارًا في شهرٍ فيه مئات الفواتير.
+     */
+    public function test_a_super_admin_sees_every_sellers_movement(): void
+    {
+        Carbon::setTestNow(Carbon::create(2026, 9, 15, 10));
+
+        try {
+            // مدير نظام بلا أي سطر في admin_sellers.
+            DB::table('admins')->where('id', ApiTestingSeeder::ADMIN_ID)->update(['is_super' => 1]);
+            DB::table('admin_sellers')->where('admin_id', ApiTestingSeeder::ADMIN_ID)->delete();
+
+            $this->actingAs(Admin::find(ApiTestingSeeder::ADMIN_ID), 'admin');
+
+            $this->insertOrderWithLine(915001, 4, 1, 12, '2026-09-04 10:00:00');
+
+            $data = $this->report(['month' => '2026-09']);
+
+            $this->assertNotEmpty(
+                $data['products'],
+                'حركة المناديب يجب أن تبني أعمدة المنتجات لمدير النظام.'
+            );
+        } finally {
+            Carbon::setTestNow();
+        }
+    }
+
+    /** ومن ليس مشرفًا عامًّا يبقى محصورًا في مناديبه. */
+    public function test_a_plain_admin_stays_scoped_to_their_sellers(): void
+    {
+        $reflection = new ReflectionClass(MonthlySalesReportController::class);
+        $method = $reflection->getMethod('sellerIds');
+        $method->setAccessible(true);
+
+        DB::table('admins')->where('id', ApiTestingSeeder::ADMIN_ID)->update(['is_super' => 0]);
+        DB::table('admin_sellers')->where('admin_id', ApiTestingSeeder::ADMIN_ID)->delete();
+
+        $this->actingAs(Admin::find(ApiTestingSeeder::ADMIN_ID), 'admin');
+
+        $ids = $method->invoke(app(MonthlySalesReportController::class), []);
+
+        // حسابه هو فقط، لا كل المناديب.
+        $this->assertSame([ApiTestingSeeder::ADMIN_ID], $ids);
+    }
 }

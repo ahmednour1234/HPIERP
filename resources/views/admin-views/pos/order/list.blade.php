@@ -29,6 +29,10 @@
             overflow: hidden;
         }
 
+        /* بطاقة الفلاتر لا تقصّ ما يخرج منها: قائمة المناطق تنسدل
+           خارج حدودها، وoverflow:hidden كان يقطعها فتبدو فارغة. */
+        .pos-orders-filter-card { overflow: visible; }
+
         .pos-orders-hero {
             display: flex;
             align-items: center;
