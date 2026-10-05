@@ -91,6 +91,11 @@ class _CollectionsScreenState extends State<CollectionsScreen> {
       _snack('أدخل مبلغاً صحيحاً', AppColors.danger);
       return;
     }
+    // الصورة إجبارية.
+    if (_receipt == null) {
+      _snack('إرفاق صورة الإيصال مطلوب', AppColors.danger);
+      return;
+    }
     setState(() => _saving = true);
     try {
       await _depRepo.submit(

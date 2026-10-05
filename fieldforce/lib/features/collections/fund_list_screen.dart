@@ -2,13 +2,13 @@ import 'package:flutter/material.dart';
 import '../../core/network/api_exception.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/widgets/app_widgets.dart';
-import '../transactions/transaction_repository.dart';
+import '../../core/network/api_client.dart';
 import '../transactions/deposit_repository.dart';
 
 /// شاشة المديونية — ملخص حقيقي للحركة النقدية للمندوب.
 ///
-/// المحصّل = money_in، المصروف = money_out، المورّد = مجموع الـ deposits،
-/// الرصيد المتبقّي مع المندوب = المحصّل − المورّد − المصروف.
+/// الأرقام كلها من GET /finance/summary (السيرفر هو اللي بيحسبها):
+/// العهدة (اللي مع المندوب/المورّد/قيد المراجعة) + التحصيل + المبيعات.
 class FundListScreen extends StatefulWidget {
   const FundListScreen({super.key});
 
@@ -17,10 +17,9 @@ class FundListScreen extends StatefulWidget {
 }
 
 class _FundListScreenState extends State<FundListScreen> {
-  final _txRepo = TransactionRepository();
+  final _api = ApiClient.instance;
   final _depRepo = DepositRepository();
   late Future<_Custody> _future;
-  String _from = '', _to = ''; // نطاق الشهر الحالي
 
   @override
   void initState() {
@@ -29,29 +28,26 @@ class _FundListScreenState extends State<FundListScreen> {
   }
 
   Future<_Custody> _load() async {
-    // نطاق الشهر الحالي فقط (العهدة تُحسب شهرياً).
-    final now = DateTime.now();
-    String fmt(DateTime d) =>
-        '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
-    final from = _from = fmt(DateTime(now.year, now.month, 1));
-    final to = _to = fmt(DateTime(now.year, now.month + 1, 0)); // آخر يوم بالشهر
-
     final results = await Future.wait([
-      _txRepo.ledgerTotals(from: from, to: to),
-      _depRepo.list(from: from, to: to),
+      _api.get('/finance/summary'),
+      _depRepo.list(),
     ]);
-    final totals = results[0] as ({double moneyIn, double moneyOut, double net});
-    final deposits = results[1] as List<Deposit>;
-    // المتبقّي يُحسب على التوريدات المقبولة فقط (status=1) — المتوافق عليها.
-    // التوريدات المعلّقة/المرفوضة تظهر في القائمة لكنها لا تُخصم من الرصيد.
-    final depositedApproved = deposits
-        .where((d) => d.status == 1)
-        .fold<double>(0, (s, d) => s + d.amount);
+    final m = (results[0] as Map).cast<String, dynamic>();
+    Map<String, dynamic> sec(String k) =>
+        (m[k] as Map?)?.cast<String, dynamic>() ?? const {};
+    double d(dynamic v) =>
+        v is num ? v.toDouble() : double.tryParse('${v ?? 0}') ?? 0;
+    final sales = sec('sales'), col = sec('collection'), cus = sec('custody');
     return _Custody(
-      collected: totals.moneyIn,
-      spent: totals.moneyOut,
-      deposited: depositedApproved,
-      deposits: deposits,
+      inHand: d(cus['in_hand']),
+      deposited: d(cus['deposited']),
+      pending: d(cus['pending']),
+      collected: d(col['collected']),
+      outstanding: d(col['outstanding']),
+      rate: d(col['rate']),
+      netSales: d(sales['net']),
+      openInvoices: d(m['open_invoices']).round(),
+      deposits: results[1] as List<Deposit>,
     );
   }
 
@@ -111,7 +107,7 @@ class _FundListScreenState extends State<FundListScreen> {
         const ScreenHeader(
           icon: Icons.account_balance_wallet_outlined,
           title: 'المديونية',
-          subtitle: 'ملخص حركتك النقدية لهذا الشهر',
+          subtitle: 'ملخص عهدتك وتحصيلك',
         ),
         const SizedBox(height: 16),
         // بطاقة الرصيد
@@ -128,10 +124,10 @@ class _FundListScreenState extends State<FundListScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('المبالغ التي يجب تحويلها',
+              const Text('المبالغ التي يجب توريدها',
                   style: TextStyle(color: Colors.white70, fontSize: 13)),
               const SizedBox(height: 8),
-              Text('${_money(c.balance)} ج',
+              Text('${_money(c.inHand)} ج',
                   style: const TextStyle(
                       color: Colors.white,
                       fontSize: 30,
@@ -142,8 +138,7 @@ class _FundListScreenState extends State<FundListScreen> {
                 children: [
                   _pill(Icons.arrow_downward, 'محصّل', _money(c.collected)),
                   const SizedBox(width: 10),
-                  _pill(Icons.upload_rounded, 'مورّد (مقبول)',
-                      _money(c.deposited)),
+                  _pill(Icons.upload_rounded, 'مورّد', _money(c.deposited)),
                 ],
               ),
             ],
@@ -158,15 +153,19 @@ class _FundListScreenState extends State<FundListScreen> {
               children: [
                 _line('إجمالي المحصّل', _money(c.collected), AppColors.good),
                 const Divider(height: 1, color: AppColors.line),
-                // الضغط يعرض تفاصيل المصروف (كل حركة طالعة الشهر ده).
-                InkWell(
-                  onTap: c.spent > 0 ? _showSpent : null,
-                  child: _line('المصروف', _money(c.spent), AppColors.danger,
-                      tappable: c.spent > 0),
-                ),
-                const Divider(height: 1, color: AppColors.line),
-                _line('المورّد للشركة (المقبول)', _money(c.deposited),
+                _line('المورّد للشركة', _money(c.deposited),
                     AppColors.primaryDeep),
+                const Divider(height: 1, color: AppColors.line),
+                _line('توريدات قيد المراجعة', _money(c.pending),
+                    AppColors.warn),
+                const Divider(height: 1, color: AppColors.line),
+                _line('المتبقّي على العملاء', _money(c.outstanding),
+                    AppColors.danger),
+                const Divider(height: 1, color: AppColors.line),
+                _line('نسبة التحصيل', '${c.rate.toStringAsFixed(1)}%',
+                    AppColors.primaryDeep),
+                const Divider(height: 1, color: AppColors.line),
+                _line('فواتير مفتوحة', '${c.openInvoices}', AppColors.inkSoft),
               ],
             ),
           ),
@@ -217,126 +216,16 @@ class _FundListScreenState extends State<FundListScreen> {
     );
   }
 
-  Widget _line(String label, String value, Color color,
-      {bool tappable = false}) {
+  Widget _line(String label, String value, Color color) {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 13),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label,
               style: const TextStyle(fontSize: 13.5, color: AppColors.inkSoft)),
-          if (tappable) ...[
-            const SizedBox(width: 4),
-            const Icon(Icons.info_outline, size: 15, color: AppColors.muted),
-          ],
-          const Spacer(),
           MoneyText(value, size: 15, color: color),
-          if (tappable)
-            const Icon(Icons.chevron_left, size: 18, color: AppColors.muted),
         ],
-      ),
-    );
-  }
-
-  /// تفاصيل المصروف — الحركات الطالعة (money_out) في الشهر الحالي.
-  void _showSpent() {
-    final future = _txRepo.entries(from: _from, to: _to);
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(top: Radius.circular(20))),
-      builder: (ctx) => ConstrainedBox(
-        constraints:
-            BoxConstraints(maxHeight: MediaQuery.of(ctx).size.height * 0.7),
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              const Text('تفاصيل المصروف',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
-              const SizedBox(height: 4),
-              Text('من $_from إلى $_to',
-                  style: const TextStyle(fontSize: 12, color: AppColors.muted)),
-              const SizedBox(height: 12),
-              Flexible(
-                child: FutureBuilder<List<LedgerEntry>>(
-                  future: future,
-                  builder: (context, snap) {
-                    if (snap.connectionState == ConnectionState.waiting) {
-                      return const Padding(
-                        padding: EdgeInsets.all(30),
-                        child: Center(
-                            child: CircularProgressIndicator(
-                                color: AppColors.primary)),
-                      );
-                    }
-                    if (snap.hasError) {
-                      final e = snap.error;
-                      return Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                            e is ApiException ? e.message : 'تعذّر التحميل',
-                            textAlign: TextAlign.center,
-                            style: const TextStyle(color: AppColors.muted)),
-                      );
-                    }
-                    final out =
-                        snap.data!.where((t) => t.moneyOut > 0).toList();
-                    if (out.isEmpty) {
-                      return const Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text('لا توجد تفاصيل للمصروف',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(color: AppColors.muted)),
-                      );
-                    }
-                    return ListView.separated(
-                      shrinkWrap: true,
-                      itemCount: out.length,
-                      separatorBuilder: (_, _) =>
-                          const Divider(height: 1, color: AppColors.line),
-                      itemBuilder: (context, i) {
-                        final t = out[i];
-                        return Padding(
-                          padding: const EdgeInsets.symmetric(vertical: 11),
-                          child: Row(
-                            children: [
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                        t.description.isEmpty
-                                            ? 'مصروف'
-                                            : t.description,
-                                        style: const TextStyle(
-                                            fontSize: 13.5,
-                                            fontWeight: FontWeight.w600)),
-                                    if (t.date != null && t.date!.isNotEmpty)
-                                      Text(t.date!.split('T').first,
-                                          style: const TextStyle(
-                                              fontSize: 11.5,
-                                              color: AppColors.muted)),
-                                  ],
-                                ),
-                              ),
-                              MoneyText(_money(t.moneyOut),
-                                  size: 14.5, color: AppColors.danger),
-                            ],
-                          ),
-                        );
-                      },
-                    );
-                  },
-                ),
-              ),
-            ],
-          ),
-        ),
       ),
     );
   }
@@ -383,21 +272,25 @@ class _FundListScreenState extends State<FundListScreen> {
 }
 
 class _Custody {
-  final double collected;
-  final double spent;
+  final double inHand; // اللي مع المندوب ولازم يتورّد
   final double deposited;
+  final double pending; // توريدات لسه بتتراجع
+  final double collected;
+  final double outstanding; // متبقّي على العملاء
+  final double rate; // نسبة التحصيل %
+  final double netSales;
+  final int openInvoices;
   final List<Deposit> deposits;
 
   _Custody({
-    required this.collected,
-    required this.spent,
+    required this.inHand,
     required this.deposited,
+    required this.pending,
+    required this.collected,
+    required this.outstanding,
+    required this.rate,
+    required this.netSales,
+    required this.openInvoices,
     required this.deposits,
   });
-
-  /// المتبقّي مع المندوب = المحصّل − المورّد − المصروف.
-  double get balance {
-    final b = collected - deposited - spent;
-    return b < 0 ? 0 : b;
-  }
 }

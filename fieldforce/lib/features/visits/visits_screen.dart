@@ -97,6 +97,11 @@ class _VisitsScreenState extends State<VisitsScreen> {
     final note = _note.text.trim().isEmpty
         ? _labels[_result]
         : '${_labels[_result]} — ${_note.text.trim()}';
+    // الصورة إجبارية.
+    if (_photo == null) {
+      _snack('إرفاق صورة الزيارة مطلوب', AppColors.danger);
+      return;
+    }
     setState(() => _saving = true);
     try {
       // الموقع اختياري: نحاول جلبه بسرعة، ولو تعذّر نكمل الحفظ بدونه

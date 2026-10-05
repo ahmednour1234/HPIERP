@@ -410,6 +410,11 @@ class _CollectSheetState extends State<_CollectSheet> {
       _snack('أدخل مبلغاً وحساباً صحيحين', AppColors.danger);
       return;
     }
+    // الصورة إجبارية.
+    if (_receipt == null) {
+      _snack('إرفاق صورة الإيصال مطلوب', AppColors.danger);
+      return;
+    }
     setState(() => _saving = true);
     try {
       final now = DateTime.now();
@@ -560,7 +565,7 @@ class _CollectSheetState extends State<_CollectSheet> {
                   color: AppColors.muted, size: 24),
             const SizedBox(width: 12),
             Expanded(
-              child: Text(has ? 'تم إرفاق الإيصال' : 'إرفاق صورة الإيصال',
+              child: Text(has ? 'تم إرفاق الإيصال' : 'إرفاق صورة الإيصال *',
                   style: TextStyle(
                       fontSize: 13.5,
                       fontWeight: FontWeight.w600,

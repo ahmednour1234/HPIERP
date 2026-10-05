@@ -446,6 +446,11 @@ class _CollectInvoiceSheetState extends State<CollectInvoiceSheet> {
       _snack('أدخل مبلغاً صحيحاً');
       return;
     }
+    // الصورة إجبارية.
+    if (_receipt == null) {
+      _snack('إرفاق صورة الإيصال مطلوب');
+      return;
+    }
     setState(() => _saving = true);
     try {
       final now = DateTime.now();
@@ -546,7 +551,7 @@ class _CollectInvoiceSheetState extends State<CollectInvoiceSheet> {
                     Text(
                         _receipt != null
                             ? 'تم إرفاق الإيصال'
-                            : 'إرفاق صورة الإيصال',
+                            : 'إرفاق صورة الإيصال *',
                         style: const TextStyle(
                             fontSize: 13.5, fontWeight: FontWeight.w600)),
                   ],

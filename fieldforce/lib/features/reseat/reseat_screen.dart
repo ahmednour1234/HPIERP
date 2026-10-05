@@ -114,6 +114,11 @@ class _ReseatScreenState extends State<ReseatScreen> {
       _snack('اختر أصنافاً أولاً', AppColors.danger);
       return;
     }
+    // الصورة إجبارية.
+    if (_photo == null) {
+      _snack('إرفاق صورة الإيصال مطلوب', AppColors.danger);
+      return;
+    }
     setState(() => _saving = true);
     try {
       final order = await _orderRepo.place(
