@@ -3,15 +3,99 @@
 
 @push('css_or_js')
     <link rel="stylesheet" href="{{ asset('public/assets/admin/css/select2.min.css') }}">
+    <style>
+        .pay-page { --py-navy:#11245a; --py-ink:#1f2d3d; --py-muted:#6b7a90;
+                    --py-line:#e6edf5; --py-soft:#f6f9fc; }
+
+        .pay-head { margin-bottom:1.1rem; }
+        .pay-head h1 {
+            display:flex; align-items:center; gap:.55rem; margin:0;
+            font-size:1.3rem; font-weight:800; color:var(--py-navy);
+        }
+        .pay-head small { color:var(--py-muted); }
+
+        .pay-card {
+            border:1px solid var(--py-line); border-radius:14px; background:#fff;
+            box-shadow:0 10px 26px rgba(15,23,42,.06); overflow:hidden;
+        }
+
+        /* أقسام: ثمانية عشر حقلًا في عمودٍ واحد تجعل إيجاد حقلٍ بعينه
+           مسحًا للصفحة كلها. */
+        .pay-section { padding:1.2rem 1.35rem; border-top:1px solid var(--py-line); }
+        .pay-section:first-of-type { border-top:0; }
+
+        .pay-section-title {
+            display:flex; align-items:center; gap:.5rem; margin:0 0 1rem;
+            font-size:.88rem; font-weight:800; color:var(--py-navy);
+        }
+        .pay-section-title span { flex:1; height:1px; background:var(--py-line); }
+
+        .pay-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }
+        .pay-grid--2 { grid-template-columns:repeat(2,minmax(0,1fr)); }
+        .pay-grid .wide { grid-column:1 / -1; }
+
+        .pay-page .form-group { margin:0; }
+
+        .pay-page label {
+            display:block; font-size:.8rem; font-weight:700;
+            color:var(--py-navy); margin-bottom:.35rem;
+        }
+
+        .pay-page .form-control,
+        .pay-page select.form-control {
+            border:1px solid var(--py-line); border-radius:9px;
+            min-height:42px; font-size:.88rem; color:var(--py-ink);
+        }
+        .pay-page .form-control:focus {
+            border-color:#8fb4e8; box-shadow:0 0 0 .18rem rgba(27,59,122,.1);
+        }
+
+        /* الحقول المقروءة فقط تبدو مقروءةً: كانت كالمدخلات تمامًا
+           فيُحاوَل الكتابة فيها. */
+        .pay-page .form-control[readonly] {
+            background:var(--py-soft); color:var(--py-muted); font-weight:600;
+        }
+
+        /* الإجمالي هو ما يُقرأ أولًا. */
+        #total {
+            background:#eef3fb !important; color:var(--py-navy) !important;
+            font-size:1.05rem; font-weight:800;
+        }
+
+        .pay-foot {
+            display:flex; justify-content:flex-end; gap:.6rem;
+            padding:1.05rem 1.35rem; background:var(--py-soft);
+            border-top:1px solid var(--py-line);
+        }
+        .pay-foot .btn { border-radius:9px; font-weight:700; padding:.5rem 1.8rem; }
+
+        @media (max-width: 991.98px) { .pay-grid { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+        @media (max-width: 575.98px) {
+            .pay-grid, .pay-grid--2 { grid-template-columns:1fr; }
+            .pay-section { padding:1rem; }
+            .pay-foot { flex-direction:column-reverse; }
+            .pay-foot .btn { width:100%; }
+        }
+    </style>
 @endpush
 
 @section('content')
-    <div class="container-fluid">
-        <h3 class="mt-4">{{ \App\CPU\translate('دفع مرتب جديد') }}</h3>
+    <div class="container-fluid pay-page">
+        <div class="pay-head">
+            <h1><i class="tio-money"></i> {{ \App\CPU\translate('دفع مرتب جديد') }}</h1>
+            <small>تُجلب أرقام الموظف تلقائيًّا عند اختياره وتحديد الشهر.</small>
+        </div>
+
         <div class="row">
             <div class="col-md-12">
                 <form id="salary-form" method="POST" action="{{ route('admin.salaries.store') }}">
                     @csrf
+
+                    <div class="pay-card">
+
+                    <div class="pay-section">
+                    <h6 class="pay-section-title"><i class="tio-user"></i> الموظف والشهر <span></span></h6>
+                    <div class="pay-grid pay-grid--2">
                     <div class="form-group">
                         <label for="seller_id">{{ \App\CPU\translate('اختار موظف') }}</label>
                         <select id="seller_id" name="seller_id" class="form-control select2" required>
@@ -22,6 +106,17 @@
                         </select>
                     </div>
 
+                    <div class="form-group">
+                        <label for="month">{{ \App\CPU\translate('عن شهر') }}</label>
+                        <input type="month" id="month" name="month" class="form-control" required>
+                    </div>
+
+                    </div>
+                    </div>
+
+                    <div class="pay-section">
+                    <h6 class="pay-section-title"><i class="tio-chart-bar-4"></i> الأداء والتحصيل <span></span></h6>
+                    <div class="pay-grid">
                     <div class="form-group">
                         <label for="salary">{{ \App\CPU\translate('الراتب') }}</label>
                         <input type="text" id="salary" name="salary" class="form-control" readonly>
@@ -68,6 +163,12 @@
 </div>
 
 
+                    </div>
+                    </div>
+
+                    <div class="pay-section">
+                    <h6 class="pay-section-title"><i class="tio-gift"></i> الحوافز والبدلات <span></span></h6>
+                    <div class="pay-grid">
                     <div class="form-group">
                         <label for="salary_of_visitors">{{ \App\CPU\translate('مكافأة الالتزام') }}</label>
                         <input type="text" id="salary_of_visitors" name="salary_of_visitors" class="form-control" required>
@@ -78,11 +179,17 @@
                         <input type="text" id="score" name="score" class="form-control" readonly>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group wide">
                         <label for="notemanager">{{ \App\CPU\translate('ملاحظات المدير') }}</label>
                         <input type="text" id="notemanager" name="notemanager" class="form-control" readonly>
                     </div>
 
+                    </div>
+                    </div>
+
+                    <div class="pay-section">
+                    <h6 class="pay-section-title"><i class="tio-notes"></i> الخصومات والملاحظات <span></span></h6>
+                    <div class="pay-grid">
                     <div class="form-group">
                         <label for="other">{{ \App\CPU\translate('بدلات أخرى') }}</label>
                         <input type="number" id="other" name="other" class="form-control" required>
@@ -93,22 +200,25 @@
                         <input type="text" id="discount" name="discount" class="form-control" required>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group wide">
                         <label for="note">{{ \App\CPU\translate('ملاحظاتك') }}</label>
                         <input type="text" id="note" name="note" class="form-control" required>
                     </div>
 
-                    <div class="form-group">
+                    <div class="form-group wide">
                         <label for="total">{{ \App\CPU\translate('الإجمالي') }}</label>
                         <input type="text" id="total" name="total" class="form-control" readonly>
                     </div>
 
-                    <div class="form-group">
-                        <label for="month">{{ \App\CPU\translate('عن شهر') }}</label>
-                        <input type="month" id="month" name="month" class="form-control" required>
+                    </div>
                     </div>
 
-                    <button type="submit" class="btn btn-primary">{{ \App\CPU\translate('حفظ') }}</button>
+                    <div class="pay-foot">
+                        <a href="{{ route('admin.salaries.index') }}" class="btn btn-secondary">إلغاء</a>
+                        <button type="submit" class="btn btn-primary">{{ \App\CPU\translate('حفظ') }}</button>
+                    </div>
+
+                    </div>{{-- pay-card --}}
                 </form>
             </div>
         </div>
