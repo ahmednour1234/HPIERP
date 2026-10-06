@@ -195,6 +195,27 @@
     }
 
     #header .hd-start { justify-self: start; }
+
+    /* زرّ فتح القائمة: يظهر على الصغيرة وحدها، فالكبيرة قائمتها
+       مفتوحة أصلًا ولها زرّ الطيّ بداخلها. */
+    #header .hd-burger {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 38px;
+        height: 38px;
+        padding: 0;
+        flex: none;
+        border: 1px solid #e3ecf4;
+        border-radius: 9px;
+        background: #fff;
+        color: #11245a;
+        font-size: 1.15rem;
+        line-height: 1;
+    }
+
+    #header .hd-burger:hover,
+    #header .hd-burger:focus { background: #f4f8fc; color: #11245a; outline: none; }
     #header .hd-mid   { justify-self: center; }
     #header .hd-end   { justify-self: end; }
 
@@ -214,6 +235,17 @@
 
             {{-- العمود الأول: زرّ الطيّ والتاريخ، في أقصى جهة البداية. --}}
             <div class="hd-start d-flex align-items-center" style="gap: .75rem;">
+                {{-- فتح القائمة على الشاشات الصغيرة.
+
+                     الزرّ الوحيد الذي كان يطويها ويفتحها يقع داخل القائمة
+                     نفسها، فمتى انطوت على الهاتف لم يبقَ ما يفتحها. هذا
+                     يبقى ظاهرًا في الشريط دائمًا على الصغيرة. --}}
+                <button type="button"
+                        class="hd-burger js-navbar-vertical-aside-toggle-invoker d-lg-none"
+                        aria-label="{{ \App\CPU\translate('فتح القائمة') }}">
+                    <i class="tio-menu-hamburger"></i>
+                </button>
+
                 {{-- الهوية في الشريط لا في القائمة: الشريط صار بعرض الصفحة
                      كاملة، فبقاؤها في الجانبية يكرّرها ويأكل ارتفاعها. --}}
                 <a class="hd-brand d-flex align-items-center" href="{{ route('admin.dashboard') }}">
