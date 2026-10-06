@@ -340,6 +340,46 @@
             background: #fff;
         }
 
+        /* شريط الصفحات يلتفّ بدل أن يفيض.
+
+           1201 صفحة تنتج خمسة عشر رابطًا، وهي أعرض من شاشة الهاتف
+           فتُقتطع أوائلها: يبدأ المعروض من «3» ولا سبيل إلى الأولى
+           والثانية أصلًا. */
+        .visitor-results-pagination .pagination {
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: .25rem;
+            margin: 0;
+        }
+
+        .visitor-results-pagination .page-link {
+            border-radius: 7px;
+            min-width: 34px;
+            text-align: center;
+        }
+
+        /* صفحةٌ أولى وأخيرة صريحتان: مع ألف صفحة لا يكفي «السابق». */
+        .visitor-results-jump {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: .4rem;
+            margin-top: .6rem;
+        }
+
+        .visitor-results-jump a {
+            font-size: .78rem;
+            font-weight: 700;
+            color: #11245a;
+            border: 1px solid #e7eef6;
+            border-radius: 7px;
+            padding: .2rem .7rem;
+            background: #fff;
+        }
+
+        .visitor-results-jump a:hover { background: #f4f8fc; text-decoration: none; }
+        .visitor-results-jump span { color: #9aa7b6; font-size: .78rem; }
+
         @media (max-width: 1199.98px) {
             .visitor-results-summary {
                 grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -676,6 +716,22 @@
                     <div class="card-footer visitor-results-pagination">
                         <div class="d-flex justify-content-center justify-content-sm-end">
                             {{ $visitors->withQueryString()->links() }}
+
+                            {{-- قفزٌ صريح إلى الطرفين: مع أكثر من ألف
+                                 صفحة لا يكفي «السابق» للعودة إلى البداية. --}}
+                            @if($visitors->lastPage() > 1)
+                                <div class="visitor-results-jump">
+                                    @if($visitors->currentPage() > 1)
+                                        <a href="{{ $visitors->withQueryString()->url(1) }}">الأولى</a>
+                                    @endif
+
+                                    <span>صفحة {{ $visitors->currentPage() }} من {{ number_format($visitors->lastPage()) }}</span>
+
+                                    @if($visitors->currentPage() < $visitors->lastPage())
+                                        <a href="{{ $visitors->withQueryString()->url($visitors->lastPage()) }}">الأخيرة</a>
+                                    @endif
+                                </div>
+                            @endif
                         </div>
                     </div>
                 </div>
