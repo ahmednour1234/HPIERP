@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Order;
+use App\Models\Seller;
 use App\Models\TransactionSeller;
 use Illuminate\Support\Facades\DB;
 
@@ -48,9 +49,16 @@ class SellerFinanceService
         $deposited = $this->deposited($sellerId, self::DEPOSIT_APPROVED);
         $pending   = $this->deposited($sellerId, self::DEPOSIT_PENDING);
 
-        // في يده: ما قبضه ولم يورّده. المعلّق خرج من يده فعلًا وإن لم
-        // يُعتمد، فيُطرح كذلك ويُعرض وحده.
-        $inHand = round($collected - $deposited - $pending, 2);
+        // في يده: عمود admins.credit، وهو ما يعتمده النظام.
+        //
+        // كان محسوبًا من السجلّات، فيخالف ما تعرضه بقيةُ اللوحة
+        // لنفس المندوب. العمود هو المرجع المعتمد، فالمصدر واحد الآن
+        // في التطبيق واللوحة معًا.
+        //
+        // يُعرض كما هو حتى لو كان سالبًا: الرصيد السالب في البيانات
+        // القائمة يحتاج مراجعةً محاسبية، وإخفاؤه بصفرٍ يُسكت الإشارة
+        // ولا يصلحها.
+        $inHand = round((float) (Seller::whereKey($sellerId)->value('credit') ?? 0), 2);
 
         return [
             'sales' => [
@@ -103,36 +111,14 @@ class SellerFinanceService
             return [];
         }
 
-        $collected = Order::whereIn('owner_id', $sellerIds)
-            ->whereIn('type', self::SALE_TYPES)
-            ->selectRaw('owner_id, SUM(COALESCE(transaction_reference, 0) + 0) as total')
-            ->groupBy('owner_id')
-            ->pluck('total', 'owner_id');
-
-        $deposited = TransactionSeller::whereIn('seller_id', $sellerIds)
-            ->where('active', self::DEPOSIT_APPROVED)
-            ->selectRaw('seller_id, SUM(amount + 0) as total')
-            ->groupBy('seller_id')
-            ->pluck('total', 'seller_id');
-
-        $pending = TransactionSeller::whereIn('seller_id', $sellerIds)
-            ->where('active', self::DEPOSIT_PENDING)
-            ->selectRaw('seller_id, SUM(amount + 0) as total')
-            ->groupBy('seller_id')
-            ->pluck('total', 'seller_id');
+        // المصدر نفسه الذي يقرؤه forSeller: استعلام واحد لا أكثر.
+        $credit = Seller::whereIn('id', $sellerIds)->pluck('credit', 'id');
 
         $out = [];
 
         foreach ($sellerIds as $id) {
             $id = (int) $id;
-
-            // القاعدة نفسها التي يعرضها التطبيق، حرفًا بحرف.
-            $out[$id] = round(
-                (float) ($collected[$id] ?? 0)
-                - (float) ($deposited[$id] ?? 0)
-                - (float) ($pending[$id] ?? 0),
-                2
-            );
+            $out[$id] = round((float) ($credit[$id] ?? 0), 2);
         }
 
         return $out;

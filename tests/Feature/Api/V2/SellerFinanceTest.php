@@ -93,9 +93,10 @@ class SellerFinanceTest extends ApiTestCase
     }
 
     /**
-     * العهدة = ما قبضه − ما ورّده − المعلّق.
+     * العهدة من عمود admins.credit، وهو ما يعتمده النظام.
      *
-     * المعلّق خرج من يده وإن لم يُعتمد بعد، فيُطرح ويُعرض وحده.
+     * التوريدات تُعرض بجانبه ولا تُطرح منه: العمود يُحدَّث عند
+     * اعتماد التوريد، لا عند عرض الشاشة.
      *
      * @test
      */
@@ -105,15 +106,17 @@ class SellerFinanceTest extends ApiTestCase
         $this->deposit(500, 1);
         $this->deposit(100, 0);
 
+        DB::table('admins')->where('id', self::SELLER)->update(['credit' => 200]);
+
         $f = $this->figures();
 
         $this->assertSame(800.0, $f['collection']['collected']);
         $this->assertSame(500.0, $f['custody']['deposited']);
-        $this->assertSame(100.0, $f['custody']['pending']);
-        $this->assertSame(200.0, $f['custody']['in_hand']);
+        $this->assertSame(100.0, $f['custody']['pending'], 'المعلّق يُعرض وحده.');
+        $this->assertSame(200.0, $f['custody']['in_hand'], 'العهدة من العمود لا من الحساب.');
     }
 
-    /** التوريد المرفوض لا يُحتسب في شيء. */
+    /** التوريد المرفوض لا يُحتسب معتمدًا ولا معلّقًا. */
     public function test_a_rejected_deposit_counts_for_nothing(): void
     {
         $this->order(950001, 4, 1000, 800);
@@ -123,7 +126,6 @@ class SellerFinanceTest extends ApiTestCase
 
         $this->assertSame(0.0, $f['custody']['deposited']);
         $this->assertSame(0.0, $f['custody']['pending']);
-        $this->assertSame(800.0, $f['custody']['in_hand']);
     }
 
     /** نسبة التحصيل من الصافي لا من الإجمالي: المرتجع لا يُحصَّل. */
