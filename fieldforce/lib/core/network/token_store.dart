@@ -29,7 +29,19 @@ class TokenStore {
   }
 
   Future<String?> token() async {
-    return _cachedToken ??= await _storage.read(key: _kToken);
+    if (_cachedToken != null) return _cachedToken;
+    try {
+      return _cachedToken = await _storage
+          .read(key: _kToken)
+          .timeout(const Duration(seconds: 5));
+    } catch (_) {
+      // التخزين المشفّر بايظ (مثلاً اترجّع من نسخة احتياطية بمفتاح قديم
+      // بعد إعادة التثبيت) → نمسحه ونعتبر المستخدم مش مسجّل دخول.
+      try {
+        await _storage.deleteAll();
+      } catch (_) {}
+      return null;
+    }
   }
 
   Future<bool> get isLoggedIn async => (await token()) != null;

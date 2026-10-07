@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
@@ -21,24 +22,37 @@ class _SplashScreenState extends State<SplashScreen> {
   }
 
   Future<void> _decide() async {
-    final loggedIn = await TokenStore.instance.isLoggedIn;
-    if (!loggedIn) {
-      if (mounted) context.go('/login');
-      return;
-    }
-    // تأكّد أن التوكن صالح فعلاً (قد يكون قديماً من سيرفر آخر).
+    // أي خطأ غير متوقّع هنا كان بيسيب الشاشة تحمّل للأبد —
+    // دلوقتي في أسوأ الأحوال بنروح لشاشة الدخول.
     try {
-      await ApiClient.instance.get('/profile');
-      if (mounted) context.go('/home');
-    } on ApiException catch (e) {
-      // توكن غير صالح (401) → امسحه وارجع للدخول.
-      // أي خطأ آخر (شبكة/سيرفر) لا يسجّل الخروج.
-      if (e.isUnauthorized) {
-        await TokenStore.instance.clear();
+      final loggedIn = await TokenStore.instance.isLoggedIn;
+      if (!loggedIn) {
         if (mounted) context.go('/login');
-      } else {
+        return;
+      }
+      // تأكّد أن التوكن صالح فعلاً (قد يكون قديماً من سيرفر آخر).
+      try {
+        await ApiClient.instance
+            .get('/profile')
+            .timeout(const Duration(seconds: 20));
+        if (mounted) context.go('/home');
+      } on ApiException catch (e) {
+        // توكن غير صالح (401) → امسحه وارجع للدخول.
+        // أي خطأ آخر (شبكة/سيرفر) لا يسجّل الخروج.
+        if (e.isUnauthorized) {
+          await TokenStore.instance.clear();
+          if (mounted) context.go('/login');
+        } else {
+          if (mounted) context.go('/home');
+        }
+      } on TimeoutException {
         if (mounted) context.go('/home');
       }
+    } catch (_) {
+      try {
+        await TokenStore.instance.clear();
+      } catch (_) {}
+      if (mounted) context.go('/login');
     }
   }
 

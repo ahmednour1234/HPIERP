@@ -1,7 +1,7 @@
-name: fieldforce
-description: "FieldForce — تطبيق مندوب مبيعات ميداني"
+﻿name: fieldforce
+description: "FieldForce â€” ØªØ·Ø¨ÙŠÙ‚ Ù…Ù†Ø¯ÙˆØ¨ Ù…Ø¨ÙŠØ¹Ø§Øª Ù…ÙŠØ¯Ø§Ù†ÙŠ"
 publish_to: 'none'
-version: 1.0.4+7
+version: 1.0.5+8
 
 environment:
   sdk: ^3.11.3
@@ -32,7 +32,7 @@ flutter:
   assets:
     - assets/images/
 
-# أيقونة التطبيق — تتولّد بـ: dart run flutter_launcher_icons
+# Ø£ÙŠÙ‚ÙˆÙ†Ø© Ø§Ù„ØªØ·Ø¨ÙŠÙ‚ â€” ØªØªÙˆÙ„Ù‘Ø¯ Ø¨Ù€: dart run flutter_launcher_icons
 flutter_launcher_icons:
   android: true
   ios: true

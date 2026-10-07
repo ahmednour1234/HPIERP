@@ -46,8 +46,9 @@ class AttendanceRepository {
       {int status = 1, double? lat, double? lng, String? note}) async {
     await _api.post('/attendance/store', v1: true, body: {
       'status': status,
+      // السيرفر (AttendanceController) بيطلب lat + lon إجباري.
       if (lat != null) 'lat': lat,
-      if (lng != null) 'lng': lng,
+      if (lng != null) 'lon': lng,
       if (note != null && note.trim().isNotEmpty) 'note': note.trim(),
     });
   }

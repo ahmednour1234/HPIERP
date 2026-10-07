@@ -133,6 +133,7 @@ class VisitRepository {
       body: {
         'customer_id': customerId,
         'note': note,
+        // السيرفر (RecordVisitResultRequest) بيقرأ lat + lang.
         if (lat != null) 'lat': lat,
         if (lng != null) 'lang': lng,
       },
