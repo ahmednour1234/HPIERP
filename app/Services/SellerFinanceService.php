@@ -87,6 +87,57 @@ class SellerFinanceService
         ];
     }
 
+    /**
+     * العهدة لعدة مناديب دفعةً واحدة.
+     *
+     * forSeller يصلح لمندوبٍ واحد، واستدعاؤه في حلقةٍ على صفحة
+     * القائمة يعني ستة استعلامات لكل صفّ. هنا ثلاثة استعلامات
+     * مجمَّعة لا أكثر.
+     *
+     * @param  array<int,int>  $sellerIds
+     * @return array<int,float>  seller_id => ما في يده
+     */
+    public function custodyFor(array $sellerIds): array
+    {
+        if (empty($sellerIds)) {
+            return [];
+        }
+
+        $collected = Order::whereIn('owner_id', $sellerIds)
+            ->whereIn('type', self::SALE_TYPES)
+            ->selectRaw('owner_id, SUM(COALESCE(transaction_reference, 0) + 0) as total')
+            ->groupBy('owner_id')
+            ->pluck('total', 'owner_id');
+
+        $deposited = TransactionSeller::whereIn('seller_id', $sellerIds)
+            ->where('active', self::DEPOSIT_APPROVED)
+            ->selectRaw('seller_id, SUM(amount + 0) as total')
+            ->groupBy('seller_id')
+            ->pluck('total', 'seller_id');
+
+        $pending = TransactionSeller::whereIn('seller_id', $sellerIds)
+            ->where('active', self::DEPOSIT_PENDING)
+            ->selectRaw('seller_id, SUM(amount + 0) as total')
+            ->groupBy('seller_id')
+            ->pluck('total', 'seller_id');
+
+        $out = [];
+
+        foreach ($sellerIds as $id) {
+            $id = (int) $id;
+
+            // القاعدة نفسها التي يعرضها التطبيق، حرفًا بحرف.
+            $out[$id] = round(
+                (float) ($collected[$id] ?? 0)
+                - (float) ($deposited[$id] ?? 0)
+                - (float) ($pending[$id] ?? 0),
+                2
+            );
+        }
+
+        return $out;
+    }
+
     /** إجمالي ما فوتره المندوب. */
     private function invoiced(int $sellerId): float
     {

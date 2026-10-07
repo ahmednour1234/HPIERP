@@ -276,7 +276,16 @@ public function store(Request $request): RedirectResponse
     // Paginate the sellers
     $sellers = $sellers->paginate(Helpers::pagination_limit())->appends($query_param);
 
-    return view('admin-views.seller.list', compact('sellers', 'search','accounts'));
+    // عمود «مدين» محسوبًا من السجلّات لا من admins.credit.
+    //
+    // العمود رقم تراكمي تكتبه نقاط كثيرة منذ سنين، وقياسه يُظهر
+    // أرصدةً سالبة — أي أن الشركة مدينة للمندوب — وهو محال. وكان
+    // يخالف ما يعرضه التطبيق لنفس المندوب، فيبدو الرقمان متناقضين.
+    // المصدر واحد الآن: الخدمة نفسها التي يقرأ منها /finance/summary.
+    $custody = app(\App\Services\SellerFinanceService::class)
+        ->custodyFor($sellers->pluck('id')->map(fn ($id) => (int) $id)->all());
+
+    return view('admin-views.seller.list', compact('sellers', 'search', 'accounts', 'custody'));
 }
 
 

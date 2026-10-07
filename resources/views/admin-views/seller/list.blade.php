@@ -224,7 +224,8 @@
                                     {{-- مدين --}}
                                     <td class="text-center">
                                         <div class="sl-cell-money">
-                                            {!! $money($seller->credit) !!}
+                                            {{-- محسوبًا من السجلّات، كما يعرضه التطبيق. --}}
+                                            {!! $money($custody[$seller->id] ?? 0) !!}
                                             <button class="sl-act"
                                                     onclick="update_seller_credit_cl({{ $seller->seller_id }})"
                                                     data-toggle="modal" data-target="#update-seller-credit">

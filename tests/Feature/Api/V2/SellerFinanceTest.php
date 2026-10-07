@@ -226,4 +226,39 @@ class SellerFinanceTest extends ApiTestCase
 
         $this->assertLessThanOrEqual(100.0, $this->figures()['collection']['rate']);
     }
+
+    /**
+     * الحساب الجماعي يطابق الفردي.
+     *
+     * قائمة المناديب في اللوحة تقرأ منه، والتطبيق يقرأ من forSeller،
+     * فاختلافهما يعني رقمين متناقضين لنفس المندوب — وهو ما كان يحدث
+     * حين كانت اللوحة تقرأ عمود admins.credit.
+     *
+     * @test
+     */
+    public function the_bulk_figure_matches_the_single_one(): void
+    {
+        $this->order(950001, 4, 1000, 800);
+        $this->deposit(500, 1);
+        $this->deposit(100, 0);
+
+        $service = app(SellerFinanceService::class);
+
+        $this->assertSame(
+            $service->forSeller(self::SELLER)['custody']['in_hand'],
+            $service->custodyFor([self::SELLER])[self::SELLER]
+        );
+    }
+
+    /** ومندوب بلا حركة يخرج بصفر لا بغياب. */
+    public function test_a_seller_with_no_movement_reads_zero(): void
+    {
+        $this->assertSame(0.0, app(SellerFinanceService::class)->custodyFor([self::SELLER])[self::SELLER]);
+    }
+
+    /** قائمة فارغة لا تُنتج استعلامًا. */
+    public function test_no_sellers_yields_no_rows(): void
+    {
+        $this->assertSame([], app(SellerFinanceService::class)->custodyFor([]));
+    }
 }
