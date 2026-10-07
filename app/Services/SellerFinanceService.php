@@ -65,8 +65,14 @@ class SellerFinanceService
                 'outstanding' => $outstanding,
                 // نسبة التحصيل من صافي المبيعات، لا من الإجمالي:
                 // المرتجع لا يُحصَّل فلا يدخل المقام.
+                // البسط هو التحصيل الباقي محقَّقًا: ما حُصِّل ثم رُدَّ
+                // خرج من الطرفين، وإلا تجاوزت النسبة المئة.
                 'rate'        => $invoiced - $returned > 0
-                    ? round($collected / ($invoiced - $returned) * 100, 1)
+                    ? min(100.0, round(
+                        max(0, $collected - $this->collectedThenReturned($sellerId))
+                            / ($invoiced - $returned) * 100,
+                        1
+                    ))
                     : 0.0,
             ],
 
@@ -100,6 +106,39 @@ class SellerFinanceService
         return (float) Order::where('owner_id', $sellerId)
             ->whereIn('type', self::SALE_TYPES)
             ->sum(DB::raw('COALESCE(transaction_reference, 0) + 0'));
+    }
+
+    /**
+     * ما حُصِّل ثم رُدَّ: تحصيلٌ لم يبقَ محقَّقًا.
+     *
+     * المرتجع يُطرح من صافي المبيعات (المقام) بينما يبقى ما حُصِّل
+     * عليه في البسط، فتتجاوز نسبة التحصيل المئة. يُطرح هنا بنسبة
+     * المردود من الفاتورة لا كاملًا: الردّ قد يكون جزئيًّا، وقد
+     * تُردّ الفاتورة الواحدة على دفعات.
+     */
+    private function collectedThenReturned(int $sellerId): float
+    {
+        $returns = Order::query()
+            ->where('type', self::TYPE_RETURN)
+            ->whereNotNull('parent_id')
+            ->selectRaw('parent_id, SUM(order_amount + 0) as returned')
+            ->groupBy('parent_id');
+
+        return (float) Order::query()
+            ->from('orders as p')
+            ->joinSub($returns, 'r', 'r.parent_id', '=', 'p.id')
+            ->where('p.owner_id', $sellerId)
+            ->whereIn('p.type', self::SALE_TYPES)
+            ->where('p.order_amount', '>', 0)
+            // بلا MIN/LEAST: الأولى تقبل عمودين في SQLite وحدها
+            // والثانية في MySQL وحدها، فتنكسر إحداهما على الإنتاج.
+            // CASE يعمل على المحرّكين، والنسبة محدودة بواحد لأن
+            // المردود لا يتجاوز الفاتورة.
+            ->sum(DB::raw(
+                '(COALESCE(p.transaction_reference, 0) + 0) * '
+                . 'CASE WHEN r.returned >= (p.order_amount + 0) THEN 1.0 '
+                . 'ELSE r.returned / (p.order_amount + 0) END'
+            ));
     }
 
     private function returned(int $sellerId): float

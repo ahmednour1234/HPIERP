@@ -132,8 +132,10 @@ class SellerFinanceTest extends ApiTestCase
         $this->order(950001, 4, 1000, 400);
         $this->order(950002, 7, 200, 0, 950001);
 
-        // 400 من 800 صافية = 50%، لا 40% من الألف.
-        $this->assertSame(50.0, $this->figures()['collection']['rate']);
+        // المرتجع خُمس الفاتورة، فيسقط خُمس ما حُصِّل عليها: يبقى
+        // 320 محقَّقًا من 800 صافية = 40%. الطرفان يخسران حصّة
+        // المردود، فلا ترتفع النسبة بردٍّ بعد تحصيل.
+        $this->assertSame(40.0, $this->figures()['collection']['rate']);
     }
 
     /** المديونية لا تصير سالبة بتحصيلٍ زائد. */
@@ -173,5 +175,55 @@ class SellerFinanceTest extends ApiTestCase
     public function the_summary_needs_authentication(): void
     {
         $this->getJson('/api/v2/finance/summary')->assertStatus(401);
+    }
+
+    /**
+     * تحصيلٌ على فاتورة رُدَّت لا يُحتسب تحصيلًا محقَّقًا.
+     *
+     * المرتجع يخرج من المقام، فبقاء ما حُصِّل عليه في البسط يرفع
+     * النسبة فوق المئة — وهي حالة رُصدت فعلًا على البيانات.
+     *
+     * @test
+     */
+    public function a_collection_on_a_returned_invoice_leaves_the_rate(): void
+    {
+        $this->order(950001, 4, 1000, 1000);
+        $this->order(950002, 7, 1000, 0, 950001);
+
+        $f = $this->figures();
+
+        // لا مبيعات صافية ولا تحصيل محقَّق.
+        $this->assertSame(0.0, $f['sales']['net']);
+        $this->assertSame(0.0, $f['collection']['rate']);
+    }
+
+    /** ردٌّ جزئي يُسقط من التحصيل بنسبته لا كاملًا. */
+    public function test_a_partial_return_drops_its_share_only(): void
+    {
+        // رُدّ ربع الفاتورة، فيسقط ربع ما حُصِّل عليها.
+        $this->order(950001, 4, 1000, 800);
+        $this->order(950002, 7, 250, 0, 950001);
+
+        // الباقي محقَّقًا 800 − 200 = 600 من صافي 750.
+        $this->assertSame(80.0, $this->figures()['collection']['rate']);
+    }
+
+    /** الفاتورة الواحدة قد تُردّ على دفعات. */
+    public function test_repeated_returns_accumulate(): void
+    {
+        $this->order(950001, 4, 1000, 1000);
+        $this->order(950002, 7, 400, 0, 950001);
+        $this->order(950003, 7, 600, 0, 950001);
+
+        $this->assertSame(0.0, $this->figures()['collection']['rate']);
+    }
+
+    /** النسبة لا تتجاوز المئة بحالٍ. */
+    public function test_the_rate_is_capped_at_a_hundred(): void
+    {
+        // تحصيل زائد بالتقريب، كما يحدث حين يُقبض الرقم الصحيح.
+        $this->order(950001, 4, 592.50, 593);
+
+        $this->assertLessThanOrEqual(100.0, $this->figures()['collection']['rate']);
     }
 }
