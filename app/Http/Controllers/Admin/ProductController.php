@@ -247,7 +247,10 @@ public function exportReportProducts(Request $request)
 
     return response()->streamDownload(function () use ($rows) {
         $out = fopen('php://output', 'w');
-        fwrite($out, "ï»¿");
+        // BOM بثلاث بايتات لا ست: كان مكتوبًا كمحارف مرئية
+        // (ï»¿) فيُرمَّز مرتين، فيقرؤها Excel محارفَ غريبةً في
+        // أول السطر وتتلف معها العربية كلها.
+        fwrite($out, "\xEF\xBB\xBF");
 
         if (!empty($rows)) {
             fputcsv($out, array_keys($rows[0]));
