@@ -725,6 +725,29 @@
     <script>
         "use strict";
 
+        /**
+         * عرض الفاتورة في النافذة.
+         *
+         * الصفحة تحمل النافذة ومنطقة الطباعة، لكن الدالة التي
+         * يناديها الزرّ لم تكن معرَّفة فيها — هي في خمس صفحات أخرى
+         * لا هنا — فالنقر يرمي print_invoice is not defined ولا يحدث
+         * شيء.
+         */
+        function print_invoice(order_id) {
+            $.get({
+                url: '{{ url('/') }}/admin/pos/invoice/' + order_id,
+                dataType: 'json',
+                success: function (data) {
+                    $('#printableArea').empty().html(data.view);
+                    $('#print-invoice').modal('show');
+                },
+                error: function (error) {
+                    console.log(error);
+                    toastr.error('تعذّر تحميل الفاتورة.');
+                }
+            });
+        }
+
         (function () {
             function appendPrintStyle(doc, mode) {
                 var style = doc.createElement('style');

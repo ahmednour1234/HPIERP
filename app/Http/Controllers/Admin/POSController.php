@@ -2544,7 +2544,17 @@ find($id);
     public function generate_invoice($id)
     {
         $order = $this->ownedOrderQuery($id)->with(['details'])->first();
-        //return $order;
+
+        // فاتورةٌ خارج نطاق هذا الأدمن تعود null، وكان القالب يُعرض
+        // عليها فيسقط بـ500 عند أول $order['id'] — خطأ خادم عن حالةٍ
+        // هي في حقيقتها «غير مسموح» أو «غير موجودة».
+        if (!$order) {
+            return response()->json([
+                'success' => 0,
+                'message' => \App\CPU\translate('الفاتورة غير موجودة أو خارج صلاحيتك.'),
+            ], 404);
+        }
+
         return response()->json([
             'success' => 1,
             'view' => view('admin-views.pos.order.invoice', compact('order'))->render(),
