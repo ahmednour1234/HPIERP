@@ -133,14 +133,6 @@ class _FundListScreenState extends State<FundListScreen> {
                       fontSize: 30,
                       fontWeight: FontWeight.w800,
                       fontFeatures: [FontFeature.tabularFigures()])),
-              const SizedBox(height: 14),
-              Row(
-                children: [
-                  _pill(Icons.arrow_downward, 'محصّل', _money(c.collected)),
-                  const SizedBox(width: 10),
-                  _pill(Icons.upload_rounded, 'مورّد', _money(c.deposited)),
-                ],
-              ),
             ],
           ),
         ),
@@ -151,9 +143,6 @@ class _FundListScreenState extends State<FundListScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Column(
               children: [
-                _line('المورّد للشركة', _money(c.deposited),
-                    AppColors.primaryDeep),
-                const Divider(height: 1, color: AppColors.line),
                 _line('توريدات قيد المراجعة', _money(c.pending),
                     AppColors.warn),
               ],
@@ -216,42 +205,6 @@ class _FundListScreenState extends State<FundListScreen> {
               style: const TextStyle(fontSize: 13.5, color: AppColors.inkSoft)),
           MoneyText(value, size: 15, color: color),
         ],
-      ),
-    );
-  }
-
-  Widget _pill(IconData icon, String label, String value) {
-    return Expanded(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: Colors.white.withValues(alpha: 0.15),
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Row(
-          children: [
-            Icon(icon, color: Colors.white, size: 18),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label,
-                      style:
-                          const TextStyle(color: Colors.white70, fontSize: 11)),
-                  Text(value,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 14,
-                          fontWeight: FontWeight.w700,
-                          fontFeatures: [FontFeature.tabularFigures()])),
-                ],
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
