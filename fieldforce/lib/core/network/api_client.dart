@@ -35,13 +35,16 @@ class ApiClient {
       // المصفوفات تُرسل كـ key[]=a&key[]=b (متوافق مع Laravel).
       listFormat: ListFormat.multiCompatible,
     ));
-    _dio.httpClientAdapter = IOHttpClientAdapter(
-      createHttpClient: () {
-        final client = HttpClient();
-        client.connectionTimeout = ApiConfig.timeout;
-        return client;
-      },
-    );
+    // IOHttpClientAdapter بيشتغل على الموبايل بس — على الويب نسيب الافتراضي.
+    if (!kIsWeb) {
+      _dio.httpClientAdapter = IOHttpClientAdapter(
+        createHttpClient: () {
+          final client = HttpClient();
+          client.connectionTimeout = ApiConfig.timeout;
+          return client;
+        },
+      );
+    }
     _dio.interceptors.add(InterceptorsWrapper(
       onRequest: (options, handler) async {
         final token = await TokenStore.instance.token();
