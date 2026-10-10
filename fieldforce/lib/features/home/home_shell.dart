@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../../core/theme/app_colors.dart';
 import '../../core/network/token_store.dart';
+import '../../core/network/api_client.dart';
 import '../statistics/statistics_screen.dart';
 import '../collections/collections_screen.dart';
 import '../sales/sales_screen.dart';
@@ -123,17 +124,7 @@ class _AppDrawer extends StatelessWidget {
                         color: Colors.white, size: 26),
                   ),
                   const SizedBox(width: 12),
-                  const Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('كريم محمود',
-                          style: TextStyle(
-                              fontWeight: FontWeight.w700, fontSize: 15)),
-                      Text('مندوب · FF-2048',
-                          style:
-                              TextStyle(color: AppColors.muted, fontSize: 12)),
-                    ],
-                  ),
+                  const Expanded(child: _DrawerUser()),
                 ],
               ),
             ),
@@ -210,6 +201,73 @@ class _AppDrawer extends StatelessWidget {
           context.push(route);
         }
       },
+    );
+  }
+}
+
+/// اسم وكود المستخدم الحالي في رأس القائمة الجانبية.
+/// يعرض الاسم المحفوظ عند الدخول فوراً، ثم يحدّثه من GET /profile.
+class _DrawerUser extends StatefulWidget {
+  const _DrawerUser();
+
+  @override
+  State<_DrawerUser> createState() => _DrawerUserState();
+}
+
+class _DrawerUserState extends State<_DrawerUser> {
+  String? _name;
+  String? _code;
+
+  bool _manager = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _load();
+  }
+
+  Future<void> _load() async {
+    final saved = await TokenStore.instance.sellerName();
+    final manager = await TokenStore.instance.isManager;
+    if (!mounted) return;
+    setState(() {
+      _name = saved;
+      _manager = manager;
+    });
+    try {
+      final p = await ApiClient.instance.get('/profile');
+      if (p is! Map) return;
+      String? s(dynamic v) {
+        final t = v?.toString().trim();
+        return (t == null || t.isEmpty || t == 'null') ? null : t;
+      }
+
+      final name = s(p['name']) ??
+          [s(p['f_name']), s(p['l_name'])].whereType<String>().join(' ');
+      final code = s(p['mandob_code']) ?? s(p['code']);
+      if (!mounted) return;
+      setState(() {
+        if (name.isNotEmpty) _name = name;
+        _code = code;
+      });
+    } catch (_) {
+      // من غير نت: نكتفي بالاسم المحفوظ.
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final role = _manager ? 'مدير' : 'مندوب';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(_name ?? '…',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(fontWeight: FontWeight.w700, fontSize: 15)),
+        Text(_code == null ? role : '$role · $_code',
+            style: const TextStyle(color: AppColors.muted, fontSize: 12)),
+      ],
     );
   }
 }
