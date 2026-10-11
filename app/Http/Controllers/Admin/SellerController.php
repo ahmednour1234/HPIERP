@@ -216,6 +216,20 @@ public function store(Request $request): RedirectResponse
      */
     private function descendantSellerIds($adminId): array
     {
+        // المشرف العام يرى كل المناديب.
+        //
+        // الشجرة تُبنى من admin_sellers، ومدير النظام ليس مُسنَدًا إلى
+        // أحد فيها، فتعود القائمة فارغةً ومعها كل أزرار الصفّ — يبدو
+        // زرّ التعديل «لا يعمل» وهو غير معروض أصلًا.
+        $admin = \App\Models\Admin::find($adminId);
+
+        if ($admin && (int) ($admin->is_super ?? 0) === 1) {
+            return \App\Models\Seller::where('role', 'seller')
+                ->pluck('id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+        }
+
         $all      = [];
         $frontier = [(int) $adminId];
 
