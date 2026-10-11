@@ -1215,11 +1215,19 @@ body {
                                 </li>
 
                                 @cangroup('roles')
-                                <li class="nav-item {{Request::is('admin/roles*')?'active':''}}">
+                                <li class="nav-item {{Request::is('admin/roles') || Request::is('admin/roles/create') || Request::is('admin/roles/assign*') || Request::is('admin/roles/*/edit')?'active':''}}">
                                     <a class="nav-link" href="{{route('admin.roles.index')}}"
                                        title="{{\App\CPU\translate('الأدوار والصلاحيات')}}">
                                         <span class="tio-circle nav-indicator-icon"></span>
                                         <span class="text-truncate">{{\App\CPU\translate('الأدوار والصلاحيات')}}</span>
+                                    </a>
+                                </li>
+
+                                <li class="nav-item {{Request::is('admin/roles/guide')?'active':''}}">
+                                    <a class="nav-link" href="{{route('admin.roles.guide')}}"
+                                       title="{{\App\CPU\translate('دليل الصلاحيات')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">{{\App\CPU\translate('دليل الصلاحيات')}}</span>
                                     </a>
                                 </li>
                                 @endcangroup

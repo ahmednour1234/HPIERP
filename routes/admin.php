@@ -530,6 +530,9 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
         Route::get   ('roles',                [RoleController::class, 'index'])->middleware('permission:roles.view')->name('roles.index');
         Route::get   ('roles/create',         [RoleController::class, 'create'])->middleware('permission:roles.create')->name('roles.create');
         Route::post  ('roles',                [RoleController::class, 'store'])->middleware('permission:roles.create')->name('roles.store');
+        // دليل الصلاحيات: يقرأ ولا يكتب، فيتبع صلاحية عرض الأدوار.
+        Route::get   ('roles/guide',          [\App\Http\Controllers\Admin\PermissionsGuideController::class, 'index'])->middleware('permission:roles.view')->name('roles.guide');
+
         Route::get   ('roles/assign',         [RoleController::class, 'assign'])->middleware('permission:roles.update')->name('roles.assign');
         Route::post  ('roles/assign/{admin}', [RoleController::class, 'storeAssignment'])->middleware('permission:roles.update')->name('roles.assign.store');
         Route::get   ('roles/{role}/edit',    [RoleController::class, 'edit'])->middleware('permission:roles.update')->name('roles.edit');
