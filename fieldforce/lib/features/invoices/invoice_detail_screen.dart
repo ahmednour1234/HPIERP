@@ -432,7 +432,36 @@ class _CollectInvoiceSheetState extends State<CollectInvoiceSheet> {
   }
 
   Future<void> _pickReceipt() async {
-    final x = await _picker.pickImage(source: ImageSource.camera, maxWidth: 1600);
+    // كاميرا أو معرض — زي شاشة البيع.
+    final source = await showModalBottomSheet<ImageSource>(
+      context: context,
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.camera_alt_outlined,
+                  color: AppColors.primaryDeep),
+              title: const Text('التقاط صورة'),
+              onTap: () => Navigator.pop(ctx, ImageSource.camera),
+            ),
+            ListTile(
+              leading: const Icon(Icons.photo_library_outlined,
+                  color: AppColors.primaryDeep),
+              title: const Text('من المعرض'),
+              onTap: () => Navigator.pop(ctx, ImageSource.gallery),
+            ),
+          ],
+        ),
+      ),
+    );
+    if (source == null || !mounted) return;
+    final x = await _picker.pickImage(source: source, maxWidth: 1600);
     if (x != null && mounted) setState(() => _receipt = File(x.path));
   }
 
