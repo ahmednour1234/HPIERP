@@ -68,4 +68,112 @@ class CustomerCreatedActiveTest extends ApiTestCase
             ->assertStatus(422)
             ->assertJsonValidationErrors(['region_id']);
     }
+
+    /**
+     * العميل يظهر عند مدير المندوب كذلك.
+     *
+     * admin_sellers تحمل الإدارة: صفُّ (admin_id, seller_id) يعني أن
+     * الأول يدير الثاني. وكان العميل يُسنَد للمندوب وحده، فيبقى خارج
+     * قوائم من يتابعه حتى يُسنَد يدويًّا.
+     *
+     * @test
+     */
+    public function a_new_customer_reaches_the_sellers_manager(): void
+    {
+        $manager = 900700;
+
+        DB::table('admins')->updateOrInsert(['id' => $manager], [
+            'local_id'   => $manager,
+            'f_name'     => 'Area',
+            'l_name'     => 'Manager',
+            'email'      => 'area.manager@example.test',
+            'password'   => \Illuminate\Support\Facades\Hash::make('password'),
+            'role'       => 'admin',
+            'company_id' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('admin_sellers')->updateOrInsert(
+            ['admin_id' => $manager, 'seller_id' => ApiTestingSeeder::SELLER_ID],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
+
+        $id = $this->create(['name' => 'صيدلية المدير'])->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('seller_customers', [
+            'customer_id' => $id,
+            'seller_id'   => $manager,
+        ]);
+    }
+
+    /** وصولًا إلى مدير المدير. */
+    public function test_it_reaches_the_whole_chain_above(): void
+    {
+        foreach ([900701 => 'Mid', 900702 => 'Top'] as $id => $name) {
+            DB::table('admins')->updateOrInsert(['id' => $id], [
+                'local_id'   => $id,
+                'f_name'     => $name,
+                'l_name'     => 'Manager',
+                'email'      => strtolower($name) . '.mgr@example.test',
+                'password'   => \Illuminate\Support\Facades\Hash::make('password'),
+                'role'       => 'admin',
+                'company_id' => 1,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
+
+        // 702 يدير 701، و701 يدير المندوب.
+        DB::table('admin_sellers')->updateOrInsert(
+            ['admin_id' => 900701, 'seller_id' => ApiTestingSeeder::SELLER_ID],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
+        DB::table('admin_sellers')->updateOrInsert(
+            ['admin_id' => 900702, 'seller_id' => 900701],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
+
+        $id = $this->create(['name' => 'صيدلية السلسلة'])->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('seller_customers', ['customer_id' => $id, 'seller_id' => 900701]);
+        $this->assertDatabaseHas('seller_customers', ['customer_id' => $id, 'seller_id' => 900702]);
+    }
+
+    /**
+     * مديرٌ يدير نفسه لا يُدخل الحلقة في دورة لا تنتهي.
+     *
+     * البيانات القائمة تحوي ذلك فعلًا (#100).
+     *
+     * @test
+     */
+    public function a_self_managing_admin_does_not_loop(): void
+    {
+        $self = 900703;
+
+        DB::table('admins')->updateOrInsert(['id' => $self], [
+            'local_id'   => $self,
+            'f_name'     => 'Self',
+            'l_name'     => 'Manager',
+            'email'      => 'self.mgr@example.test',
+            'password'   => \Illuminate\Support\Facades\Hash::make('password'),
+            'role'       => 'admin',
+            'company_id' => 1,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+        DB::table('admin_sellers')->updateOrInsert(
+            ['admin_id' => $self, 'seller_id' => $self],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
+        DB::table('admin_sellers')->updateOrInsert(
+            ['admin_id' => $self, 'seller_id' => ApiTestingSeeder::SELLER_ID],
+            ['created_at' => now(), 'updated_at' => now()]
+        );
+
+        $id = $this->create(['name' => 'صيدلية الدورة'])->assertCreated()->json('data.id');
+
+        $this->assertDatabaseHas('seller_customers', ['customer_id' => $id, 'seller_id' => $self]);
+    }
 }

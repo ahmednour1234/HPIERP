@@ -77,10 +77,51 @@ class CustomerRepository extends BaseRepository
 
     public function assignToSeller(int $customerId, int $sellerId): void
     {
-        SellerCustomer::firstOrCreate(
-            ['customer_id' => $customerId, 'seller_id' => $sellerId],
-            ['local_id' => 0] // NOT NULL with no default; server-side rows use 0
-        );
+        // المندوب ومديروه فوقه: العميل الذي يضيفه مندوبٌ من الميدان
+        // يجب أن يراه من يتابعه، وإلا بقي خارج قوائمهم حتى يُسنَد يدويًّا.
+        foreach ($this->sellerAndManagers($sellerId) as $holderId) {
+            SellerCustomer::firstOrCreate(
+                ['customer_id' => $customerId, 'seller_id' => $holderId],
+                ['local_id' => 0] // NOT NULL with no default; server-side rows use 0
+            );
+        }
+    }
+
+    /**
+     * المندوب ومن يديره، صعودًا حتى أعلى الشجرة.
+     *
+     * admin_sellers تحمل الإدارة لا الإسناد وحده: صفُّ (admin_id,
+     * seller_id) يعني أن الأول يدير الثاني. والشجرة متعددة المستويات
+     * ففيها مديرون فوق مديرين.
+     *
+     * @return array<int,int>
+     */
+    private function sellerAndManagers(int $sellerId): array
+    {
+        $all      = [$sellerId];
+        $frontier = [$sellerId];
+
+        // حارس ضد الحلقات: البيانات تحوي من يدير نفسه (#100) ودوراتٍ
+        // بين مديرين، فبغير سقفٍ تدور الحلقة بلا نهاية.
+        $guard = 0;
+
+        while (!empty($frontier) && $guard++ < 20) {
+            $managers = \App\Models\AdminSeller::whereIn('seller_id', $frontier)
+                ->pluck('admin_id')
+                ->map(fn ($v) => (int) $v)
+                ->all();
+
+            $managers = array_values(array_diff(array_unique($managers), $all));
+
+            if (empty($managers)) {
+                break;
+            }
+
+            $all      = array_merge($all, $managers);
+            $frontier = $managers;
+        }
+
+        return array_values(array_unique($all));
     }
 
     public function belongsToSeller(int $customerId, int $sellerId): bool
