@@ -259,7 +259,9 @@
                                     $storedImg = $rawImg !== '' && ! preg_match('#^(https?:)?//#i', $rawImg) && strpos($rawImg, '/') === false
                                         ? 'transaction/' . $rawImg
                                         : $rawImg;
-                                    $imgPath = $storedImg !== '' ? storage_url($storedImg) : null;
+                                    $imgPath = $storedImg !== ''
+                                        ? (preg_match('#^(https?:)?//#i', $storedImg) ? $storedImg : asset('public/storage/' . ltrim($storedImg, '/')))
+                                        : null;
                                 @endphp
 
                                 @if($imgPath)
