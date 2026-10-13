@@ -256,7 +256,7 @@
                             <td>
                                 @php
                                     $rawImg = trim((string) $transaction->img);
-                                    $storedImg = $rawImg !== '' && ! preg_match('#^(https?:)?//#i', $rawImg) && ! str_contains($rawImg, '/')
+                                    $storedImg = $rawImg !== '' && ! preg_match('#^(https?:)?//#i', $rawImg) && strpos($rawImg, '/') === false
                                         ? 'transaction/' . $rawImg
                                         : $rawImg;
                                     $imgPath = $storedImg !== '' ? storage_url($storedImg) : null;
