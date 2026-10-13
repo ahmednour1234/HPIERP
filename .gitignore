@@ -4,6 +4,8 @@
 
 /vendor
 
+.env
+.env.backup-run
 .env.backup
 
 Homestead.json
