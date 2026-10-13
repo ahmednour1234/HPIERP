@@ -254,7 +254,13 @@
                             <td class="col-amount">{{ number_format((float) $transaction->amount, 2) }}</td>
 
                             <td>
-                                @php($imgPath = $transaction->img ? asset('public/storage/' . $transaction->img) : null)
+                                @php
+                                    $rawImg = trim((string) $transaction->img);
+                                    $storedImg = $rawImg !== '' && ! preg_match('#^(https?:)?//#i', $rawImg) && ! str_contains($rawImg, '/')
+                                        ? 'transaction/' . $rawImg
+                                        : $rawImg;
+                                    $imgPath = $storedImg !== '' ? storage_url($storedImg) : null;
+                                @endphp
 
                                 @if($imgPath)
                                     {{-- الملف قد يكون مفقودًا على هذه النسخة، فتظهر أيقونة
