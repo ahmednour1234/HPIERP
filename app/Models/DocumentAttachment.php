@@ -37,11 +37,16 @@ class DocumentAttachment extends Model
             return $url;
         }
 
-        // محفوظ بالفعل تحت /storage.
-        if (str_starts_with($url, '/storage/') || str_starts_with($url, 'storage/')) {
-            return asset(ltrim($url, '/'));
+        // جذر الويب في الإنتاج هو مجلد المشروع لا public، فالروابط
+        // تحمل البادئة صراحةً: /storage/… يردّ 302 بينما
+        // /public/storage/… يصل إلى الملف. كانت الدالة تغفلها فلا
+        // يُفتح أي مرفق، ويبدو زرّ «عرض» بلا أثر.
+        $url = ltrim($url, '/');
+
+        if (str_starts_with($url, 'storage/')) {
+            return asset('public/' . $url);
         }
 
-        return asset('storage/' . ltrim($url, '/'));
+        return asset('public/storage/' . $url);
     }
 }

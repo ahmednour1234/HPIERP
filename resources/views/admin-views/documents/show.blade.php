@@ -149,7 +149,9 @@
             @else
                 <div class="att-grid">
                     @foreach($document->attachments as $att)
-                        @php($src = $att->type === 'link' ? $att->url : asset($att->url))
+                        {{-- src من الموديل: يضيف بادئة public التي يحتاجها
+                             جذر الويب في الإنتاج، ويترك الرابط الخارجي كما هو. --}}
+                        @php($src = $att->src)
 
                         <div class="att-card">
                             @if($att->type === 'image')
@@ -205,14 +207,14 @@
                         </div>
                         <div class="modal-body text-center">
                             @if($att->type === 'image')
-                                <img src="{{ asset($att->url) }}" class="img-fluid"
+                                <img src="{{ $src }}" class="img-fluid"
                                      alt="{{ \App\CPU\translate('مرفق') }}">
                             @else
-                                <iframe src="{{ asset($att->url) }}#toolbar=1" class="att-frame"></iframe>
+                                <iframe src="{{ $src }}#toolbar=1" class="att-frame"></iframe>
                             @endif
                         </div>
                         <div class="modal-footer">
-                            <a href="{{ asset($att->url) }}" target="_blank" rel="noopener"
+                            <a href="{{ $src }}" target="_blank" rel="noopener"
                                class="btn btn-sm btn-primary">
                                 <i class="tio-download mr-1"></i> {{ \App\CPU\translate('تحميل الملف') }}
                             </a>
