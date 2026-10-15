@@ -243,9 +243,12 @@ class HrDocument {
       if (v == null) return '';
       if (v is String) return v.trim();
       if (v is Map) {
+        // src = الرابط الكامل للملف (storage). url نسبي ولو اتركّب على
+        // الدومين بيروح لصفحة دخول اللوحة — فلازم src الأول.
         return firstString([
-          v['url'],
+          v['src'],
           v['file_url'],
+          v['url'],
           v['path'],
           v['file'],
           v['attachment'],
