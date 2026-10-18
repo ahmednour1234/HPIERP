@@ -2,6 +2,20 @@
 <link rel="stylesheet" href="{{ asset('public/assets/admin') }}/css/custom.css" />
 @endpush
 
+    <div class="row g-2 pos-cart-actions">
+        <div class="col-6 mt-2">
+            <a href="#" class="btn btn-danger btn-block pos-cart-action pos-cart-action-danger" onclick="emptyCart()">
+                <i class="fa fa-times-circle "></i>
+                {{ \App\CPU\translate('الغاء الفاتورة') }}
+            </a>
+        </div>
+        <div class="col-6 mt-2">
+            <button onclick="submit_order();" type="button" class="btn btn-success btn-block pos-cart-action pos-cart-action-success">
+                <i class="fa fa-shopping-bag"></i>
+                {{ \App\CPU\translate('تنفيذ الفاتورة') }}
+            </button>
+        </div>
+    </div>
     <div class="card-body pt-0">
         <div class="table-responsive pos-cart-table border pos-cart-table-modern">
             <table class="table table-align-middle mb-0">
@@ -121,20 +135,7 @@ $total_tax_amount = $product_tax;
             {{ \App\CPU\Helpers::currency_symbol() }}
         </dd>
     </dl>
-    <div class="row g-2">
-        <div class="col-6 mt-2">
-            <a href="#" class="btn btn-danger btn-block pos-cart-action pos-cart-action-danger" onclick="emptyCart()">
-                <i class="fa fa-times-circle "></i>
-                {{ \App\CPU\translate('الغاء الفاتورة') }}
-            </a>
-        </div>
-        <div class="col-6 mt-2">
-            <button onclick="submit_order();" type="button" class="btn btn-success btn-block pos-cart-action pos-cart-action-success">
-                <i class="fa fa-shopping-bag"></i>
-                {{ \App\CPU\translate('تنفيذ الفاتورة') }}
-            </button>
-        </div>
-    </div>
+
 </div>
 
 {{-- data-toggle="modal" data-target="#paymentModal" --}}

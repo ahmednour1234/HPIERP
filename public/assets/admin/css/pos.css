@@ -481,3 +481,18 @@ dt {
         height: 8.5rem;
     }
 }
+
+/* Keep checkout accessible before the cart and totals, including after AJAX updates. */
+.pos-bill-panel.billing-section-wrap {
+    overflow-y: auto;
+    overflow-x: hidden;
+}
+
+.pos-cart-actions {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+    margin: 0;
+    padding: 0 1rem 1rem;
+    background: #fff;
+}
