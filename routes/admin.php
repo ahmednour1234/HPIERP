@@ -173,6 +173,7 @@ Route::group(['prefix' => 'reports', 'as' => 'reports.'], function () {
 
 Route::group(['prefix' => 'pos', 'as' => 'pos.'], function () {
             Route::get('/pos/{type}', 'POSController@index')->name('index');
+            Route::post('invoice-return', 'InvoiceReturnController@store')->name('invoice-return.store');
             Route::get('quick-view', 'POSController@quick_view')->name('quick-view');
             Route::post('variant_price', 'POSController@variant_price')->name('variant_price');
             Route::post('add-to-cart/{type}', 'POSController@addToCart')->name('add-to-cart');

@@ -73,6 +73,9 @@ class POSController extends Controller
      */
     public function index($type,Request $request): Factory|View|Application
     {
+        if ((int) $type === 7) {
+            return app(InvoiceReturnController::class)->index($request);
+        }
         $category = $request->query('category_id', 0);
         $keyword = $request->query('search', false);
         $key = explode(' ', $keyword);
@@ -733,6 +736,11 @@ public function reserveProduct(Request $request)
      */
 public function place_order(Request $request): RedirectResponse
 {
+    if ((int) $request->type === 7) {
+        throw \Illuminate\Validation\ValidationException::withMessages([
+            'type' => 'نفّذ المرتجع من شاشة المرتجعات باختيار العميل والفاتورة الأصلية.',
+        ]);
+    }
     // Retrieve the cart ID and determine user type (wc or sc)
     $cart_id = session('current_user');
     
@@ -1043,7 +1051,7 @@ public function storeplaceorder(Request $request): RedirectResponse
         'cart' => 'required',
         'cart.*.id' => 'required|integer|exists:products,id',
         'cart.*.quantity' => 'required|integer|min:1',
-        'type' => 'required|string|in:4,7', // Assuming type is either '4' or '7'
+        'type' => 'required|string|in:4', // Returns must reference an original invoice.
         'owner_id' => 'required|integer',
     ]);
 
