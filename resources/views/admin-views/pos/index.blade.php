@@ -886,7 +886,10 @@ console.log(type);
     $('.js-customer-picker').select2({
         width: '100%',
         placeholder: '{{ \App\CPU\translate('ابحث بالاسم أو رقم الموبايل') }}',
-        dir: 'rtl'
+        dir: 'rtl',
+        // صندوق البحث دائمًا: Select2 يخفيه حين يرى القائمة
+        // قصيرة، وهنا آلافُ العملاء فالتمرير وحده لا يكفي.
+        minimumResultsForSearch: 0
     });
 
     jQuery(".search-bar-input").on('keyup',function () {
