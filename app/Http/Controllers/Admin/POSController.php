@@ -790,6 +790,11 @@ public function place_order(Request $request): RedirectResponse
     $order->updated_at = now();
     $order->img = $img;
 
+    // العمود NOT NULL بلا افتراضي على هذا المخطط، ولم يكن يُرسَل من
+    // هنا إطلاقًا، فيفشل الإدراج ويُبتلع الخطأ في catch فتبدو الشاشة
+    // كأنها لم تفعل شيئًا. v2 يرسله في كل إدراج.
+    $order->update_flag = 0;
+
     // Process each cart item and update product stock
     foreach ($cart as $c) {
 
@@ -804,6 +809,8 @@ public function place_order(Request $request): RedirectResponse
                 $or_d = [
                     'order_id' => $order->id, // Use the saved order ID
                     'product_id' => $c['id'],
+                    // NOT NULL بلا افتراضي، كحال orders.update_flag.
+                    'update_flag' => 0,
                     'product_details' => $product,
                     'quantity' => $c['quantity'],
                     'price' => $product->selling_price,
