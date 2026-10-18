@@ -5,7 +5,7 @@
     {{--<meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">--}}
     <meta name="viewport" content="width=device-width">
     <!-- Title -->
-    <title>Add to cart page</title>
+    <title>HPI | ???? ?????</title>
     <!-- Favicon -->
     <link rel="shortcut icon" href="">
     <!-- Font -->
@@ -20,6 +20,7 @@
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/custom.css"/>
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/pos.css"/>
     <link rel="stylesheet" href="{{asset('public/assets/admin')}}/css/toastr.css">
+    @include('admin-views.pos._workspace-styles')
 </head>
 <body class="footer-offset pos-modern-body">
     <!-- Toggler -->
@@ -236,7 +237,7 @@
                                 </h5>
                             </div>
                             <div class="">
-                                <div class="card-body pb-0">
+                                <div class="card-body pb-0 pos-customer-controls">
                                     <div class="d-flex align-items-center gap-2 mb-3">
                                         <div class="flex-grow-1">
                                             {{-- كل العملاء محمَّلون: البحث يجري داخل

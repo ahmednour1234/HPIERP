@@ -2,20 +2,7 @@
 <link rel="stylesheet" href="{{ asset('public/assets/admin') }}/css/custom.css" />
 @endpush
 
-    <div class="row g-2 pos-cart-actions">
-        <div class="col-6 mt-2">
-            <a href="#" class="btn btn-danger btn-block pos-cart-action pos-cart-action-danger" onclick="emptyCart()">
-                <i class="fa fa-times-circle "></i>
-                {{ \App\CPU\translate('الغاء الفاتورة') }}
-            </a>
-        </div>
-        <div class="col-6 mt-2">
-            <button onclick="submit_order();" type="button" class="btn btn-success btn-block pos-cart-action pos-cart-action-success">
-                <i class="fa fa-shopping-bag"></i>
-                {{ \App\CPU\translate('تنفيذ الفاتورة') }}
-            </button>
-        </div>
-    </div>
+<div class="pos-cart-scroll">
     <div class="card-body pt-0">
         <div class="table-responsive pos-cart-table border pos-cart-table-modern">
             <table class="table table-align-middle mb-0">
@@ -70,7 +57,7 @@
                                             onerror="this.src='{{ asset('public/assets/admin/img/160x160/img2.jpg') }}'"
                                             alt="{{ $cartItem['name'] }} image">
                                         <div class="media-body">
-                                            <h5 class="text-hover-primary mb-0">{{ Str::limit($cartItem['name'], 10) }}</h5>
+                                            <h5 class="text-hover-primary mb-0">{{ $cartItem['name'] }}</h5>
                                         </div>
                                     </td>
                                     <td>
@@ -129,13 +116,33 @@ $total_tax_amount = $product_tax;
         <dt class="col-6">{{ \App\CPU\translate('الضريبة') }} :</dt>
         <dd class="col-6 text-right">{{ round($total_tax_amount, 2) . ' ' . \App\CPU\Helpers::currency_symbol() }}</dd>
         {{-- <button class="btn btn-sm" type="button" data-toggle="modal" data-target="#add-tax"><i class="tio-edit"></i></button> --}}
+    </dl>
+
+</div>
+
+</div>
+<div class="pos-checkout-footer">
+    <dl class="row pos-checkout-total">
         <dt class="col-6">{{ \App\CPU\translate('total') }} :</dt>
         <dd class="col-6 text-right h4 b">
             <span id="total_price">{{ round($total + $total_tax_amount - $coupon_discount, 2) }}</span>
             {{ \App\CPU\Helpers::currency_symbol() }}
         </dd>
     </dl>
-
+    <div class="row g-2 pos-cart-actions">
+        <div class="col-6 mt-2">
+            <a href="#" class="btn btn-danger btn-block pos-cart-action pos-cart-action-danger" onclick="emptyCart()">
+                <i class="fa fa-times-circle "></i>
+                {{ \App\CPU\translate('الغاء الفاتورة') }}
+            </a>
+        </div>
+        <div class="col-6 mt-2">
+            <button onclick="submit_order();" type="button" class="btn btn-success btn-block pos-cart-action pos-cart-action-success">
+                <i class="fa fa-shopping-bag"></i>
+                {{ \App\CPU\translate('تنفيذ الفاتورة') }}
+            </button>
+        </div>
+    </div>
 </div>
 
 {{-- data-toggle="modal" data-target="#paymentModal" --}}
