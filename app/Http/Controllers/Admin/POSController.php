@@ -100,7 +100,16 @@ class POSController extends Controller
             }
         }
 
-        return view('admin-views.pos.index', compact('categories', 'products', 'cart_id', 'category','user_id','type'));
+        // العملاء كاملين في الصفحة بدل بحثٍ يعيد ستة.
+        //
+        // كانت القائمة تُملأ عبر AJAX بحدّ ستة نتائج، فلا يظهر أحد قبل
+        // الكتابة ويبدو أنها فارغة. التحميل هنا يجعلها جاهزة، وSelect2
+        // يبحث داخلها محليًّا بلا طلبٍ لكل حرف.
+        $customers = DB::table('customers')
+            ->orderBy('name')
+            ->get(['id', 'name', 'mobile']);
+
+        return view('admin-views.pos.index', compact('categories', 'products', 'cart_id', 'category','user_id','type','customers'));
     }
 
     /**

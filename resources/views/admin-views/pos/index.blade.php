@@ -239,10 +239,15 @@
                                 <div class="card-body pb-0">
                                     <div class="d-flex align-items-center gap-2 mb-3">
                                         <div class="flex-grow-1">
+                                            {{-- كل العملاء محمَّلون: البحث يجري داخل
+                                                 القائمة لا بطلبٍ لكل حرف. --}}
                                             <select id='customer' name="customer_id"
-                                                    class="form-control js-data-example-ajax" onchange="customer_change(this.value);">
-                                                <option>{{\App\CPU\translate('--اختار عميل--')}}</option>
+                                                    class="form-control js-customer-picker" onchange="customer_change(this.value);">
+                                                <option value="">{{\App\CPU\translate('--اختار عميل--')}}</option>
                                                 <option value="0">{{\App\CPU\translate('walking_customer')}}</option>
+                                                @foreach(($customers ?? []) as $c)
+                                                    <option value="{{ $c->id }}">{{ $c->name }}@if($c->mobile) ({{ $c->mobile }})@endif</option>
+                                                @endforeach
                                             </select>
                                         </div>
                                         <div class="">
@@ -877,29 +882,11 @@ console.log(type);
         var select2 = $.HSCore.components.HSSelect2.init($(this));
     });
 
-    $('.js-data-example-ajax').select2({
-        ajax: {
-            url: '{{route('admin.pos.customers')}}',
-            data: function (params) {
-                return {
-                    q: params.term, // search term
-                    page: params.page
-                };
-            },
-            processResults: function (data) {
-                return {
-                    results: data
-                };
-            },
-            __port: function (params, success, failure) {
-                var $request = $.ajax(params);
-
-                $request.then(success);
-                $request.fail(failure);
-
-                return $request;
-            }
-        }
+    // بحثٌ محلي: الخيارات كلها في الصفحة، فلا حاجة لطلبٍ لكل حرف.
+    $('.js-customer-picker').select2({
+        width: '100%',
+        placeholder: '{{ \App\CPU\translate('ابحث بالاسم أو رقم الموبايل') }}',
+        dir: 'rtl'
     });
 
     jQuery(".search-bar-input").on('keyup',function () {
