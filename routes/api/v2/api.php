@@ -120,6 +120,10 @@ Route::group(['prefix' => 'v2', 'middleware' => ['api.standard']], function () {
             Route::post('courses/{id}', [\App\Http\Controllers\Api\V2\ManagerController::class, 'updateCourse'])->whereNumber('id');
             Route::put('courses/{id}', [\App\Http\Controllers\Api\V2\ManagerController::class, 'updateCourse'])->whereNumber('id');
             Route::delete('courses/{id}', [\App\Http\Controllers\Api\V2\ManagerController::class, 'destroyCourse'])->whereNumber('id');
+
+            // طلبات وإجازات مناديب المدير (develop_sellers type 1/2) والبتّ فيها.
+            Route::get('hr/requests', [\App\Http\Controllers\Api\V2\ManagerController::class, 'hrRequests']);
+            Route::post('hr/requests/{id}/decision', [\App\Http\Controllers\Api\V2\ManagerController::class, 'decideHrRequest'])->whereNumber('id');
         });
 
         // ملاحظات المدير كما يقرأها المندوب نفسه.

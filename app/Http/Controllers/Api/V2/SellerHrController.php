@@ -47,12 +47,13 @@ class SellerHrController extends Controller
         $rows->getCollection()->transform(fn ($r) => [
             'id'            => $r->id,
             'month'         => $r->month,
-            'score'         => $r->score,
+            // الأعمدة varchar في salaries، والتطبيق ينتظر أرقامًا.
+            'score'         => (float) $r->score,
             'manager_note'  => $r->notemanager,
             'note'          => $r->note,
-            'visits_target' => $r->number_of_visitors,
-            'visits_done'   => $r->result_of_visitors,
-            'work_days'     => $r->number_of_days,
+            'visits_target' => (int) $r->number_of_visitors,
+            'visits_done'   => (int) $r->result_of_visitors,
+            'work_days'     => (int) $r->number_of_days,
             'created_at'    => optional($r->created_at)->toIso8601String(),
         ]);
 

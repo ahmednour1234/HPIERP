@@ -245,6 +245,118 @@ class ManagerController extends Controller
         return $this->ok($this->ratingRow($seller), 'Rating saved');
     }
 
+    // ------------------------------------------------------------------
+    // طلبات المناديب: develop_sellers بالنوع 1 (طلب موظف) و2 (إجازة)،
+    // وعمود active حالتها: 0 معلّق، 1 مقبول، 2 مرفوض.
+    // ------------------------------------------------------------------
+
+    /** طلبات/إجازات مناديب المدير الحالي. لا طلبات ← data: [] لا 404. */
+    public function hrRequests(Request $request): JsonResponse
+    {
+        $request->validate([
+            'type'      => ['nullable', 'integer', 'in:1,2'],
+            'status'    => ['nullable', 'integer', 'in:0,1,2'],
+            'seller_id' => ['nullable', 'integer'],
+        ]);
+
+        if (!$this->isManager($request)) {
+            return $this->fail('This account is not a manager', 403);
+        }
+
+        $sellerIds = $this->mySellerIds($request);
+
+        if ($request->filled('seller_id')) {
+            $sellerIds = array_values(array_intersect($sellerIds, [(int) $request->input('seller_id')]));
+        }
+
+        $rows = DevelopSeller::whereIn('seller_id', $sellerIds)
+            ->when(
+                $request->filled('type'),
+                fn ($q) => $q->where('type', (int) $request->input('type')),
+                fn ($q) => $q->whereIn('type', [1, 2])
+            )
+            // status قد تكون 0 وهي قيمة صالحة.
+            ->when(
+                $request->input('status') !== null,
+                fn ($q) => $q->where('active', (int) $request->input('status'))
+            )
+            ->latest('id')
+            ->paginate(
+                (int) $request->input('limit', 25),
+                ['*'],
+                'page',
+                (int) $request->input('offset', 1)
+            );
+
+        $sellers = Admin::whereIn('id', $rows->getCollection()->pluck('seller_id')->unique())
+            ->get(['id', 'f_name', 'l_name', 'mandob_code'])
+            ->keyBy('id');
+
+        $rows->getCollection()->transform(fn ($r) => $this->hrRequestRow($r, $sellers->get($r->seller_id)));
+
+        return $this->ok($rows, 'Requests retrieved');
+    }
+
+    /** قبول (1) أو رفض (2) طلب مندوب تابع للمدير. */
+    public function decideHrRequest(Request $request, int $id): JsonResponse
+    {
+        $data = $request->validate([
+            'status' => ['required', 'integer', 'in:1,2'],
+            'reply'  => ['nullable', 'string', 'max:5000'],
+        ]);
+
+        $row = DevelopSeller::whereIn('type', [1, 2])->find($id);
+
+        if (!$row) {
+            return $this->fail('Request not found', 404);
+        }
+
+        if (!$this->owns($request, (int) $row->seller_id)) {
+            return $this->fail('This seller is not assigned to you', 403);
+        }
+
+        $row->active   = (int) $data['status'];
+        $row->admin_id = (int) $request->user()->id;
+
+        // لا عمود مستقل للرد في develop_sellers، فنلحقه بنص الطلب.
+        if (filled($data['reply'] ?? null)) {
+            $row->note = rtrim((string) $row->note) . "
+
+رد المدير: " . $data['reply'];
+        }
+
+        $row->save();
+
+        $seller = Admin::find($row->seller_id, ['id', 'f_name', 'l_name', 'mandob_code']);
+
+        return $this->ok($this->hrRequestRow($row, $seller), 'Decision saved');
+    }
+
+    private function hrRequestRow($row, $seller): array
+    {
+        $status = (int) $row->active;
+
+        return [
+            'id'          => $row->id,
+            'type'        => (int) $row->type,
+            'note'        => $row->note,
+            'date'        => $row->date,
+            'status'      => $status,
+            'status_text' => match ($status) {
+                1 => 'مقبول',
+                2 => 'مرفوض',
+                default => 'قيد المراجعة',
+            },
+            'seller'      => [
+                'id'          => (int) $row->seller_id,
+                'name'        => $seller ? trim(($seller->f_name ?? '') . ' ' . ($seller->l_name ?? '')) : null,
+                'mandob_code' => $seller->mandob_code ?? null,
+            ],
+            'created_at'  => optional($row->created_at)->toIso8601String(),
+            'updated_at'  => optional($row->updated_at)->toIso8601String(),
+        ];
+    }
+
     private function ratingRow($seller): array
     {
         return [
