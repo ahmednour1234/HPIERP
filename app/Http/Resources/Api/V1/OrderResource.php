@@ -85,7 +85,7 @@ class OrderResource extends JsonResource
             return 'unpaid';
         }
 
-        return $collected >= (float) $this->order_amount ? 'paid' : 'partial';
+        return round($collected, 2) >= round((float) $this->order_amount, 2) ? 'paid' : 'partial';
     }
 
     private function paymentStatusText(): string

@@ -235,7 +235,7 @@ class OrderService
                 'cash'           => $data['cash'] ?? $original->cash,
                 'payment_id'     => $data['type'] ?? $original->payment_id,
                 'total_tax'      => $taxTotal,
-                'order_amount'   => $grandTotal,
+                'order_amount'   => round($grandTotal, 2),
                 'collected_cash' => $grandTotal,
                 'update_flag'    => 0,
             ]);
@@ -517,7 +517,7 @@ class OrderService
                 'cash'                   => $data['cash'] ?? 1,
                 'payment_id'             => $data['type'] ?? null,
                 'total_tax'              => $taxTotal,
-                'order_amount'           => $data['order_amount'] ?? $grandTotal,
+                'order_amount'           => round((float) ($data['order_amount'] ?? $grandTotal), 2),
                 'extra_discount'         => $extraDiscount,
                 'coupon_code'            => $data['coupon_code'] ?? null,
                 'coupon_discount_amount' => $couponDiscount,
@@ -547,7 +547,7 @@ class OrderService
                 'type'         => $type,
                 'cash'         => $data['cash'] ?? 1,
                 'total_tax'    => $taxTotal,
-                'order_amount' => $data['order_amount'] ?? $grandTotal,
+                'order_amount' => round((float) ($data['order_amount'] ?? $grandTotal), 2),
                 'collected_cash' => $this->collectedAtSale($data, $grandTotal),
             ]);
 

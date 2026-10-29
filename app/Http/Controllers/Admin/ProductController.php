@@ -177,8 +177,10 @@ private function soldProductsRows(Request $request): array
             continue;
         }
 
-        $orderAmount    = (float) $order->order_amount;
-        $transactionRef = (float) $order->transaction_reference;
+        // تقريب لقرشين: قيمة بعد خصم نسبة (4628 × 0.7) تُخزَّن 3239.6000000000004
+        // فتُقارَن بمحصَّل 3239.60 وتظهر «تحصيل جزئي» وهي محصَّلة بالكامل.
+        $orderAmount    = round((float) $order->order_amount, 2);
+        $transactionRef = round((float) $order->transaction_reference, 2);
         $originalQty    = (float) $order->details->sum('quantity');
         $returnedQty    = (float) $returnsByParent->get($order->id, collect())->flatMap->details->sum('quantity');
 
@@ -419,8 +421,8 @@ public function getreportProducts(Request $request)
     $statusByOrder = [];
 
     foreach ($ordersAll->pluck('order')->filter()->unique('id') as $o) {
-        $orderAmount    = (float) $o->order_amount;
-        $transactionRef = (float) $o->transaction_reference;
+        $orderAmount    = round((float) $o->order_amount, 2);
+        $transactionRef = round((float) $o->transaction_reference, 2);
         $originalQty    = (float) $o->details->sum('quantity');
 
         $returnOrders = $returnsByParent->get($o->id, collect());
@@ -451,8 +453,8 @@ public function getreportProducts(Request $request)
             return $details->map(function ($detail) use ($selectedStatuses, $returnsByParent) {
                 $order = $detail->order;
                 $productDetails = json_decode($detail->product_details);
-                $orderAmount    = (float) $order->order_amount;
-                $transactionRef = (float) $order->transaction_reference;
+                $orderAmount    = round((float) $order->order_amount, 2);
+                $transactionRef = round((float) $order->transaction_reference, 2);
 
                 // مجموع الكميات الأصلية للطلب
                 $originalQty = (float) $order->details->sum('quantity');
@@ -722,8 +724,8 @@ private function renderFastProductReport(
             ->select('id', 'order_amount', 'transaction_reference')
             ->chunkById(500, function ($orders) use (&$statusByOrder, &$invoiceStatusCounts, $originalQtyByOrder, $returnsByParent) {
                 foreach ($orders as $order) {
-                    $orderAmount = (float) $order->order_amount;
-                    $transactionRef = (float) $order->transaction_reference;
+                    $orderAmount = round((float) $order->order_amount, 2);
+                    $transactionRef = round((float) $order->transaction_reference, 2);
                     $originalQty = (float) ($originalQtyByOrder[$order->id] ?? 0);
                     $returnedQty = (float) optional($returnsByParent->get($order->id))->returned_qty;
 

@@ -49,6 +49,10 @@ class InvoiceSettlement
      */
     public static function for(float $amount, float $collected, float $orderQty, float $returnQty): string
     {
+        // تقريب لقرشين حتى لا يجعل كسر عشري خفي الفاتورة المحصَّلة «جزئية».
+        $amount    = round($amount, 2);
+        $collected = round($collected, 2);
+
         // التحصيل الزائد يبقى محصَّلًا بالكامل، لا حالة رابعة.
         if ($collected >= $amount && $amount > 0) {
             return self::PAID;
@@ -90,7 +94,7 @@ class InvoiceSettlement
 
         return match ($status) {
             self::PAID => $query
-                ->whereRaw('(COALESCE(transaction_reference, 0) + 0) >= order_amount')
+                ->whereRaw('ROUND(COALESCE(transaction_reference, 0) + 0, 2) >= ROUND(order_amount, 2)')
                 ->where('order_amount', '>', 0),
 
             // فاتورة بصفر جنيه وبلا تحصيل ليست محصَّلة ولا مرتجعة؛ تقع
@@ -98,7 +102,7 @@ class InvoiceSettlement
 
             self::PARTIAL_PAID => $query
                 ->whereRaw('(COALESCE(transaction_reference, 0) + 0) > 0')
-                ->whereRaw('(COALESCE(transaction_reference, 0) + 0) < order_amount')
+                ->whereRaw('ROUND(COALESCE(transaction_reference, 0) + 0, 2) < ROUND(order_amount, 2)')
                 ->whereNotIn('id', $hasReturn),
 
             self::UNPAID => $query
@@ -113,7 +117,7 @@ class InvoiceSettlement
 
             self::PARTIAL_BOTH => $query
                 ->whereRaw('(COALESCE(transaction_reference, 0) + 0) > 0')
-                ->whereRaw('(COALESCE(transaction_reference, 0) + 0) < order_amount')
+                ->whereRaw('ROUND(COALESCE(transaction_reference, 0) + 0, 2) < ROUND(order_amount, 2)')
                 ->whereIn('id', $hasReturn),
 
             default => $query,
