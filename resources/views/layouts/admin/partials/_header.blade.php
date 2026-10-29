@@ -239,9 +239,13 @@
 
                      الزرّ الوحيد الذي كان يطويها ويفتحها يقع داخل القائمة
                      نفسها، فمتى انطوت على الهاتف لم يبقَ ما يفتحها. هذا
-                     يبقى ظاهرًا في الشريط دائمًا على الصغيرة. --}}
+                     يبقى ظاهرًا في الشريط دائمًا على الصغيرة.
+
+                     نقطة إخفائه xl لا lg: القائمة navbar-expand-xl فتختفي تحت
+                     1200px، ولو اختفى الزرّ عند lg لبقي التابلت (992–1199)
+                     بلا قائمة ولا زرّ يفتحها. --}}
                 <button type="button"
-                        class="hd-burger js-navbar-vertical-aside-toggle-invoker d-lg-none"
+                        class="hd-burger js-navbar-vertical-aside-toggle-invoker d-xl-none"
                         aria-label="{{ \App\CPU\translate('فتح القائمة') }}">
                     <i class="tio-menu-hamburger"></i>
                 </button>
