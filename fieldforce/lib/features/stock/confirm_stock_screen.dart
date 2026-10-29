@@ -617,6 +617,11 @@ class _ConfirmStockScreenState extends State<ConfirmStockScreen> {
               ),
             ),
             ElevatedButton.icon(
+              // الثيم بيدّي الزراير عرض لا نهائي — جوه Row لازم عرض محدد.
+              style: ElevatedButton.styleFrom(
+                minimumSize: const Size(0, 46),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
+              ),
               onPressed: enabled ? _submit : null,
               icon: _saving
                   ? const SizedBox(
