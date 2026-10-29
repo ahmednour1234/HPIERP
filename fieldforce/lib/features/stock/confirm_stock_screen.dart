@@ -244,6 +244,8 @@ class _ConfirmStockScreenState extends State<ConfirmStockScreen> {
   Widget build(BuildContext context) {
     final pending = _request?.isPending == true;
     return Scaffold(
+      // الكيبورد متحسوب في padding الزرار تحت — منحسبوش مرتين.
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         title: const Text('صرف البضاعة'),
         actions: [
@@ -254,8 +256,14 @@ class _ConfirmStockScreenState extends State<ConfirmStockScreen> {
           ),
         ],
       ),
-      bottomNavigationBar:
-          (_loading || pending || _error != null) ? null : _submitBar(),
+      // الزرار يطلع فوق الكيبورد وقت كتابة الكمية (كان بيستخبى تحته).
+      bottomNavigationBar: (_loading || pending || _error != null)
+          ? null
+          : Padding(
+              padding: EdgeInsets.only(
+                  bottom: MediaQuery.viewInsetsOf(context).bottom),
+              child: _submitBar(),
+            ),
       body: SafeArea(
         child: RefreshIndicator(onRefresh: _load, child: _buildBody()),
       ),
