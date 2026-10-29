@@ -506,6 +506,10 @@ class OrderService
             $couponDiscount = (float) ($data['coupon_discount'] ?? 0);
             $grandTotal = ($subTotal - $discountTotal) + $taxTotal - $extraDiscount - $couponDiscount;
 
+            // نوع الدفع حين لا يرسله التطبيق: كان الافتراضي «كاش» دائمًا،
+            // فتُكتب فاتورة على رصيد العميل لم يُحصَّل منها شيء «كاش».
+            $data['cash'] = $this->resolveCash($data, $grandTotal);
+
             $order = Order::create([
                 'owner_id'               => $sellerId,
                 'user_id'                => $customer->id,
@@ -605,6 +609,27 @@ class OrderService
      *
      * النقدي يبقى على افتراضه: بيعٌ نقديٌّ قُبض ثمنه عند تسليمه.
      */
+    /**
+     * كاش أو آجل. المُرسَل يُحترم؛ وإلا فالفاتورة آجل إن لم يكن لها حساب
+     * دفع (تُحمَّل على رصيد العميل) أو أُرسل مبلغ محصَّل أقل من إجماليها.
+     */
+    private function resolveCash(array $data, float $grandTotal): int
+    {
+        if (!empty($data['cash'])) {
+            return (int) $data['cash'];
+        }
+
+        if (empty($data['type'])) {
+            return self::CREDIT;
+        }
+
+        if (isset($data['collected_cash']) && (float) $data['collected_cash'] < round($grandTotal, 2)) {
+            return self::CREDIT;
+        }
+
+        return self::CASH;
+    }
+
     private function collectedAtSale(array $data, float $grandTotal): float
     {
         if (array_key_exists('collected_cash', $data) && $data['collected_cash'] !== null) {

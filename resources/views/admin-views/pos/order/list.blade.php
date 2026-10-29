@@ -657,7 +657,7 @@
                             <td>
                                 <span class="pos-orders-type-pill {{ $order['type'] == 4 ? '' : 'pos-orders-type-pill--refund' }}">{{ $order['type'] == 4 ? 'مبيع' : 'مرتجع' }}</span>
                             </td>
-                            <td><span class="pos-orders-payment-pill">{{ $order['cash'] == 2 ? 'أجل' : 'كاش' }}</span></td>
+                            <td><span class="pos-orders-payment-pill">{{ ($order['cash'] == 2 || empty($order->payment_id)) ? 'أجل' : 'كاش' }}</span></td>
                             <td>
                                 {{ ($order->payment_id != 0) ? ($order->account ? $order->account->account : \App\CPU\translate('account_deleted')): 'Customer balance' }}
                             </td>
