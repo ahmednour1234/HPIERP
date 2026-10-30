@@ -116,15 +116,23 @@ class _CustomersScreenState extends State<CustomersScreen> {
   Future<void> _loadFilters() async {
     // كل قائمة لوحدها — فشل واحدة ما يخفيش التانية.
     // تخصصات المندوب أولاً — ولو مالوش تخصصات مسنَدة تظهر كل التخصصات.
-    _refRepo.mySpecialties().then((list) {
-      if (mounted) setState(() => _specialties = list);
-    }).catchError((_) {});
-    _refRepo.regions().then((list) {
-      if (mounted) setState(() => _regions = list);
-    }).catchError((_) {});
+    await Future.wait([
+      _refRepo.mySpecialties().then((list) {
+        if (mounted) setState(() => _specialties = list);
+      }).catchError((_) {}),
+      _refRepo.regions().then((list) {
+        if (mounted) setState(() => _regions = list);
+      }).catchError((_) {}),
+    ]);
   }
 
-  void _openFilters() {
+  Future<void> _openFilters() async {
+    // الشيت بياخد القوائم لحظة فتحه ومش بيتحدّث بعدها — فلو لسه ما
+    // اتحمّلتش (أو فشلت قبل كده) نحمّلها الأول.
+    if (_specialties.isEmpty || _regions.isEmpty) {
+      await _loadFilters();
+      if (!mounted) return;
+    }
     int? sp = _fSpecialty;
     int? rg = _fRegion;
     final tp = Set<int>.from(_fTypes);

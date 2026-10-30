@@ -6,7 +6,7 @@ import '../../core/widgets/app_widgets.dart';
 import '../products/product_repository.dart';
 import 'stock_repository.dart';
 
-/// شاشة صرف البضاعة — المندوب يختار من منتجات عربيته الكميات الراجعة
+/// شاشة مرتجع البضاعة — المندوب يختار من منتجات عربيته الكميات الراجعة
 /// للمخزن، يرسل الطلب للأدمن، وينتظر الموافقة (POST /stocks/confirm).
 class ConfirmStockScreen extends StatefulWidget {
   const ConfirmStockScreen({super.key});
@@ -147,7 +147,7 @@ class _ConfirmStockScreenState extends State<ConfirmStockScreen> {
     final ok = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
-        title: const Text('إرسال طلب صرف البضاعة',
+        title: const Text('إرسال طلب مرتجع البضاعة',
             style: TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
         content: Text(
             'سيتم إرسال $_selectedCount صنف (إجمالي $_selectedQty وحدة) '
@@ -247,7 +247,7 @@ class _ConfirmStockScreenState extends State<ConfirmStockScreen> {
       // الكيبورد متحسوب في padding الزرار تحت — منحسبوش مرتين.
       resizeToAvoidBottomInset: false,
       appBar: AppBar(
-        title: const Text('صرف البضاعة'),
+        title: const Text('مرتجع بضاعة'),
         actions: [
           IconButton(
             onPressed: _loading ? null : _load,
@@ -310,7 +310,7 @@ class _ConfirmStockScreenState extends State<ConfirmStockScreen> {
           icon: Icons.hourglass_top_outlined,
           // الخادم يرسل نصاً جاهزاً للحالة؛ نستخدمه إن وُجد.
           title: req.statusText ?? 'بانتظار موافقة الأدمن',
-          subtitle: 'طلب صرف البضاعة تحت المراجعة',
+          subtitle: 'طلب مرتجع البضاعة تحت المراجعة',
         ),
         const SizedBox(height: 18),
         Container(
@@ -417,7 +417,7 @@ class _ConfirmStockScreenState extends State<ConfirmStockScreen> {
       children: [
         const ScreenHeader(
           icon: Icons.local_shipping_outlined,
-          title: 'صرف البضاعة',
+          title: 'مرتجع بضاعة',
           subtitle: 'اختر المرتجع من عربتك وأرسله للأدمن',
         ),
         const SizedBox(height: 16),

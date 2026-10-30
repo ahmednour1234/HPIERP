@@ -169,7 +169,7 @@ class _AppDrawer extends StatelessWidget {
                       'الرواتب', '/salary'),
                   _tile(context, Icons.badge_outlined, 'شؤون الموظف', '/hr'),
                   _tile(context, Icons.local_shipping_outlined,
-                      'صرف البضاعة', '/confirm-stock'),
+                      'مرتجع بضاعة', '/confirm-stock'),
                   _tile(context, Icons.assignment_turned_in_outlined,
                       'أوامر الصرف', '/issued-orders'),
                 ],
