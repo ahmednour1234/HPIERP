@@ -1,7 +1,7 @@
 ﻿name: fieldforce
 description: "FieldForce â€” ØªØ·Ø¨ÙŠÙ‚ Ù…Ù†Ø¯ÙˆØ¨ Ù…Ø¨ÙŠØ¹Ø§Øª Ù…ÙŠØ¯Ø§Ù†ÙŠ"
 publish_to: 'none'
-version: 1.0.5+8
+version: 1.0.6+10
 
 environment:
   sdk: ^3.11.3
