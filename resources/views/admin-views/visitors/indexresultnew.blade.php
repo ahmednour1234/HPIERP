@@ -314,12 +314,22 @@
             word-break: break-word;
             line-height: 1.8;
             font-weight: 600;
-            /* الملاحظات تصل لفقرات كاملة؛ ثلاثة أسطر تكفي للتصفّح
-               والنص الكامل في title. */
+        }
+
+        /* الملاحظات تصل لفقرات كاملة؛ ثلاثة أسطر تكفي للتصفّح والنص
+           الكامل بزرّ «عرض» — title وحده لا يعمل على التابلت بلا مؤشر. */
+        .visitor-results-note .note-text {
             display: -webkit-box;
             -webkit-line-clamp: 3;
             -webkit-box-orient: vertical;
             overflow: hidden;
+        }
+
+        .visitor-results-note-btn {
+            margin-top: .35rem;
+            border-radius: 999px;
+            font-weight: 800;
+            padding: .15rem .7rem;
         }
 
         .visitor-results-map-btn {
@@ -482,6 +492,10 @@
             .visitor-results-table td.visitor-results-note {
                 flex-direction: column;
                 gap: .25rem;
+                display: block;
+            }
+
+            .visitor-results-table td.visitor-results-note .note-text {
                 -webkit-line-clamp: none;
                 display: block;
             }
@@ -689,8 +703,19 @@
                                     <td data-label="#"><span class="visitor-results-index">{{ $index + $visitors->firstItem() }}</span></td>
                                     <td data-label="العميل">{{ $v->customer->name ?? '-' }}</td>
                                     <td data-label="المندوب">{{ trim(optional($v->seller)->f_name . ' ' . optional($v->seller)->l_name) ?: '-' }}</td>
-                                    {{-- title: النص مقصوص لثلاثة أسطر، فيُقرأ كاملًا بالوقوف عليه. --}}
-                                    <td class="visitor-results-note" data-label="الملاحظة" title="{{ $v->note }}">{{ $v->note ?: '-' }}</td>
+                                    {{-- النص مقصوص لثلاثة أسطر، ويُقرأ كاملًا بزرّ «عرض». --}}
+                                    <td class="visitor-results-note" data-label="الملاحظة">
+                                        <div class="note-text" title="{{ $v->note }}">{{ $v->note ?: '-' }}</div>
+                                        @if(filled($v->note))
+                                            <button type="button"
+                                                    class="btn btn-sm btn-outline-secondary visitor-results-note-btn"
+                                                    data-toggle="modal" data-target="#visitorNoteModal"
+                                                    data-note="{{ $v->note }}"
+                                                    data-title="{{ $v->customer->name ?? '' }}">
+                                                <i class="tio-visible-outlined"></i> عرض
+                                            </button>
+                                        @endif
+                                    </td>
                                     <td data-label="الموقع">
                                         @if($v->lat && $v->lang)
                                             <a href="https://www.google.com/maps?q={{ $v->lat }},{{ $v->lang }}"
@@ -711,6 +736,22 @@
                             @endforelse
                             </tbody>
                         </table>
+                    </div>
+
+                    {{-- نص الملاحظة كاملًا، يملؤه زرّ «عرض» في الصف. --}}
+                    <div class="modal fade" id="visitorNoteModal" tabindex="-1" role="dialog" aria-hidden="true">
+                        <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable" role="document">
+                            <div class="modal-content">
+                                <div class="modal-header">
+                                    <h5 class="modal-title" id="visitorNoteModalTitle">الملاحظة</h5>
+                                    <button type="button" class="close" data-dismiss="modal" aria-label="إغلاق">
+                                        <span aria-hidden="true">&times;</span>
+                                    </button>
+                                </div>
+                                <div class="modal-body" id="visitorNoteModalBody"
+                                     style="white-space: pre-line; word-break: break-word; line-height: 1.9;"></div>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="card-footer visitor-results-pagination">
@@ -742,6 +783,14 @@
 
 @push('script_2')
 <script>
+    // ملء نافذة الملاحظة من الزرّ الذي فتحها. textContent لا innerHTML:
+    // الملاحظة نص يكتبه المندوب.
+    $('#visitorNoteModal').on('show.bs.modal', function (e) {
+        const btn = $(e.relatedTarget);
+        $('#visitorNoteModalTitle').text(btn.data('title') || 'الملاحظة');
+        document.getElementById('visitorNoteModalBody').textContent = btn.data('note') || '';
+    });
+
     function printTable() {
         const tableContent = document.getElementById('product-table').innerHTML;
         const printWindow = window.open('', '_blank', 'width=900,height=700');
