@@ -644,8 +644,15 @@
                                     <td><span class="product-report-pill {{ $status['class'] }}">{{ $status['label'] }}</span></td>
                                     <td class="none">
                                         @if(!empty($product['img']))
-                                            <img src="{{ asset('public/storage/'.$product['img']) }}" alt="Image Description"
-                                                 style="width: 50px; height: auto; cursor: pointer;"
+                                            {{-- صورة الفاتورة تُحفظ باسم الملف وحده داخل shop/ (كما
+                                                 تعرضها شاشة الفواتير)؛ المسار الكامل يُستعمل كما هو. --}}
+                                            @php
+                                                $imgPath = str_contains($product['img'], '/') ? $product['img'] : 'shop/' . $product['img'];
+                                            @endphp
+                                            <img src="{{ asset('public/storage/' . $imgPath) }}" alt="صورة الفاتورة"
+                                                 style="width: 50px; height: 50px; object-fit: cover; border-radius: 6px; cursor: pointer;"
+                                                 loading="lazy"
+                                                 onerror="this.replaceWith(Object.assign(document.createElement('span'), {className: 'text-muted', textContent: '-'}))"
                                                  onclick="openProductReportImage(this.src)">
                                         @else
                                             <span class="text-muted">-</span>
