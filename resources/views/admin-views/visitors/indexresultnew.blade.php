@@ -688,6 +688,8 @@
                             <tr>
                                 <th>#</th>
                                 <th>العميل</th>
+                                <th>التصنيف</th>
+                                <th>التخصص</th>
                                 <th>المندوب</th>
                                 <th>الملاحظة</th>
                                 <th>الموقع</th>
@@ -702,6 +704,9 @@
                                          ترويسة الجدول. --}}
                                     <td data-label="#"><span class="visitor-results-index">{{ $index + $visitors->firstItem() }}</span></td>
                                     <td data-label="العميل">{{ $v->customer->name ?? '-' }}</td>
+                                    {{-- التصنيف: نوع الجهة المخزّن رقمًا في customers.specialist. --}}
+                                    <td data-label="التصنيف">{{ [1 => 'صيدلية', 2 => 'مركز طبي', 3 => 'مستشفى', 4 => 'طبيب'][(int) optional($v->customer)->specialist] ?? '-' }}</td>
+                                    <td data-label="التخصص">{{ optional(optional($v->customer)->category)->name ?? '-' }}</td>
                                     <td data-label="المندوب">{{ trim(optional($v->seller)->f_name . ' ' . optional($v->seller)->l_name) ?: '-' }}</td>
                                     {{-- النص مقصوص لثلاثة أسطر، ويُقرأ كاملًا بزرّ «عرض». --}}
                                     <td class="visitor-results-note" data-label="الملاحظة">
@@ -731,7 +736,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="visitor-results-empty">لا توجد سجلات</td>
+                                    <td colspan="8" class="visitor-results-empty">لا توجد سجلات</td>
                                 </tr>
                             @endforelse
                             </tbody>
