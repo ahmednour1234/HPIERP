@@ -383,8 +383,13 @@
 <script>
     $(function () {
         // تفعيل Select2
-        $('.select2-multiple').select2({ placeholder: '{{ \App\CPU\translate('اختر') }}', width: '100%' });
-        $('.select2-single').select2({ minimumResultsForSearch: Infinity, width: '100%' });
+        // القائمة تُلحق بحاوية الحقل وباتجاه RTL، وإلا انفتحت خارج الصفحة يسارًا.
+        $('.select2-multiple').each(function () {
+            $(this).select2({ placeholder: '{{ \App\CPU\translate('اختر') }}', width: '100%', dir: 'rtl', dropdownParent: $(this).parent() });
+        });
+        $('.select2-single').each(function () {
+            $(this).select2({ minimumResultsForSearch: Infinity, width: '100%', dir: 'rtl', dropdownParent: $(this).parent() });
+        });
 
         const $type = $('#user-type');
         const $adminBox = $('#admin-select-box');

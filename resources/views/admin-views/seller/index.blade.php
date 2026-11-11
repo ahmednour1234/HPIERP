@@ -37,6 +37,13 @@
         border-radius: 0.5rem;
         min-height: 56px;
     }
+    /* القائمة داخل حاوية الحقل: position relative ليتموضع تحتها بالضبط. */
+    .form-group { position: relative; }
+    .form-group .select2-container--open .select2-dropdown {
+        border-radius: 0.5rem;
+        box-shadow: 0 12px 30px -12px rgba(17, 36, 90, .35);
+        z-index: 1060;
+    }
 </style>
 @endpush
 
@@ -261,15 +268,25 @@
 <script>
     $(document).ready(function () {
         // تهيئة select2 لجميع الحقول المتعددة والمفردة
-        $('.select2-multiple').select2({
-            placeholder: 'اختر ...',
-            width: '100%'
+        // القائمة المنسدلة تُلحق افتراضيًا بـ body وبلا اتجاه، فتنفتح على
+        // يسار الصفحة خارجها. نلحقها بحاوية الحقل نفسه وباتجاه RTL.
+        $('.select2-multiple').each(function () {
+            $(this).select2({
+                placeholder: 'اختر ...',
+                width: '100%',
+                dir: 'rtl',
+                dropdownParent: $(this).parent()
+            });
         });
 
-        $('.select2-single').select2({
-            placeholder: 'اختر ...',
-            minimumResultsForSearch: Infinity,
-            width: '100%'
+        $('.select2-single').each(function () {
+            $(this).select2({
+                placeholder: 'اختر ...',
+                minimumResultsForSearch: Infinity,
+                width: '100%',
+                dir: 'rtl',
+                dropdownParent: $(this).parent()
+            });
         });
 
         // دالة لتبديل عرض الحقول الخاصة بالمديرين والمدير العام
