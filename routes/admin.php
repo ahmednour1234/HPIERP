@@ -550,6 +550,8 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
         Route::group(['prefix' => 'handover', 'as' => 'handover.'], function () {
             Route::get  ('/',       [SellerHandoverController::class, 'index'])->name('index');
             Route::get  ('create',  [SellerHandoverController::class, 'create'])->name('create');
+            // معاينة قبل التسجيل: ما مع صاحب العهدة وما سيصير مع المستلم.
+            Route::get  ('preview', [SellerHandoverController::class, 'preview'])->name('preview');
             Route::post ('/',       [SellerHandoverController::class, 'store'])->name('store');
             Route::get  ('{id}',    [SellerHandoverController::class, 'show'])->whereNumber('id')->name('show');
 

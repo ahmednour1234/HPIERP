@@ -63,6 +63,67 @@ class SellerHandoverController extends Controller
         ]);
     }
 
+    /**
+     * معاينة التسليم قبل تسجيله، للقراءة فقط.
+     *
+     * تعرض ما سيُنقل فعلًا في الخطوتين التاليتين: الفواتير غير المسدَّدة
+     * (الترحيل) ومخزون العربية (الجرد)، وما يصير مع المستلم بعدهما.
+     */
+    public function preview(Request $request)
+    {
+        $data = $request->validate([
+            'from' => 'required|integer',
+            'to'   => 'nullable|integer',
+        ]);
+
+        $visible = $this->visibleSellerIds()->map(fn ($id) => (int) $id);
+        $from    = (int) $data['from'];
+        $to      = isset($data['to']) && (int) $data['to'] !== $from ? (int) $data['to'] : null;
+
+        if (!$visible->contains($from) || ($to && !$visible->contains($to))) {
+            abort(403);
+        }
+
+        $side = function (int $sellerId) {
+            $orders = $this->transfers->transferable($sellerId)
+                ->with('customer:id,name')
+                ->orderBy('id')
+                ->get(['id', 'user_id', 'order_amount', 'transaction_reference', 'created_at']);
+
+            return [
+                'orders'    => $orders,
+                'remaining' => round($orders->sum(
+                    fn ($o) => max(0, (float) $o->order_amount - (float) $o->transaction_reference)
+                ), 2),
+                'stock'     => $this->counts->vanStock($sellerId),
+            ];
+        };
+
+        $fromSide = $side($from);
+        $toSide   = $to ? $side($to) : null;
+
+        // جدول الأصناف موحَّد: كل صنف عند أيٍّ منهما، بكميته عند كلٍّ.
+        $products = collect();
+        foreach ([['from', $fromSide], ['to', $toSide]] as [$key, $s]) {
+            foreach ($s['stock'] ?? [] as $row) {
+                $p = $products->get($row->product_id, [
+                    'name' => optional($row->product)->name ?? ('#' . $row->product_id),
+                    'code' => optional($row->product)->product_code,
+                    'from' => 0,
+                    'to'   => 0,
+                ]);
+                $p[$key] += (int) $row->stock;
+                $products->put($row->product_id, $p);
+            }
+        }
+
+        return view('admin-views.handover._preview', [
+            'fromSide' => $fromSide,
+            'toSide'   => $toSide,
+            'products' => $products->sortBy('name')->values(),
+        ]);
+    }
+
     public function store(Request $request): RedirectResponse
     {
         $data = $request->validate([
