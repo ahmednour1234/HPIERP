@@ -332,6 +332,14 @@
             padding: .15rem .7rem;
         }
 
+        .visitor-results-img {
+            width: 56px;
+            height: 56px;
+            object-fit: cover;
+            border-radius: 8px;
+            border: 1px solid #e3ecf4;
+        }
+
         .visitor-results-map-btn {
             border-radius: 8px !important;
             font-weight: 900;
@@ -692,6 +700,7 @@
                                 <th>التخصص</th>
                                 <th>المندوب</th>
                                 <th>الملاحظة</th>
+                                <th>الصورة</th>
                                 <th>الموقع</th>
                                 <th>تاريخ الإنشاء</th>
                             </tr>
@@ -704,8 +713,8 @@
                                          ترويسة الجدول. --}}
                                     <td data-label="#"><span class="visitor-results-index">{{ $index + $visitors->firstItem() }}</span></td>
                                     <td data-label="العميل">{{ $v->customer->name ?? '-' }}</td>
-                                    {{-- التصنيف: نوع الجهة المخزّن رقمًا في customers.specialist. --}}
-                                    <td data-label="التصنيف">{{ [1 => 'صيدلية', 2 => 'مركز طبي', 3 => 'مستشفى', 4 => 'طبيب'][(int) optional($v->customer)->specialist] ?? '-' }}</td>
+                                    {{-- التصنيف A–D مخزّن رقمًا في customers.type (1=A … 4=D). --}}
+                                    <td data-label="التصنيف">{{ [1 => 'A', 2 => 'B', 3 => 'C', 4 => 'D'][(int) optional($v->customer)->type] ?? '-' }}</td>
                                     <td data-label="التخصص">{{ optional(optional($v->customer)->category)->name ?? '-' }}</td>
                                     <td data-label="المندوب">{{ trim(optional($v->seller)->f_name . ' ' . optional($v->seller)->l_name) ?: '-' }}</td>
                                     {{-- النص مقصوص لثلاثة أسطر، ويُقرأ كاملًا بزرّ «عرض». --}}
@@ -719,6 +728,18 @@
                                                     data-title="{{ $v->customer->name ?? '' }}">
                                                 <i class="tio-visible-outlined"></i> عرض
                                             </button>
+                                        @endif
+                                    </td>
+                                    {{-- صورة الزيارة المرفوعة من التطبيق؛ تُفتح كاملة في تبويب جديد. --}}
+                                    <td data-label="الصورة">
+                                        @if($v->img)
+                                            <a href="{{ asset('public/storage/' . $v->img) }}" target="_blank" rel="noopener">
+                                                <img src="{{ asset('public/storage/' . $v->img) }}" alt="صورة الزيارة"
+                                                     loading="lazy" class="visitor-results-img"
+                                                     onerror="this.closest('td').innerHTML='<span class=&quot;text-muted&quot;>-</span>'">
+                                            </a>
+                                        @else
+                                            <span class="text-muted">-</span>
                                         @endif
                                     </td>
                                     <td data-label="الموقع">
@@ -736,7 +757,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="8" class="visitor-results-empty">لا توجد سجلات</td>
+                                    <td colspan="9" class="visitor-results-empty">لا توجد سجلات</td>
                                 </tr>
                             @endforelse
                             </tbody>

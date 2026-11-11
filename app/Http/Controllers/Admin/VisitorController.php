@@ -650,9 +650,9 @@ $sellers = Seller::whereIn('id', $allowedSellerIds)
 
     // ====== الاستعلام الأساسي ======
     $base = ResultVisitor::query()
-        ->select('id','customer_id','admin_id','note','lang','lat','created_at')
+        ->select('id','customer_id','admin_id','note','lang','lat','img','created_at')
         // لو عندك علاقات: belongsTo(Customer) و belongsTo(Seller as admin/seller)
-        ->with(['customer:id,name,specialist,category_id', 'customer.category:id,name', 'seller:id,f_name,l_name']);
+        ->with(['customer:id,name,type,category_id', 'customer.category:id,name', 'seller:id,f_name,l_name']);
 
     // تطبيق قيود الوصول للبائعين (إلا لو سوبر أدمن)
     if (!$isSuper) {
