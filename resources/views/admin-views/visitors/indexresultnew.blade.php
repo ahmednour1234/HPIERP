@@ -332,6 +332,8 @@
             padding: .15rem .7rem;
         }
 
+        .visitor-results-table.hide-images .col-img { display: none !important; }
+
         .visitor-results-img {
             width: 56px;
             height: 56px;
@@ -682,16 +684,23 @@
                             <span><i class="tio-format-points"></i></span>
                             سجل الزيارات
                         </h5>
-                        @isset($sellerTotal)
-                            <span class="badge badge-soft-success">زيارات المندوب: {{ number_format($sellerTotal) }}</span>
-                        @endisset
+                        <div class="d-flex align-items-center" style="gap: .75rem;">
+                            @isset($sellerTotal)
+                                <span class="badge badge-soft-success">زيارات المندوب: {{ number_format($sellerTotal) }}</span>
+                            @endisset
+                            {{-- عمود الصورة اختياري: مخفي افتراضيًا، ويُتذكَّر اختيار المستخدم. --}}
+                            <label class="mb-0 d-flex align-items-center" style="gap: .4rem; cursor: pointer; font-weight: 700;">
+                                <input type="checkbox" id="toggle-visit-images">
+                                عرض الصور
+                            </label>
+                        </div>
                     </div>
 
                     <div class="table-responsive visitor-results-table-wrap">
                         {{-- بلا table-nowrap ولا card-table: كلاهما يضبط
                              width:max-content فيتمدد الجدول بطول أطول
                              ملاحظة ويُخرج عمودي الموقع والتاريخ. --}}
-                        <table class="table table-hover table-borderless table-thead-bordered table-align-middle visitor-results-table">
+                        <table class="table table-hover table-borderless table-thead-bordered table-align-middle visitor-results-table hide-images">
                             <thead>
                             <tr>
                                 <th>#</th>
@@ -700,7 +709,7 @@
                                 <th>التخصص</th>
                                 <th>المندوب</th>
                                 <th>الملاحظة</th>
-                                <th>الصورة</th>
+                                <th class="col-img">الصورة</th>
                                 <th>الموقع</th>
                                 <th>تاريخ الإنشاء</th>
                             </tr>
@@ -731,7 +740,7 @@
                                         @endif
                                     </td>
                                     {{-- صورة الزيارة المرفوعة من التطبيق؛ تُفتح كاملة في تبويب جديد. --}}
-                                    <td data-label="الصورة">
+                                    <td class="col-img" data-label="الصورة">
                                         @if($v->img)
                                             <a href="{{ asset('public/storage/' . $v->img) }}" target="_blank" rel="noopener">
                                                 <img src="{{ asset('public/storage/' . $v->img) }}" alt="صورة الزيارة"
@@ -809,6 +818,28 @@
 
 @push('script_2')
 <script>
+    (function () {
+        const box = document.getElementById('toggle-visit-images');
+        const table = document.querySelector('.visitor-results-table');
+        if (!box || !table) return;
+
+        let on = false;
+        try { on = localStorage.getItem('visitResults.showImages') === '1'; } catch (e) {}
+
+        const apply = () => {
+            box.checked = on;
+            table.classList.toggle('hide-images', !on);
+            // الصور lazy فلا تُحمَّل وهي مخفية.
+        };
+        apply();
+
+        box.addEventListener('change', function () {
+            on = this.checked;
+            try { localStorage.setItem('visitResults.showImages', on ? '1' : '0'); } catch (e) {}
+            apply();
+        });
+    })();
+
     // ملء نافذة الملاحظة من الزرّ الذي فتحها. textContent لا innerHTML:
     // الملاحظة نص يكتبه المندوب.
     $('#visitorNoteModal').on('show.bs.modal', function (e) {

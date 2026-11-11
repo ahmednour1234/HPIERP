@@ -143,8 +143,9 @@ public function store(Request $request): JsonResponse
     $validator = Validator::make($request->all(), [
         'customer_id' => 'required|exists:customers,id',
         'note' => 'required|string',
-        'lang' => 'nullable', // Optional
-        'lat' => 'nullable',  // Optional
+        // الإحداثيات إجبارية: زيارة بلا موقع لا يمكن التحقق منها.
+        'lang' => 'required|numeric|between:-180,180|not_in:0',
+        'lat' => 'required|numeric|between:-90,90|not_in:0',
     ]);
 
     // If validation fails, return a 422 response with errors
