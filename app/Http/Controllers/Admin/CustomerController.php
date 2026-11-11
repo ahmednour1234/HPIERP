@@ -181,6 +181,8 @@ public function list(Request $request): View|Factory|Application
 
     // كل الفلاتر تُرحَّل مع روابط الصفحات، وإلا ضاعت عند الانتقال لصفحة أخرى.
     $customers = $customersQuery
+        // التخصص يُعرض في الجدول، فيُحمَّل مع الصفحة بدل استعلام لكل صف.
+        ->with('category:id,name')
         ->paginate(Helpers::pagination_limit())
         ->appends($request->query());
 

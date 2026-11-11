@@ -560,7 +560,8 @@
                 <tr>
                     <th>{{ \App\CPU\translate('#') }}</th>
                     <th>{{ \App\CPU\translate('الاسم') }}</th>
-                    <th>{{ \App\CPU\translate('رقم الهاتف') }}</th>
+                    <th>{{ \App\CPU\translate('التخصص') }}</th>
+                    <th class="text-center">{{ \App\CPU\translate('التصنيف') }}</th>
                     <th>{{ \App\CPU\translate('المنطقة التابع لها') }}</th>
                     <th>{{ \App\CPU\translate('النوع') }}</th>
                     <th>{{ \App\CPU\translate('عدد الطلبات') }}</th>
@@ -579,7 +580,18 @@
                                 {{ $customer->name }}
                             </a>
                         </td>
-                        <td>{{ $customer->mobile }}</td>
+                        <td>{{ optional($customer->category)->name ?? '-' }}</td>
+                        {{-- التصنيف A–D مخزّن رقمًا في type (1=A … 4=D). --}}
+                        <td class="text-center">
+                            @php
+                                $customerClass = [1 => 'A', 2 => 'B', 3 => 'C', 4 => 'D'][(int) $customer->type] ?? null;
+                            @endphp
+                            @if($customerClass)
+                                <span class="badge badge-soft-primary" style="min-width: 2rem; font-size: .85rem;">{{ $customerClass }}</span>
+                            @else
+                                -
+                            @endif
+                        </td>
                         <td>{{ $customer->regions->name??'' }}</td>
                         <td>
                             @if ($customer->specialist == 1)
@@ -643,7 +655,7 @@
             </tbody>
             <tfoot class="bg-light">
                 <tr class="font-weight-bold">
-                    <th colspan="4" class="text-end">{{ \App\CPU\translate('تجميع') }}</th>
+                    <th colspan="6" class="text-end">{{ \App\CPU\translate('تجميع') }}</th>
                     <th class="text-center table-active">
                         @php $totalBalance = $customers->sum('balance'); @endphp
                         {{ \App\CPU\translate('مدين') }}: {{ $totalBalance }}
@@ -656,7 +668,7 @@
                     <th colspan="2"></th>
                 </tr>
                 <tr>
-                    <th colspan="4" class="text-end">{{ \App\CPU\translate('الصافي') }}</th>
+                    <th colspan="6" class="text-end">{{ \App\CPU\translate('الصافي') }}</th>
                     <th class="text-center">
                         @php $netAmount = $totalBalance - $totalCredit; @endphp
                         {{ $netAmount }} {{ $netAmount >= 0 ? \App\CPU\translate('مدين') : \App\CPU\translate('دائن') }}
