@@ -155,6 +155,18 @@
 
         .rv-items li:last-child { border-bottom: 0; }
 
+        /* ملاحظة المندوب على الطلب. */
+        .rv-note {
+            margin-top: .6rem;
+            padding: .5rem .65rem;
+            border-radius: 8px;
+            background: #fff8e6;
+            color: #6b4e00;
+            font-size: .85rem;
+            white-space: pre-line;
+            word-break: break-word;
+        }
+
         .rv-items .p-name {
             color: var(--hpi-ink);
             overflow: hidden;
@@ -331,6 +343,13 @@
                             <li><span class="p-name text-muted">{{ \App\CPU\translate('لا أصناف') }}</span></li>
                         @endforelse
                     </ul>
+
+                    @if(filled($item->note))
+                        <div class="rv-note">
+                            <i class="tio-comment-text-outlined"></i>
+                            {{ $item->note }}
+                        </div>
+                    @endif
                 </div>
 
                 <div class="rv-foot">
