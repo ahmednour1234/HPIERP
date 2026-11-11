@@ -320,9 +320,7 @@ class ManagerController extends Controller
 
         // لا عمود مستقل للرد في develop_sellers، فنلحقه بنص الطلب.
         if (filled($data['reply'] ?? null)) {
-            $row->note = rtrim((string) $row->note) . "
-
-رد المدير: " . $data['reply'];
+            $row->note = rtrim((string) $row->note) . "\n\nرد المدير: " . $data['reply'];
         }
 
         $row->save();

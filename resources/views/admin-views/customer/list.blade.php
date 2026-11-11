@@ -463,9 +463,9 @@
                 {{-- التصنيف A–D: customers.type. الاسم class لا type، فـ type
                      يُستخدم في روابط أخرى بمعنى مختلف. --}}
                 <div class="cf-field">
-                    <label for="customer_class">{{ \App\CPU	ranslate('التصنيف') }}</label>
+                    <label for="customer_class">{{ \App\CPU\translate('التصنيف') }}</label>
                     <select name="class" id="customer_class" class="cf-control">
-                        <option value="">{{ \App\CPU	ranslate('كل التصنيفات') }}</option>
+                        <option value="">{{ \App\CPU\translate('كل التصنيفات') }}</option>
                         @foreach([1 => 'A', 2 => 'B', 3 => 'C', 4 => 'D'] as $classValue => $classLabel)
                             <option value="{{ $classValue }}" {{ (string) request('class') === (string) $classValue ? 'selected' : '' }}>
                                 {{ $classLabel }}
