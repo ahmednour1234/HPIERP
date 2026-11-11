@@ -652,6 +652,11 @@ document.addEventListener('DOMContentLoaded', function () {
         document.getElementById('cart-input').value = JSON.stringify(cart);
     }
 
+    // السلة كانت تُملأ عند تعديل كمية أو إضافة/حذف منتج فقط، فتأكيد
+    // الطلب كما هو يرسلها فارغة ويرفضه السيرفر «The cart field is required».
+    updateCartInput();
+    document.getElementById('reservation-form').addEventListener('submit', updateCartInput);
+
     // Function to update the total invoice amount
 function updateInvoiceTotal() {
     let subtotal = 0;
