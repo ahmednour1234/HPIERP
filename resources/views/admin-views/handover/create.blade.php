@@ -65,7 +65,7 @@
                     </div>
                 </div>
 
-                {{-- قد لا تُسلَّم البضاعة للمستلم: حينها تُغلق خطوة الجرد. --}}
+                {{-- قد لا تُسلَّم البضاعة للمستلم: تبقى، أو تُصفَّر وتعود للمخزن. --}}
                 <div class="form-group">
                     <label class="d-inline-flex align-items-center mb-0" style="gap:.5rem; cursor:pointer; font-weight:700;">
                         <input type="checkbox" name="include_stock" id="include_stock" value="1"
@@ -73,7 +73,8 @@
                         تسليم بضاعة العربية للمستلم
                     </label>
                     <small class="d-block text-muted">
-                        العملاء والمناطق والأقسام تختار ما يُنقل منها بعد التسجيل، من صفحة التسليم.
+                        بدونها تقدر تصفّر العربية وترجّع بضاعتها للمخزن من صفحة التسليم.
+                        والعملاء والمناطق والأقسام تختار ما يُنقل منها هناك أيضًا.
                     </small>
                 </div>
 

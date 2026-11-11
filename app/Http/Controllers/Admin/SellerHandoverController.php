@@ -6,19 +6,16 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminSeller;
 use App\Models\OrderOwnerLog;
 use App\Models\Seller;
-use App\Models\SellerCategory;
-use App\Models\SellerCustomer;
 use App\Models\SellerHandover;
-use App\Models\SellerRegion;
 use App\Models\VanHandoverCount;
 use App\Services\OrderOwnershipTransferService;
+use App\Services\SellerAssignmentTransferService;
 use App\Services\VanHandoverCountService;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 
 /**
  * تسليم عهدة مندوب انتهت خدمته إلى من يخلفه.
@@ -35,7 +32,8 @@ class SellerHandoverController extends Controller
 {
     public function __construct(
         private OrderOwnershipTransferService $transfers,
-        private VanHandoverCountService $counts
+        private VanHandoverCountService $counts,
+        private SellerAssignmentTransferService $assignments
     ) {
     }
 
@@ -134,9 +132,7 @@ class SellerHandoverController extends Controller
     /**
      * نقل العملاء والمناطق والأقسام المختارة إلى المستلم.
      *
-     * لا يُنقل شيء لم يُختر صراحةً. الإضافة للمستلم لا تكرّر ما عنده،
-     * والحذف من صاحب العهدة اختياري (remove)، وكل نقل يُسجَّل في
-     * assignments بالتسليم.
+     * لا يُنقل شيء لم يُختر صراحةً، وكل نقل يُسجَّل في assignments.
      */
     public function moveAssignments(Request $request, int $id): RedirectResponse
     {
@@ -147,6 +143,113 @@ class SellerHandoverController extends Controller
             return redirect()->route('admin.handover.index');
         }
 
+        $moved = $this->assignments->move(
+            (int) $handover->from_seller_id,
+            (int) $handover->to_seller_id,
+            $this->validatedSelection($request),
+            $request->boolean('remove')
+        );
+
+        if (!$moved) {
+            Toastr::warning('لم يُختر شيء للنقل.');
+            return back();
+        }
+
+        $this->log($handover, array_merge(['remove' => $request->boolean('remove')], $moved));
+        Toastr::success($this->movedMessage($moved));
+
+        return back();
+    }
+
+    /** بضاعة العربية: تصفير وإرجاع للمخزن، أو نقل لعربية المستلم. */
+    public function stock(Request $request, int $id): RedirectResponse
+    {
+        $handover = $this->findVisible($id);
+
+        if (!$handover) {
+            Toastr::error('التسليم غير موجود.');
+            return redirect()->route('admin.handover.index');
+        }
+
+        $action = $request->validate(['action' => 'required|in:return,move'])['action'];
+
+        if ($action === 'move' && !$handover->include_stock) {
+            Toastr::error('هذا التسليم بلا بضاعة للمستلم.');
+            return back();
+        }
+
+        try {
+            $result = $action === 'return'
+                ? $this->counts->returnAllToWarehouse((int) $handover->from_seller_id)
+                : $this->counts->moveAllTo((int) $handover->from_seller_id, (int) $handover->to_seller_id);
+        } catch (\Throwable $e) {
+            Toastr::error($e->getMessage());
+            return back();
+        }
+
+        if ($result['units'] === 0) {
+            Toastr::warning('العربية فارغة بالفعل.');
+            return back();
+        }
+
+        $this->log($handover, ['stock' => $action] + $result);
+
+        Toastr::success(sprintf(
+            $action === 'return'
+                ? 'صُفِّرت العربية وعاد %d صنف (%d وحدة) للمخزن.'
+                : 'نُقل %d صنف (%d وحدة) لعربية المستلم.',
+            $result['products'],
+            $result['units']
+        ));
+
+        return back();
+    }
+
+    /** شاشة النقل المستقلة: عملاء ومناطق وأقسام من مندوب لآخر، بلا تسليم. */
+    public function reassign(Request $request): View
+    {
+        $visible = $this->visibleSellerIds()->map(fn ($v) => (int) $v);
+        $from    = (int) $request->input('from');
+        $to      = (int) $request->input('to');
+
+        $from = $visible->contains($from) ? $from : 0;
+        $to   = $visible->contains($to) && $to !== $from ? $to : 0;
+
+        return view('admin-views.handover.reassign', [
+            'sellers' => $this->sellers(),
+            'from'    => $from,
+            'to'      => $to,
+            'assign'  => $from ? $this->assignments->listFor($from, $to ?: null) : null,
+        ]);
+    }
+
+    public function storeReassign(Request $request): RedirectResponse
+    {
+        $request->validate([
+            'from' => 'required|integer|different:to',
+            'to'   => 'required|integer',
+        ], ['from.different' => 'اختر مندوبين مختلفين.']);
+
+        $visible = $this->visibleSellerIds()->map(fn ($v) => (int) $v);
+        $from    = (int) $request->input('from');
+        $to      = (int) $request->input('to');
+
+        if (!$visible->contains($from) || !$visible->contains($to)) {
+            abort(403);
+        }
+
+        $moved = $this->assignments->move($from, $to, $this->validatedSelection($request), $request->boolean('remove'));
+
+        $moved
+            ? Toastr::success($this->movedMessage($moved))
+            : Toastr::warning('لم يُختر شيء للنقل.');
+
+        return redirect()->route('admin.handover.reassign', ['from' => $from, 'to' => $to]);
+    }
+
+    /** @return array<string, array<int,int>> */
+    private function validatedSelection(Request $request): array
+    {
         $data = $request->validate([
             'customers'    => 'nullable|array',
             'customers.*'  => 'integer',
@@ -157,71 +260,26 @@ class SellerHandoverController extends Controller
             'remove'       => 'nullable|boolean',
         ]);
 
-        $from   = (int) $handover->from_seller_id;
-        $to     = (int) $handover->to_seller_id;
-        $remove = $request->boolean('remove');
+        return array_intersect_key($data, SellerAssignmentTransferService::SETS);
+    }
 
-        // ما يُختار يجب أن يكون مع صاحب العهدة فعلًا، فلا يُنقل غيره.
-        $sets = [
-            'customers'  => [SellerCustomer::class, 'customer_id'],
-            'regions'    => [SellerRegion::class, 'region_id'],
-            'categories' => [SellerCategory::class, 'cat_id'],
-        ];
-
-        $moved = [];
-        DB::transaction(function () use ($sets, $data, $from, $to, $remove, &$moved) {
-            foreach ($sets as $key => [$model, $column]) {
-                $ids = $model::where('seller_id', $from)
-                    ->whereIn($column, array_map('intval', $data[$key] ?? []))
-                    ->pluck($column)
-                    ->map(fn ($v) => (int) $v)
-                    ->unique()
-                    ->values();
-
-                if ($ids->isEmpty()) {
-                    continue;
-                }
-
-                $already = $model::where('seller_id', $to)->whereIn($column, $ids)->pluck($column)
-                    ->map(fn ($v) => (int) $v)->all();
-
-                foreach ($ids->diff($already) as $value) {
-                    $row = new $model();
-                    $row->seller_id = $to;
-                    $row->{$column} = $value;
-                    $row->save();
-                }
-
-                if ($remove) {
-                    $model::where('seller_id', $from)->whereIn($column, $ids)->delete();
-                }
-
-                $moved[$key] = $ids->all();
-            }
-        });
-
-        if (!$moved) {
-            Toastr::warning('لم يُختر شيء للنقل.');
-            return back();
-        }
-
-        $log   = $handover->assignments ?? [];
-        $log[] = array_merge([
-            'at'     => now()->toDateTimeString(),
-            'by'     => Auth::guard('admin')->id(),
-            'remove' => $remove,
-        ], $moved);
-        $handover->assignments = $log;
-        $handover->save();
-
-        Toastr::success(sprintf(
+    private function movedMessage(array $moved): string
+    {
+        return sprintf(
             'تم النقل: %d عميل، %d منطقة، %d قسم.',
             count($moved['customers'] ?? []),
             count($moved['regions'] ?? []),
             count($moved['categories'] ?? [])
-        ));
+        );
+    }
 
-        return back();
+    /** يضيف حدثًا لسجلّ التسليم (assignments). */
+    private function log(SellerHandover $handover, array $entry): void
+    {
+        $log   = $handover->assignments ?? [];
+        $log[] = ['at' => now()->toDateTimeString(), 'by' => Auth::guard('admin')->id()] + $entry;
+        $handover->assignments = $log;
+        $handover->save();
     }
 
     public function store(Request $request): RedirectResponse
@@ -278,33 +336,8 @@ class SellerHandoverController extends Controller
                 ->first(),
 
             // ما زال مع صاحب العهدة من تعيينات، والمستلم يملك منها ماذا.
-            'assign' => $this->assignmentsOf($fromSeller, (int) $handover->to_seller_id),
+            'assign' => $this->assignments->listFor($fromSeller, (int) $handover->to_seller_id),
         ]);
-    }
-
-    /**
-     * عملاء صاحب العهدة ومناطقه وأقسامه بأسمائها، مع علامة على ما
-     * عند المستلم أصلًا.
-     */
-    private function assignmentsOf(int $from, int $to): array
-    {
-        $build = function (string $pivot, string $column, string $table, string $label) use ($from, $to) {
-            $toHas = DB::table($pivot)->where('seller_id', $to)->pluck($column)->map(fn ($v) => (int) $v)->flip();
-
-            return DB::table($pivot)
-                ->join($table, "$table.id", '=', "$pivot.$column")
-                ->where("$pivot.seller_id", $from)
-                ->orderBy("$table.$label")
-                ->distinct()
-                ->get(["$table.id", "$table.$label as name"])
-                ->map(fn ($r) => ['id' => (int) $r->id, 'name' => $r->name, 'to_has' => $toHas->has((int) $r->id)]);
-        };
-
-        return [
-            'customers'  => $build('seller_customers', 'customer_id', 'customers', 'name'),
-            'regions'    => $build('seller_regions', 'region_id', 'regions', 'name'),
-            'categories' => $build('seller_categories', 'cat_id', 'categories', 'name'),
-        ];
     }
 
     /** ترحيل الفواتير إلى الخلف. */
@@ -369,11 +402,6 @@ class SellerHandoverController extends Controller
         if (!$handover) {
             Toastr::error('التسليم غير موجود.');
             return redirect()->route('admin.handover.index');
-        }
-
-        if (!$handover->include_stock) {
-            Toastr::error('هذا التسليم بلا بضاعة، فلا جرد له.');
-            return redirect()->route('admin.handover.show', $handover->id);
         }
 
         $data = $request->validate([

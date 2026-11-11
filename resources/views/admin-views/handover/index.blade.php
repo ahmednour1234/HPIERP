@@ -17,9 +17,14 @@
             </small>
         </div>
 
-        <a href="{{ route('admin.handover.create') }}" class="btn btn-primary">
-            <i class="tio-add"></i> تسليم جديد
-        </a>
+        <div class="d-flex flex-wrap" style="gap:.5rem;">
+            <a href="{{ route('admin.handover.reassign') }}" class="btn btn-outline-primary">
+                <i class="tio-swap-horizontal"></i> نقل العملاء والمناطق
+            </a>
+            <a href="{{ route('admin.handover.create') }}" class="btn btn-primary">
+                <i class="tio-add"></i> تسليم جديد
+            </a>
+        </div>
     </div>
 
     <div class="card">

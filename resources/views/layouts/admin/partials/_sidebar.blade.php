@@ -419,6 +419,14 @@ body {
                                         <span class="text-truncate">{{\App\CPU\translate('عهدة المناديب')}}</span>
                                     </a>
                                 </li>
+
+                                <li class="nav-item {{Request::is('admin/handover/reassign')?'active':''}}">
+                                    <a class="nav-link " href="{{route('admin.handover.reassign')}}"
+                                       title="{{\App\CPU\translate('نقل العملاء والمناطق')}}">
+                                        <span class="tio-circle nav-indicator-icon"></span>
+                                        <span class="text-truncate">{{\App\CPU\translate('نقل العملاء والمناطق')}}</span>
+                                    </a>
+                                </li>
                                 @endif
                             </ul>
                         </li>

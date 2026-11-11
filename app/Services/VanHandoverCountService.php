@@ -127,6 +127,88 @@ class VanHandoverCountService
         });
     }
 
+    /**
+     * تصفير العربية وإرجاع كل ما عليها للمخزن، بلا جرد.
+     *
+     * كاعتماد جرد سُلِّم فيه كل شيء كاملًا: الكمية المسجَّلة على
+     * العربية تُضاف لمخزون المنتج، والعربية تُصفَّر.
+     *
+     * @return array{products:int, units:int}
+     */
+    public function returnAllToWarehouse(int $sellerId): array
+    {
+        $this->assertNoPendingCount($sellerId);
+
+        return DB::transaction(function () use ($sellerId) {
+            $rows = Stock::where('seller_id', $sellerId)->where('stock', '>', 0)->lockForUpdate()->get();
+            $units = 0;
+
+            foreach ($rows as $row) {
+                if ($product = Product::whereKey($row->product_id)->lockForUpdate()->first()) {
+                    $product->quantity += (int) $row->stock;
+                    $product->save();
+                }
+                $units += (int) $row->stock;
+                $row->stock = 0;
+                $row->save();
+            }
+
+            return ['products' => $rows->count(), 'units' => $units];
+        });
+    }
+
+    /**
+     * نقل بضاعة العربية كلها إلى عربية مندوب آخر.
+     *
+     * الصنف الذي عند المستلم تُضاف كميته لصفّه؛ وغيره يُنقل صفّه نفسه
+     * إليه، فتبقى بياناته (local_id, main_stock) كما هي.
+     *
+     * @return array{products:int, units:int}
+     */
+    public function moveAllTo(int $fromSellerId, int $toSellerId): array
+    {
+        if ($fromSellerId === $toSellerId) {
+            throw new \InvalidArgumentException('لا تُنقل البضاعة إلى نفس المندوب.');
+        }
+
+        $this->assertNoPendingCount($fromSellerId);
+
+        return DB::transaction(function () use ($fromSellerId, $toSellerId) {
+            $rows = Stock::where('seller_id', $fromSellerId)->where('stock', '>', 0)->lockForUpdate()->get();
+            $units = 0;
+
+            foreach ($rows as $row) {
+                $qty    = (int) $row->stock;
+                $target = Stock::where('seller_id', $toSellerId)
+                    ->where('product_id', $row->product_id)
+                    ->lockForUpdate()
+                    ->first();
+
+                if ($target) {
+                    $target->stock = (int) $target->stock + $qty;
+                    $target->save();
+                    $row->stock = 0;
+                    $row->save();
+                } else {
+                    $row->seller_id = $toSellerId;
+                    $row->save();
+                }
+
+                $units += $qty;
+            }
+
+            return ['products' => $rows->count(), 'units' => $units];
+        });
+    }
+
+    /** جرد معلّق يقرأ أرقام العربية، فلا تُحرَّك بضاعتها حتى يُبَتّ فيه. */
+    private function assertNoPendingCount(int $sellerId): void
+    {
+        if ($this->pendingFor($sellerId)) {
+            throw new \RuntimeException('يوجد جرد معلّق لهذا المندوب: اعتمده أو ارفضه أولًا.');
+        }
+    }
+
     /** الرفض: المخزون لا يتغير. */
     public function reject(int $countId, int $adminId, ?string $adminNote = null): VanHandoverCount
     {

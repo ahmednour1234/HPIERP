@@ -8,7 +8,7 @@
 
 @unless($includeStock)
     <div class="alert alert-soft-warning mb-3">
-        البضاعة <strong>لن تُسلَّم</strong> للمستلم: تبقى في عهدة صاحبها، ولا جرد للعربية في هذا التسليم.
+        البضاعة <strong>لن تُسلَّم</strong> للمستلم: تبقى مع صاحبها، أو تصفّر العربية وترجّعها للمخزن من صفحة التسليم.
     </div>
 @endunless
 

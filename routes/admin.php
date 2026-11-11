@@ -566,6 +566,12 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
 
             // نقل العملاء والمناطق والأقسام المختارة إلى المستلم.
             Route::post ('{id}/assignments', [SellerHandoverController::class, 'moveAssignments'])->whereNumber('id')->name('assignments');
+            // بضاعة العربية: action=return (للمخزن) أو move (للمستلم).
+            Route::post ('{id}/stock', [SellerHandoverController::class, 'stock'])->whereNumber('id')->name('stock');
+
+            // شاشة نقل مستقلة بين مندوبين، بلا تسليم.
+            Route::get  ('reassign', [SellerHandoverController::class, 'reassign'])->name('reassign');
+            Route::post ('reassign', [SellerHandoverController::class, 'storeReassign'])->name('reassign.store');
 
             // قراءة فقط: تحسب العهدة من سجلّاتها وتعرض الفرق، ولا تكتب
             // شيئًا. قبل {id} لأنها ليست معرِّفًا رقميًّا.
