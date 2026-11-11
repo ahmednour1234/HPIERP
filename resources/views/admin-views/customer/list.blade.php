@@ -331,6 +331,64 @@
         .add-customer-btn { width: 100%; justify-content: center; }
         .filter-card .card-body { padding: 1rem; }
     }
+
+    /* ---------- فلتر العملاء ---------- */
+    .cf-card { border: 1px solid #e6edf5; border-radius: 18px; overflow: visible; box-shadow: 0 10px 30px -18px rgba(17,36,90,.35); }
+    .cf-head { display: flex; align-items: center; justify-content: space-between; gap: 1rem; flex-wrap: wrap;
+               padding: 1rem 1.5rem; border-bottom: 1px solid #eef3f8;
+               background: linear-gradient(180deg, #f8fbff, #fff); border-radius: 18px 18px 0 0; }
+    .cf-title { display: flex; align-items: center; gap: .75rem; }
+    .cf-title h5 { margin: 0; font-weight: 800; color: #11245a; font-size: 1.05rem; }
+    .cf-title small { color: #7a8aa5; }
+    .cf-icon { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center;
+               background: linear-gradient(135deg, #11245a, #2c5cc5); color: #fff; font-size: 1.1rem; flex: none; }
+    .cf-reset { color: #d6334b; font-weight: 700; font-size: .85rem; white-space: nowrap; }
+    .cf-reset:hover { color: #b0213a; text-decoration: none; }
+
+    .cf-body { padding: 1.25rem 1.5rem 1.5rem; }
+    .cf-grid { display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .cf-field { min-width: 0; display: flex; flex-direction: column; gap: .4rem; }
+    .cf-field > label { margin: 0; font-size: .8rem; font-weight: 800; color: #5b6b86; }
+
+    .cf-control { width: 100%; height: 46px; border: 1px solid #dfe7f1; border-radius: 12px; background-color: #fff;
+                  padding: 0 .9rem; color: #11245a; font-weight: 600; font-size: .9rem;
+                  transition: border-color .15s, box-shadow .15s; }
+    .cf-control:focus { outline: none; border-color: #2c5cc5; box-shadow: 0 0 0 4px rgba(44,92,197,.12); }
+    select.cf-control { appearance: none; -webkit-appearance: none; padding-left: 2.2rem; text-overflow: ellipsis;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%235b6b86' stroke-width='3'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+        background-repeat: no-repeat; background-position: left .85rem center; }
+    .cf-search { position: relative; }
+    .cf-search i { position: absolute; top: 50%; right: .9rem; transform: translateY(-50%); color: #2c5cc5; pointer-events: none; }
+    .cf-search .cf-control { padding-right: 2.4rem; }
+
+    .cf-region-btn { display: flex; align-items: center; justify-content: space-between; text-align: right; cursor: pointer; }
+    .cf-card .dropdown-menu { border-radius: 12px; border: 1px solid #e6edf5; box-shadow: 0 16px 40px -20px rgba(17,36,90,.45); max-width: calc(100vw - 2rem); }
+
+    .cf-actions { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex-wrap: wrap;
+                  margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px dashed #e3ebf4; }
+    .cf-actions-end { display: flex; gap: .6rem; flex-wrap: wrap; }
+    .cf-actions-end form { margin: 0; }
+    .cf-card .cf-btn { height: 44px; padding: 0 1.25rem; border-radius: 12px; font-weight: 800; display: inline-flex; align-items: center;
+              justify-content: center; gap: .45rem; transition: transform .15s, filter .15s; }
+    .cf-card .cf-btn:hover { transform: translateY(-1px); }
+    .cf-card .cf-btn-primary { min-width: 140px; color: #fff; background: linear-gradient(120deg, #11245a, #2c5cc5); border: 0; }
+    .cf-card .cf-btn-primary:hover { color: #fff; filter: brightness(1.08); }
+    .cf-card .cf-btn-excel { color: #fff; background: linear-gradient(120deg, #0f9f6e, #22c58b); border: 0; }
+    .cf-card .cf-btn-excel:hover { color: #fff; filter: brightness(1.06); }
+    .cf-card .cf-btn-ghost { color: #11245a; background: #fff; border: 1px solid #dfe7f1; }
+    .cf-card .cf-btn-ghost:hover { background: #f4f8fc; color: #11245a; }
+
+    @media (max-width: 1199.98px) { .cf-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+    @media (max-width: 767.98px) {
+        .cf-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+        .cf-field--wide { grid-column: 1 / -1; }
+        .cf-head, .cf-body { padding-left: 1rem; padding-right: 1rem; }
+    }
+    @media (max-width: 479.98px) {
+        .cf-grid { grid-template-columns: 1fr; }
+        .cf-actions, .cf-actions-end { flex-direction: column; align-items: stretch; }
+        .cf-actions-end form, .cf-actions-end .cf-btn, .cf-btn-primary { width: 100%; }
+    }
 </style>
 
 <div class="content container-fluid">
@@ -347,83 +405,65 @@
     <!-- End Page Header -->
 
     <!-- Filters -->
-<div class="card filter-card">
-    <div class="card-header d-flex align-items-center justify-content-between">
-        <h5 class="mb-0 text-primary">
-            <i class="tio-filter-list me-2"></i>
-            {{ \App\CPU\translate('فلتر العملاء') }}
-        </h5>
+{{-- الفلتر شبكة تلتفّ وحدها: خمسة أعمدة على الشاشة الكبيرة، وثلاثة أو
+     عمودان على التابلت، وعمود واحد على الهاتف. كانت أعمدة col-md-2 بفئات
+     Bootstrap 5 (form-select, g-3) على مشروع Bootstrap 4 فتتداخل الحقول. --}}
+<div class="card filter-card cf-card">
+    <div class="cf-head">
+        <div class="cf-title">
+            <span class="cf-icon"><i class="tio-filter-list"></i></span>
+            <div>
+                <h5>{{ \App\CPU\translate('فلتر العملاء') }}</h5>
+                <small>{{ \App\CPU\translate('ابحث وصفِّ قائمة العملاء') }}</small>
+            </div>
+        </div>
+        @if(request()->except('page'))
+            <a href="{{ url()->current() }}" class="cf-reset">
+                <i class="tio-clear"></i> {{ \App\CPU\translate('مسح الفلاتر') }}
+            </a>
+        @endif
     </div>
-    <div class="card-body">
+
+    <div class="cf-body">
         <form action="{{ url()->current() }}" method="GET">
-            <div class="row g-3 align-items-end">
-                <!-- Search -->
-                <div class="col-md-3">
-                    <label for="datatableSearch_" class="form-label">
-                        {{ \App\CPU\translate('بحث') }}
-                    </label>
-                    <div class="input-group">
-                        <span class="input-group-text border-end-0">
-                            <i class="tio-search text-primary"></i>
-                        </span>
-                        <input
-                            id="datatableSearch_"
-                            type="search"
-                            name="search"
-                            class="form-control border-start-0"
-                            placeholder="{{ \App\CPU\translate('بحث باسم أو كود العميل') }}"
-                            value="{{ $search }}"
-                        />
+            <div class="cf-grid">
+                <div class="cf-field cf-field--wide">
+                    <label for="datatableSearch_">{{ \App\CPU\translate('بحث') }}</label>
+                    <div class="cf-search">
+                        <i class="tio-search"></i>
+                        <input id="datatableSearch_" type="search" name="search" class="cf-control"
+                               placeholder="{{ \App\CPU\translate('بحث باسم أو كود العميل') }}"
+                               value="{{ $search }}">
                     </div>
                 </div>
 
-                <!-- Seller Dropdown -->
-                <div class="col-md-2">
-                    <label for="seller" class="form-label">
-                        {{ \App\CPU\translate('اختار البائع') }}
-                    </label>
-                    <select name="seller_id" id="seller" class="form-select">
-                        <option value="">{{ \App\CPU\translate('اختر بائع') }}</option>
+                <div class="cf-field">
+                    <label for="seller">{{ \App\CPU\translate('البائع') }}</label>
+                    <select name="seller_id" id="seller" class="cf-control">
+                        <option value="">{{ \App\CPU\translate('كل البائعين') }}</option>
                         @foreach($sellers as $sellerOption)
-                            <option
-                                value="{{ $sellerOption->id }}"
-                                {{ request('seller_id') == $sellerOption->id ? 'selected' : '' }}
-                            >
+                            <option value="{{ $sellerOption->id }}" {{ request('seller_id') == $sellerOption->id ? 'selected' : '' }}>
                                 {{ $sellerOption->email }}
                             </option>
                         @endforeach
                     </select>
                 </div>
 
-                <!-- الفئة (كانت تسمى التخصص) -->
-                <div class="col-md-2">
-                    <label for="specialist" class="form-label">
-                        {{ \App\CPU\translate('الفئة') }}
-                    </label>
-                    <select name="specialist" id="specialist" class="form-select">
+                <div class="cf-field">
+                    <label for="specialist">{{ \App\CPU\translate('الفئة') }}</label>
+                    <select name="specialist" id="specialist" class="cf-control">
                         <option value="">{{ \App\CPU\translate('كل الفئات') }}</option>
-                        <option value="1" {{ request('specialist') == 1 ? 'selected' : '' }}>
-                            {{ \App\CPU\translate('صيدلية') }}
-                        </option>
-                        <option value="2" {{ request('specialist') == 2 ? 'selected' : '' }}>
-                            {{ \App\CPU\translate('مركز طبي') }}
-                        </option>
-                        <option value="3" {{ request('specialist') == 3 ? 'selected' : '' }}>
-                            {{ \App\CPU\translate('مستشفى') }}
-                        </option>
-                        {{-- كان هذا الخيار بلا فحص selected، فيضيع عند إعادة العرض --}}
-                        <option value="4" {{ request('specialist') == 4 ? 'selected' : '' }}>
-                            {{ \App\CPU\translate('طبيب') }}
-                        </option>
+                        <option value="1" {{ request('specialist') == 1 ? 'selected' : '' }}>{{ \App\CPU\translate('صيدلية') }}</option>
+                        <option value="2" {{ request('specialist') == 2 ? 'selected' : '' }}>{{ \App\CPU\translate('مركز طبي') }}</option>
+                        <option value="3" {{ request('specialist') == 3 ? 'selected' : '' }}>{{ \App\CPU\translate('مستشفى') }}</option>
+                        <option value="4" {{ request('specialist') == 4 ? 'selected' : '' }}>{{ \App\CPU\translate('طبيب') }}</option>
                     </select>
                 </div>
 
                 <!-- التخصص: أطفال / نسا وتوليد / ... وهو category_id من نوع 0 -->
-                <div class="col-md-2">
-                    <label for="category_id" class="form-label">
-                        {{ \App\CPU\translate('التخصص') }}
-                    </label>
-                    <select name="category_id" id="category_id" class="form-select">
+                <div class="cf-field">
+                    <label for="category_id">{{ \App\CPU\translate('التخصص') }}</label>
+                    <select name="category_id" id="category_id" class="cf-control">
                         <option value="">{{ \App\CPU\translate('كل التخصصات') }}</option>
                         @foreach($categories as $category)
                             <option value="{{ $category->id }}"
@@ -434,14 +474,11 @@
                     </select>
                 </div>
 
-                {{-- المنطقة: قائمة مطوية تنفتح بالضغط.
-                     كانت select بـ size=4 فتظهر بأربعة صفوف دائمًا وتُطيل
-                     بطاقة الفلتر. الاسم region_id[] كما هو فلا يتأثر المتحكّم. --}}
-                <div class="col-md-2">
-                    <label class="form-label">{{ \App\CPU\translate('المنطقة') }}</label>
-
+                {{-- المنطقة: قائمة مطوية بمربعات اختيار، الاسم region_id[] كما هو. --}}
+                <div class="cf-field">
+                    <label>{{ \App\CPU\translate('المنطقة') }}</label>
                     <div class="dropdown">
-                        <button class="btn btn-white border w-100 text-start d-flex justify-content-between align-items-center"
+                        <button class="cf-control cf-region-btn"
                                 type="button" id="regionPicker" data-toggle="dropdown"
                                 aria-expanded="false">
                             <span>
@@ -466,23 +503,24 @@
                         </div>
                     </div>
                 </div>
+            </div>
 
-                <!-- Search Button -->
-                <div class="col-lg-1 col-md-2">
-                    <label class="form-label d-none d-md-block">&nbsp;</label>
-                    <button type="submit" class="btn btn-primary w-100">
-                        <i class="tio-search me-1"></i>
-                        {{ \App\CPU\translate('بحث') }}
+            <div class="cf-actions">
+                <button type="submit" class="btn cf-btn cf-btn-primary">
+                    <i class="tio-search"></i> {{ \App\CPU\translate('بحث') }}
+                </button>
+
+                <div class="cf-actions-end">
+                    <button type="button" class="btn cf-btn cf-btn-ghost" onclick="printTable()">
+                        <i class="tio-print"></i> {{ \App\CPU\translate('طباعة') }}
                     </button>
                 </div>
             </div>
         </form>
 
-        <hr>
-
-        <div class="d-flex gap-3 justify-content-end">
-            <!-- Export Button -->
-            {{-- التصدير يحمل فلاتر الشاشة الحالية، وإلا صدّر كل العملاء --}}
+        {{-- التصدير نموذج مستقل يحمل فلاتر الشاشة الحالية، فلا يوضع داخل
+             نموذج البحث؛ ينقله السكربت أسفل الصفحة بجانب زرّ الطباعة. --}}
+        <div class="cf-export-holder">
             <form action="{{ route('admin.customer.export') }}" method="GET" class="d-inline-block">
                 @foreach(request()->except('page') as $qkey => $qvalue)
                     @if(is_array($qvalue))
@@ -493,21 +531,11 @@
                         <input type="hidden" name="{{ $qkey }}" value="{{ $qvalue }}">
                     @endif
                 @endforeach
-                <button type="submit" class="btn btn-success">
-                    <i class="tio-download-to me-1"></i>
+                <button type="submit" class="btn cf-btn cf-btn-excel">
+                    <i class="tio-download-to"></i>
                     {{ \App\CPU\translate('اصدار في اكسل') }}
                 </button>
             </form>
-
-            <!-- Print Button -->
-            <button
-                type="button"
-                class="btn btn-outline-secondary"
-                onclick="printTable()"
-            >
-                <i class="tio-print me-1"></i>
-                {{ \App\CPU\translate('طباعة') }}
-            </button>
         </div>
     </div>
 </div>
@@ -996,5 +1024,19 @@ label:has(input[type="search"][aria-controls="DataTables_Table_5"]) {
 
         printWindow.document.close();
     }
+</script>
+@endpush
+
+@push('script_2')
+<script>
+    // زرّ التصدير نموذج مستقل؛ يُنقل بجانب الطباعة في شريط الأزرار.
+    document.addEventListener('DOMContentLoaded', function () {
+        var holder = document.querySelector('.cf-export-holder');
+        var end = document.querySelector('.cf-actions-end');
+        if (holder && end) {
+            while (holder.firstElementChild) end.prepend(holder.firstElementChild);
+            holder.remove();
+        }
+    });
 </script>
 @endpush
