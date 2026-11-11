@@ -44,6 +44,8 @@
                             <th>Mobile</th>
                             <th>Address</th>
                             <th>Email</th>
+                            <th>Specialty</th>
+                            <th>Class</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -53,6 +55,8 @@
                             <td>01012345678</td>
                             <td>القاهرة، مصر</td>
                             <td>m.ahmed@example.com</td>
+                            <td>أطفال</td>
+                            <td>A</td>
                         </tr>
                         <tr>
                             <td>2</td>
@@ -60,10 +64,19 @@
                             <td>01234567890</td>
                             <td>الإسكندرية، مصر</td>
                             <td>s.hussein@example.com</td>
+                            <td></td>
+                            <td>C</td>
                         </tr>
                     </tbody>
                 </table>
             </div>
+
+            {{-- قواعد العمودين الجديدين، حتى لا يُكتب تخصص أو تصنيف لا يُقرأ. --}}
+            <ul class="small text-muted mt-3 mb-0">
+                <li><strong>Specialty</strong>: اسم التخصص كما هو مكتوب في قائمة التخصصات بالظبط. الاسم غير الموجود يُتجاهل.</li>
+                <li><strong>Class</strong>: حرف واحد A أو B أو C أو D.</li>
+                <li>الخلية الفارغة في العمودين لا تغيّر القيمة الحالية للعميل.</li>
+            </ul>
         </div>
     </div>
 
