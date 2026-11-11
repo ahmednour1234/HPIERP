@@ -253,6 +253,11 @@ private function customerFilterQuery(Request $request)
         }
     }
 
+    // تصنيف العميل A–D مخزَّن رقمًا في type (1=A … 4=D).
+    if (in_array((string) $request->input('class'), ['1', '2', '3', '4'], true)) {
+        $query->where('type', (int) $request->input('class'));
+    }
+
     // التخصص الفعلي للطبيب (أطفال، نسا وتوليد، ...) مخزَّن في category_id.
     if ($categoryId = $request->input('category_id')) {
         $query->where('category_id', $categoryId);
@@ -294,6 +299,7 @@ public function export(Request $request)
             'العنوان'      => $c->address,
             'اسم الصيدلية' => $c->pharmacy_name,
             'الفئة'        => $labels[$c->specialist] ?? '',
+            'التصنيف'      => [1 => 'A', 2 => 'B', 3 => 'C', 4 => 'D'][(int) $c->type] ?? '',
             'التخصص'       => $categories[$c->category_id] ?? '',
             'المنطقة'      => optional($c->regions)->name ?? '',
             'المحافظة'     => $c->state,

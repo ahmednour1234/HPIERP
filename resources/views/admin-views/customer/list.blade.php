@@ -346,7 +346,7 @@
     .cf-reset:hover { color: #b0213a; text-decoration: none; }
 
     .cf-body { padding: 1.25rem 1.5rem 1.5rem; }
-    .cf-grid { display: grid; gap: 1rem; grid-template-columns: repeat(5, minmax(0, 1fr)); }
+    .cf-grid { display: grid; gap: 1rem; grid-template-columns: repeat(6, minmax(0, 1fr)); }
     .cf-field { min-width: 0; display: flex; flex-direction: column; gap: .4rem; }
     .cf-field > label { margin: 0; font-size: .8rem; font-weight: 800; color: #5b6b86; }
 
@@ -457,6 +457,20 @@
                         <option value="2" {{ request('specialist') == 2 ? 'selected' : '' }}>{{ \App\CPU\translate('مركز طبي') }}</option>
                         <option value="3" {{ request('specialist') == 3 ? 'selected' : '' }}>{{ \App\CPU\translate('مستشفى') }}</option>
                         <option value="4" {{ request('specialist') == 4 ? 'selected' : '' }}>{{ \App\CPU\translate('طبيب') }}</option>
+                    </select>
+                </div>
+
+                {{-- التصنيف A–D: customers.type. الاسم class لا type، فـ type
+                     يُستخدم في روابط أخرى بمعنى مختلف. --}}
+                <div class="cf-field">
+                    <label for="customer_class">{{ \App\CPU	ranslate('التصنيف') }}</label>
+                    <select name="class" id="customer_class" class="cf-control">
+                        <option value="">{{ \App\CPU	ranslate('كل التصنيفات') }}</option>
+                        @foreach([1 => 'A', 2 => 'B', 3 => 'C', 4 => 'D'] as $classValue => $classLabel)
+                            <option value="{{ $classValue }}" {{ (string) request('class') === (string) $classValue ? 'selected' : '' }}>
+                                {{ $classLabel }}
+                            </option>
+                        @endforeach
                     </select>
                 </div>
 
