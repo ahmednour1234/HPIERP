@@ -478,6 +478,8 @@ public function reserveProduct(Request $request)
     $reserveProduct->date = now()->format('Y-m-d'); // Use now() for current date
     $reserveProduct->customer_id = $request->customer_id;
     $reserveProduct->type = $request->type;
+    // ملاحظة المندوب: لم تكن تُحفظ هنا فلا تظهر في مراجعة الطلب.
+    $reserveProduct->note = $request->input('note');
     $reserveProduct->active = 1; // Set the active column to 1
     $reserveProduct->save();
      $current_reserve_products->id = $order_id;
@@ -486,6 +488,7 @@ public function reserveProduct(Request $request)
         $current_reserve_products->date = date('Y-m-d');
         $current_reserve_products->customer_id = $request->customer_id;
         $current_reserve_products->type = $request->type;
+        $current_reserve_products->note = $request->input('note');
         $current_reserve_products->save();
     return response()->json([
         'message' => 'Reservation successful',
