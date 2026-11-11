@@ -10,6 +10,8 @@ use App\Models\SellerHandover;
 use App\Models\VanHandoverCount;
 use App\Services\OrderOwnershipTransferService;
 use App\Services\SellerAssignmentTransferService;
+use App\Services\SellerDepositService;
+use App\Models\Account;
 use App\Services\VanHandoverCountService;
 use Brian2694\Toastr\Facades\Toastr;
 use Illuminate\Contracts\View\View;
@@ -205,6 +207,66 @@ class SellerHandoverController extends Controller
         return back();
     }
 
+    /**
+     * استلام مديونية صاحب العهدة: ما حصّله ولم يورّده.
+     *
+     * يُسجَّل توريدًا ويُعتمد فورًا عبر SellerDepositService، فيدخل المبلغ
+     * الحساب المختار بقيده في الدفتر وينزل من admins.credit تمامًا كتوريد
+     * يعتمده المحاسب — لا حساب ثانٍ لنفس العملية.
+     */
+    public function collectDebt(Request $request, int $id, SellerDepositService $deposits): RedirectResponse
+    {
+        $handover = $this->findVisible($id);
+
+        if (!$handover) {
+            Toastr::error('التسليم غير موجود.');
+            return redirect()->route('admin.handover.index');
+        }
+
+        $data = $request->validate([
+            'amount'     => 'required|numeric|min:0.01',
+            'account_id' => 'required|integer|exists:accounts,id',
+            'note'       => 'nullable|string|max:2000',
+        ]);
+
+        $sellerId = (int) $handover->from_seller_id;
+        $debt     = round((float) optional(Seller::find($sellerId, ['id', 'credit']))->credit, 2);
+        $amount   = round((float) $data['amount'], 2);
+
+        // أكثر من المديونية يجعلها سالبة، أي أن الشركة مدينة له؛ يُمنع هنا
+        // ويُسجَّل الفائض إن وُجد توريدًا عاديًا.
+        if ($amount > $debt) {
+            Toastr::error('المبلغ أكبر من المديونية (' . number_format($debt, 2) . ').');
+            return back()->withInput();
+        }
+
+        try {
+            // تسجيل واعتماد معًا: فشل الاعتماد لا يترك توريدًا معلّقًا.
+            $deposit = \Illuminate\Support\Facades\DB::transaction(function () use ($deposits, $sellerId, $data, $amount, $handover) {
+                $deposit = $deposits->file($sellerId, [
+                    'account_id' => $data['account_id'],
+                    'amount'     => $amount,
+                    'note'       => $data['note'] ?: ('استلام مديونية — تسليم عهدة #' . $handover->id),
+                ]);
+
+                return $deposits->approve($deposit->id, Auth::guard('admin')->id());
+            });
+        } catch (\Throwable $e) {
+            Toastr::error($e->getMessage());
+            return back()->withInput();
+        }
+
+        $this->log($handover, [
+            'debt'       => $amount,
+            'account_id' => (int) $data['account_id'],
+            'deposit_id' => (int) $deposit->id,
+        ]);
+
+        Toastr::success('تم استلام ' . number_format($amount, 2) . ' من مديونية صاحب العهدة.');
+
+        return back();
+    }
+
     /** شاشة النقل المستقلة: عملاء ومناطق وأقسام من مندوب لآخر، بلا تسليم. */
     public function reassign(Request $request): View
     {
@@ -337,6 +399,13 @@ class SellerHandoverController extends Controller
 
             // ما زال مع صاحب العهدة من تعيينات، والمستلم يملك منها ماذا.
             'assign' => $this->assignments->listFor($fromSeller, (int) $handover->to_seller_id),
+
+            // المديونية: ما حصّله صاحب العهدة ولم يورّده (admins.credit)،
+            // والتوريدات المعلّقة التي ستنقصها متى اعتُمدت.
+            'debt'           => round((float) optional(Seller::find($fromSeller, ['id', 'credit']))->credit, 2),
+            'pendingDeposit' => round((float) \App\Models\TransactionSeller::where('seller_id', $fromSeller)
+                ->where('active', 0)->sum(\Illuminate\Support\Facades\DB::raw('amount + 0')), 2),
+            'accounts'       => Account::orderBy('id')->get(['id', 'account', 'balance']),
         ]);
     }
 

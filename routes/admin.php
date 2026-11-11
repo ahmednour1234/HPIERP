@@ -568,6 +568,8 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
             Route::post ('{id}/assignments', [SellerHandoverController::class, 'moveAssignments'])->whereNumber('id')->name('assignments');
             // بضاعة العربية: action=return (للمخزن) أو move (للمستلم).
             Route::post ('{id}/stock', [SellerHandoverController::class, 'stock'])->whereNumber('id')->name('stock');
+            // استلام مديونية صاحب العهدة: توريد يُعتمد فورًا.
+            Route::post ('{id}/debt', [SellerHandoverController::class, 'collectDebt'])->whereNumber('id')->name('debt');
 
             // شاشة نقل مستقلة بين مندوبين، بلا تسليم.
             Route::get  ('reassign', [SellerHandoverController::class, 'reassign'])->name('reassign');

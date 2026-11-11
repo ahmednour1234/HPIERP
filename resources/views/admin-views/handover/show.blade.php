@@ -150,7 +150,10 @@
                     @foreach($handover->assignments as $entry)
                         <li>
                             {{ $entry['at'] ?? '' }} —
-                            @if(isset($entry['stock']))
+                            @if(isset($entry['debt']))
+                                استلام مديونية {{ number_format((float) $entry['debt'], 2) }}
+                                @if(!empty($entry['deposit_id'])) (توريد #{{ $entry['deposit_id'] }}) @endif
+                            @elseif(isset($entry['stock']))
                                 {{ $entry['stock'] === 'return' ? 'تصفير العربية وإرجاع' : 'نقل لعربية المستلم:' }}
                                 {{ $entry['products'] ?? 0 }} صنف ({{ $entry['units'] ?? 0 }} وحدة)
                                 {{ $entry['stock'] === 'return' ? 'للمخزن' : '' }}
@@ -163,6 +166,71 @@
                         </li>
                     @endforeach
                 </ul>
+            @endif
+        </div>
+    </div>
+
+    {{-- ===== مديونية صاحب العهدة ===== --}}
+    <div class="card mb-4">
+        <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+            <h5 class="mb-0">مديونية {{ $fromName }}</h5>
+            <small class="text-muted">ما حصّله ولم يورّده. الاستلام يُسجَّل توريدًا معتمدًا في الحساب المختار.</small>
+        </div>
+
+        <div class="card-body">
+            <div class="d-flex flex-wrap mb-3" style="gap:1.5rem;">
+                <div>
+                    <small class="text-muted d-block">المديونية الحالية</small>
+                    <b class="h4 mb-0 {{ $debt > 0 ? 'text-danger' : 'text-success' }}">{{ number_format($debt, 2) }}</b>
+                </div>
+                @if($pendingDeposit > 0)
+                    <div>
+                        <small class="text-muted d-block">توريدات معلّقة بانتظار الاعتماد</small>
+                        <b class="h5 mb-0 text-warning">{{ number_format($pendingDeposit, 2) }}</b>
+                    </div>
+                @endif
+            </div>
+
+            @if($debt <= 0)
+                <p class="text-muted mb-0">لا مديونية على {{ $fromName }}.</p>
+            @else
+                @if($pendingDeposit > 0)
+                    <div class="alert alert-soft-warning small">
+                        عليه توريدات معلّقة بـ {{ number_format($pendingDeposit, 2) }}: اعتمادها لاحقًا سينقص المديونية أيضًا،
+                        فلا تستلم نفس المبلغ مرتين.
+                    </div>
+                @endif
+
+                <form method="POST" action="{{ route('admin.handover.debt', $handover->id) }}"
+                      onsubmit="return confirm('تأكيد استلام المبلغ؟ يُضاف للحساب ويُخصم من مديونيته.');">
+                    @csrf
+                    <div class="form-row align-items-end">
+                        <div class="form-group col-md-3">
+                            <label class="input-label">المبلغ المستلَم</label>
+                            <input type="number" name="amount" class="form-control" step="0.01" min="0.01"
+                                   max="{{ $debt }}" value="{{ old('amount', $debt) }}" required>
+                        </div>
+                        <div class="form-group col-md-4">
+                            <label class="input-label">الحساب (الخزنة / البنك)</label>
+                            <select name="account_id" class="form-control" required>
+                                <option value="">— اختر —</option>
+                                @foreach($accounts as $acc)
+                                    <option value="{{ $acc->id }}" @selected(old('account_id') == $acc->id)>{{ $acc->account }}</option>
+                                @endforeach
+                            </select>
+                        </div>
+                        <div class="form-group col-md-5">
+                            <label class="input-label">ملاحظة</label>
+                            <input type="text" name="note" class="form-control" maxlength="2000" value="{{ old('note') }}"
+                                   placeholder="استلام مديونية — تسليم عهدة #{{ $handover->id }}">
+                        </div>
+                    </div>
+                    <div class="d-flex justify-content-end">
+                        <button type="submit" class="btn btn-success">
+                            <i class="tio-money"></i> استلام المديونية
+                        </button>
+                    </div>
+                </form>
             @endif
         </div>
     </div>
