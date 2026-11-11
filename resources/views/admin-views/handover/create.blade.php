@@ -65,6 +65,18 @@
                     </div>
                 </div>
 
+                {{-- قد لا تُسلَّم البضاعة للمستلم: حينها تُغلق خطوة الجرد. --}}
+                <div class="form-group">
+                    <label class="d-inline-flex align-items-center mb-0" style="gap:.5rem; cursor:pointer; font-weight:700;">
+                        <input type="checkbox" name="include_stock" id="include_stock" value="1"
+                               @checked(old('include_stock', '1') === '1')>
+                        تسليم بضاعة العربية للمستلم
+                    </label>
+                    <small class="d-block text-muted">
+                        العملاء والمناطق والأقسام تختار ما يُنقل منها بعد التسجيل، من صفحة التسليم.
+                    </small>
+                </div>
+
                 <div class="d-flex justify-content-end" style="gap:.5rem;">
                     <a href="{{ route('admin.handover.index') }}" class="btn btn-secondary">إلغاء</a>
                     <button type="submit" class="btn btn-primary">تسجيل التسليم</button>
@@ -105,6 +117,7 @@
     (function () {
         var from = document.getElementById('from_seller_id');
         var to   = document.getElementById('to_seller_id');
+        var stock = document.getElementById('include_stock');
         var card = document.getElementById('handover-preview-card');
         var box  = document.getElementById('handover-preview');
         var url  = @json(route('admin.handover.preview'));
@@ -118,7 +131,8 @@
             box.innerHTML = '<p class="text-muted mb-0">جارٍ التحميل…</p>';
 
             var q = '?from=' + encodeURIComponent(from.value)
-                  + (to.value ? '&to=' + encodeURIComponent(to.value) : '');
+                  + (to.value ? '&to=' + encodeURIComponent(to.value) : '')
+                  + '&stock=' + (stock.checked ? '1' : '0');
 
             fetch(url + q, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, credentials: 'same-origin' })
                 .then(function (r) { if (!r.ok) throw r; return r.text(); })
@@ -130,6 +144,7 @@
 
         from.addEventListener('change', load);
         to.addEventListener('change', load);
+        stock.addEventListener('change', load);
         load();
     })();
 </script>

@@ -2,11 +2,19 @@
 @php
     $fromUnits = $products->sum('from');
     $toUnits   = $products->sum('to');
+    // البضاعة لا تُضاف للمستلم إن لم تُسلَّم.
+    $movedUnits = $includeStock ? $fromUnits : 0;
 @endphp
+
+@unless($includeStock)
+    <div class="alert alert-soft-warning mb-3">
+        البضاعة <strong>لن تُسلَّم</strong> للمستلم: تبقى في عهدة صاحبها، ولا جرد للعربية في هذا التسليم.
+    </div>
+@endunless
 
 <div class="hp-grid">
     <div class="hp-stat hp-stat--from">
-        <span class="hp-stat-label">مع صاحب العهدة — يتسلّمه المستلم</span>
+        <span class="hp-stat-label">مع صاحب العهدة{{ $includeStock ? ' — يتسلّمه المستلم' : '' }}</span>
         <div class="hp-stat-row">
             <div><b>{{ $fromSide['orders']->count() }}</b><small>فاتورة غير محصّلة</small></div>
             <div><b>{{ number_format($fromSide['remaining'], 2) }}</b><small>متبقٍّ للتحصيل</small></div>
@@ -29,7 +37,7 @@
             <div class="hp-stat-row">
                 <div><b>{{ $toSide['orders']->count() + $fromSide['orders']->count() }}</b><small>فاتورة</small></div>
                 <div><b>{{ number_format($toSide['remaining'] + $fromSide['remaining'], 2) }}</b><small>متبقٍّ</small></div>
-                <div><b>{{ number_format($toUnits + $fromUnits) }}</b><small>وحدة</small></div>
+                <div><b>{{ number_format($toUnits + $movedUnits) }}</b><small>وحدة</small></div>
             </div>
         </div>
     @else
@@ -61,7 +69,7 @@
                             <td class="text-center">{{ $p['from'] ?: '-' }}</td>
                             @if($toSide)
                                 <td class="text-center">{{ $p['to'] ?: '-' }}</td>
-                                <td class="text-center font-weight-bold">{{ $p['from'] + $p['to'] }}</td>
+                                <td class="text-center font-weight-bold">{{ ($includeStock ? $p['from'] : 0) + $p['to'] }}</td>
                             @endif
                         </tr>
                     @endforeach

@@ -16,6 +16,8 @@ class SellerHandover extends Model
     protected $fillable = [
         'from_seller_id',
         'to_seller_id',
+        'include_stock',
+        'assignments',
         'started_at',
         'ended_at',
         'note',
@@ -23,8 +25,11 @@ class SellerHandover extends Model
     ];
 
     protected $casts = [
-        'started_at' => 'datetime',
-        'ended_at'   => 'datetime',
+        'started_at'    => 'datetime',
+        'ended_at'      => 'datetime',
+        'include_stock' => 'boolean',
+        // سجلّ ما نُقل: [{at, by, remove, customers[], regions[], categories[]}].
+        'assignments'   => 'array',
     ];
 
     /** صاحب العهدة: من انتهت خدمته. */

@@ -6,7 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\AdminSeller;
 use App\Models\OrderOwnerLog;
 use App\Models\Seller;
+use App\Models\SellerCategory;
+use App\Models\SellerCustomer;
 use App\Models\SellerHandover;
+use App\Models\SellerRegion;
 use App\Models\VanHandoverCount;
 use App\Services\OrderOwnershipTransferService;
 use App\Services\VanHandoverCountService;
@@ -15,6 +18,7 @@ use Illuminate\Contracts\View\View;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 
 /**
  * تسليم عهدة مندوب انتهت خدمته إلى من يخلفه.
@@ -72,9 +76,11 @@ class SellerHandoverController extends Controller
     public function preview(Request $request)
     {
         $data = $request->validate([
-            'from' => 'required|integer',
-            'to'   => 'nullable|integer',
+            'from'  => 'required|integer',
+            'to'    => 'nullable|integer',
+            'stock' => 'nullable|in:0,1',
         ]);
+        $includeStock = ($data['stock'] ?? '1') === '1';
 
         $visible = $this->visibleSellerIds()->map(fn ($id) => (int) $id);
         $from    = (int) $data['from'];
@@ -118,10 +124,104 @@ class SellerHandoverController extends Controller
         }
 
         return view('admin-views.handover._preview', [
-            'fromSide' => $fromSide,
-            'toSide'   => $toSide,
-            'products' => $products->sortBy('name')->values(),
+            'fromSide'     => $fromSide,
+            'toSide'       => $toSide,
+            'products'     => $products->sortBy('name')->values(),
+            'includeStock' => $includeStock,
         ]);
+    }
+
+    /**
+     * نقل العملاء والمناطق والأقسام المختارة إلى المستلم.
+     *
+     * لا يُنقل شيء لم يُختر صراحةً. الإضافة للمستلم لا تكرّر ما عنده،
+     * والحذف من صاحب العهدة اختياري (remove)، وكل نقل يُسجَّل في
+     * assignments بالتسليم.
+     */
+    public function moveAssignments(Request $request, int $id): RedirectResponse
+    {
+        $handover = $this->findVisible($id);
+
+        if (!$handover) {
+            Toastr::error('التسليم غير موجود.');
+            return redirect()->route('admin.handover.index');
+        }
+
+        $data = $request->validate([
+            'customers'    => 'nullable|array',
+            'customers.*'  => 'integer',
+            'regions'      => 'nullable|array',
+            'regions.*'    => 'integer',
+            'categories'   => 'nullable|array',
+            'categories.*' => 'integer',
+            'remove'       => 'nullable|boolean',
+        ]);
+
+        $from   = (int) $handover->from_seller_id;
+        $to     = (int) $handover->to_seller_id;
+        $remove = $request->boolean('remove');
+
+        // ما يُختار يجب أن يكون مع صاحب العهدة فعلًا، فلا يُنقل غيره.
+        $sets = [
+            'customers'  => [SellerCustomer::class, 'customer_id'],
+            'regions'    => [SellerRegion::class, 'region_id'],
+            'categories' => [SellerCategory::class, 'cat_id'],
+        ];
+
+        $moved = [];
+        DB::transaction(function () use ($sets, $data, $from, $to, $remove, &$moved) {
+            foreach ($sets as $key => [$model, $column]) {
+                $ids = $model::where('seller_id', $from)
+                    ->whereIn($column, array_map('intval', $data[$key] ?? []))
+                    ->pluck($column)
+                    ->map(fn ($v) => (int) $v)
+                    ->unique()
+                    ->values();
+
+                if ($ids->isEmpty()) {
+                    continue;
+                }
+
+                $already = $model::where('seller_id', $to)->whereIn($column, $ids)->pluck($column)
+                    ->map(fn ($v) => (int) $v)->all();
+
+                foreach ($ids->diff($already) as $value) {
+                    $row = new $model();
+                    $row->seller_id = $to;
+                    $row->{$column} = $value;
+                    $row->save();
+                }
+
+                if ($remove) {
+                    $model::where('seller_id', $from)->whereIn($column, $ids)->delete();
+                }
+
+                $moved[$key] = $ids->all();
+            }
+        });
+
+        if (!$moved) {
+            Toastr::warning('لم يُختر شيء للنقل.');
+            return back();
+        }
+
+        $log   = $handover->assignments ?? [];
+        $log[] = array_merge([
+            'at'     => now()->toDateTimeString(),
+            'by'     => Auth::guard('admin')->id(),
+            'remove' => $remove,
+        ], $moved);
+        $handover->assignments = $log;
+        $handover->save();
+
+        Toastr::success(sprintf(
+            'تم النقل: %d عميل، %d منطقة، %d قسم.',
+            count($moved['customers'] ?? []),
+            count($moved['regions'] ?? []),
+            count($moved['categories'] ?? [])
+        ));
+
+        return back();
     }
 
     public function store(Request $request): RedirectResponse
@@ -138,6 +238,8 @@ class SellerHandoverController extends Controller
         $handover = SellerHandover::create([
             'from_seller_id' => $data['from_seller_id'],
             'to_seller_id'   => $data['to_seller_id'],
+            // مربع غير معلَّم لا يُرسَل، فغيابه يعني «لا تُسلَّم البضاعة».
+            'include_stock'  => $request->boolean('include_stock'),
             'started_at'     => $data['started_at'] ?? now(),
             'note'           => $data['note'] ?? null,
             'created_by'     => Auth::guard('admin')->id(),
@@ -174,7 +276,35 @@ class SellerHandoverController extends Controller
                 ->where('handover_id', $handover->id)
                 ->latest('id')
                 ->first(),
+
+            // ما زال مع صاحب العهدة من تعيينات، والمستلم يملك منها ماذا.
+            'assign' => $this->assignmentsOf($fromSeller, (int) $handover->to_seller_id),
         ]);
+    }
+
+    /**
+     * عملاء صاحب العهدة ومناطقه وأقسامه بأسمائها، مع علامة على ما
+     * عند المستلم أصلًا.
+     */
+    private function assignmentsOf(int $from, int $to): array
+    {
+        $build = function (string $pivot, string $column, string $table, string $label) use ($from, $to) {
+            $toHas = DB::table($pivot)->where('seller_id', $to)->pluck($column)->map(fn ($v) => (int) $v)->flip();
+
+            return DB::table($pivot)
+                ->join($table, "$table.id", '=', "$pivot.$column")
+                ->where("$pivot.seller_id", $from)
+                ->orderBy("$table.$label")
+                ->distinct()
+                ->get(["$table.id", "$table.$label as name"])
+                ->map(fn ($r) => ['id' => (int) $r->id, 'name' => $r->name, 'to_has' => $toHas->has((int) $r->id)]);
+        };
+
+        return [
+            'customers'  => $build('seller_customers', 'customer_id', 'customers', 'name'),
+            'regions'    => $build('seller_regions', 'region_id', 'regions', 'name'),
+            'categories' => $build('seller_categories', 'cat_id', 'categories', 'name'),
+        ];
     }
 
     /** ترحيل الفواتير إلى الخلف. */
@@ -239,6 +369,11 @@ class SellerHandoverController extends Controller
         if (!$handover) {
             Toastr::error('التسليم غير موجود.');
             return redirect()->route('admin.handover.index');
+        }
+
+        if (!$handover->include_stock) {
+            Toastr::error('هذا التسليم بلا بضاعة، فلا جرد له.');
+            return redirect()->route('admin.handover.show', $handover->id);
         }
 
         $data = $request->validate([

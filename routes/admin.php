@@ -564,6 +564,9 @@ Route::prefix('/attendance')->name('attendance.')->group(function () {
 
             Route::post ('{id}/end', [SellerHandoverController::class, 'end'])->whereNumber('id')->name('end');
 
+            // نقل العملاء والمناطق والأقسام المختارة إلى المستلم.
+            Route::post ('{id}/assignments', [SellerHandoverController::class, 'moveAssignments'])->whereNumber('id')->name('assignments');
+
             // قراءة فقط: تحسب العهدة من سجلّاتها وتعرض الفرق، ولا تكتب
             // شيئًا. قبل {id} لأنها ليست معرِّفًا رقميًّا.
             Route::get  ('custody', [SellerCustodyController::class, 'index'])->name('custody');
